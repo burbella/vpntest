@@ -9,7 +9,7 @@ exit_if_not_running_as_ubuntu
 
 ZZZ_GIT_BRANCH=$1
 if [[ "$ZZZ_GIT_BRANCH" == "" ]]; then
-    ZZZ_GIT_BRANCH=master
+    ZZZ_GIT_BRANCH=main
 fi
 
 cd $REPOS_DIR

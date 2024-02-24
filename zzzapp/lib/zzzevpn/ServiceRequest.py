@@ -807,8 +807,8 @@ class ServiceRequest:
         elif action=='git_reset':
             scriptname = 'git-checkout'
             script_filepath = self.ConfigData['Subprocess']['git-checkout']
-            #TODO: 'master' --> details
-            # cmd_list = ['sudo', '-H', '-u', 'ubuntu', script_filepath, 'master']
+            #TODO: 'main' --> details
+            # cmd_list = ['sudo', '-H', '-u', 'ubuntu', script_filepath, 'main']
             cmd_list = ['sudo', '-H', '-u', 'ubuntu', script_filepath]
             if details:
                 cmd_list.append('branch')
@@ -822,7 +822,7 @@ class ServiceRequest:
         # sudo -H -u ubuntu /home/ubuntu/bin/git-branch
         # sudo -H -u ubuntu /home/ubuntu/bin/git-diff
         # sudo -H -u ubuntu /home/ubuntu/bin/git-pull
-        # sudo -H -u ubuntu /home/ubuntu/bin/git-checkout master
+        # sudo -H -u ubuntu /home/ubuntu/bin/git-checkout main
         stdout = ''
         stderr = ''
         ran_OK = True

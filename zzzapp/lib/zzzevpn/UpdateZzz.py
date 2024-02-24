@@ -51,7 +51,7 @@ class UpdateZzz:
     # install_zzz_codebase: sudo /home/ubuntu/bin/diff_code.py -i
     # git_branch: /home/ubuntu/bin/git-branch
     # git_diff: /home/ubuntu/bin/git-diff
-    # git_reset: /home/ubuntu/bin/git-checkout master
+    # git_reset: /home/ubuntu/bin/git-checkout main
     allowed_actions_dev = ['db_view', 'db_view_table_info', 'dev_upgrade', 'refresh_code_diff', 'refresh_pytest', 'refresh_installer_output', 'refresh_git_output', 'run_code_diff', 'run_pytest', 'install_zzz_codebase', 'git_branch', 'git_diff', 'git_reset', 'pipdeptree', 'pip_versions', 'queue_upgrades', 'version_checks']
     allowed_actions = ['queue_upgrades', 'version_checks']
     
@@ -718,10 +718,10 @@ class UpdateZzz:
 
     #--------------------------------------------------------------------------------
 
-    # remotes/origin/HEAD -> origin/master
+    # remotes/origin/HEAD -> origin/main
     # remotes/origin/branch1
     # remotes/origin/branch2
-    # remotes/origin/master
+    # remotes/origin/main
     # remotes/origin/other-branch3
     # remotes/origin/other-branch4
     def get_branches(self) -> dict:
@@ -731,12 +731,12 @@ class UpdateZzz:
         branches = []
         if branches_filedata:
             branches = branches_filedata.split('\n')
-        master_branch = '<option value="master" selected="selected">master</option>'
-        menu_options = [master_branch]
+        main_branch = '<option value="main" selected="selected">main</option>'
+        menu_options = [main_branch]
         if not branches:
             show_branches = {
                 'all': menu_options,
-                'current': 'master',
+                'current': 'main',
             }
             return show_branches
 
@@ -746,7 +746,7 @@ class UpdateZzz:
             if not branch:
                 continue
             branch = branch.replace('remotes/', '')
-            if branch=='origin/master':
+            if branch=='origin/main':
                 continue
             menu_options.append(f'<option value="{branch}">{branch}</option>')
 
@@ -889,7 +889,7 @@ class UpdateZzz:
                 return f'ERROR - version mismatch: installed_version={installed_version}, required_version={required_version}'
             details = dev_version
         elif action in ['git_diff', 'git_reset']:
-            if re.match(r'^(master|origin\/[A-Za-z0-9-]{1,250})$', branch):
+            if re.match(r'^(main|origin\/[A-Za-z0-9-]{1,250})$', branch):
                 details = branch
             else:
                 return 'ERROR: invalid branch name'

@@ -10,10 +10,10 @@ exit_if_not_running_as_ubuntu
 GIT_PARAM=$1
 GIT_BRANCH=$2
 
-#-----version tag must match a safe pattern (version number, "master", "latest" version)-----
+#-----version tag must match a safe pattern (version number, "main", "latest" version)-----
 # prod versions: 1,2,3,...
 # dev version: 22a1, 23aWhatever
-if [[ "$GIT_PARAM" =~ ^([0-9]{1,8}(|a[A-Za-z0-9.-_]{1,50})|master|branch|latest|latest_dev)$ ]]; then
+if [[ "$GIT_PARAM" =~ ^([0-9]{1,8}(|a[A-Za-z0-9.-_]{1,50})|main|branch|latest|latest_dev)$ ]]; then
     echo "good param: $GIT_PARAM"
     if [[ "$GIT_PARAM" == "branch" ]]; then
         if [[ "$GIT_BRANCH" =~ ^origin\/[A-Za-z0-9-]{1,250}$ ]]; then
@@ -50,8 +50,8 @@ elif [[ "$GIT_PARAM" == "latest" ]]; then
 elif [[ "$GIT_PARAM" == "latest_dev" ]]; then
     LATEST_DEV_VERSION=`git tag | /opt/zzz/python/bin/mixed-sort.py | tail -1`
     /usr/bin/git checkout tags/$LATEST_DEV_VERSION
-elif [[ "$GIT_PARAM" == "master" ]]; then
-    /usr/bin/git checkout master
+elif [[ "$GIT_PARAM" == "main" ]]; then
+    /usr/bin/git checkout main
 else
     /usr/bin/git checkout tags/$GIT_PARAM
 fi
