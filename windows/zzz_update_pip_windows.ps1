@@ -31,7 +31,7 @@ This script will setup/update the venv and python pypi packages.
 
 # TODO: replace this with the more secure PowerShell username lookup?
 #       [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$repos_name = "test"
+$repos_name = "vpntest"
 $repos_windows_subdir = "zzzevpn"
 $venv_name = "venv-310"
 $zzz_appdata_dir = "$($env:LOCALAPPDATA)\$repos_windows_subdir"

@@ -24,7 +24,7 @@ class Config:
     
     #TODO: rename this to "zzzevpn" after moving the codebase to the new repos
     # should match ZZZ_REPOS_NAME in util.sh
-    repos_name: str = 'test'
+    repos_name: str = 'vpntest'
     repos_dir: str = f'/home/ubuntu/repos/{repos_name}'
     
     ConfigFile: str = '/etc/zzz.conf'

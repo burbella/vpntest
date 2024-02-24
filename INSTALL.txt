@@ -20,16 +20,16 @@ Step 1:
     run "screen" in case of connection issues
 
 Step 2:
-    Download from the github repos "test":
+    Download from the github repos "vpntest":
         mkdir /home/ubuntu/repos
         cd /home/ubuntu/repos
-        git clone https://github.com/burbella/test.git
-        cd /home/ubuntu/repos/test
+        git clone https://github.com/burbella/vpntest.git
+        cd /home/ubuntu/repos/vpntest
         git checkout tags/24
 
 Step 3:
     Install the YAML Config File:
-        sudo cp /home/ubuntu/repos/test/config/zzz.conf /etc
+        sudo cp /home/ubuntu/repos/vpntest/config/zzz.conf /etc
     Edit the YAML Config File:
         sudo nano /etc/zzz.conf
     VPNusers: 'zzz-user1,zzz-user2,zzz-user3'
@@ -52,14 +52,14 @@ Step 3:
 
 Step 4:
     a) Run the installer as root: (on a terminal running the "screen" app)
-            sudo /home/ubuntu/repos/test/install.sh
+            sudo /home/ubuntu/repos/vpntest/install.sh
        Watch the installer progress in a second terminal: (OPTIONAL)
             sudo tail -F /var/log/zzz/install/install.log
     b) OS updates will be done, then it will auto-reboot
     c) After reboot, re-connect to SSH and start the "screen" app again:
             screen
        Run the installer again to finish setup:
-            sudo /home/ubuntu/repos/test/install.sh
+            sudo /home/ubuntu/repos/vpntest/install.sh
        It will check the /etc/zzz.conf file and ask you to confirm if it is correct or not
        If config errors are reported:
             fix the config file

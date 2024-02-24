@@ -7,7 +7,7 @@ if [[ -e '/opt/zzz/venv/bin/activate' ]]; then
 fi
 
 #TODO: move this to "zzzevpn"
-ZZZ_REPOS_NAME=test
+ZZZ_REPOS_NAME=vpntest
 # assume the repos will be in this directory:
 REPOS_DIR=/home/ubuntu/repos/$ZZZ_REPOS_NAME
 #ZZZ_INSTALLER_DIR=$REPOS_DIR/install

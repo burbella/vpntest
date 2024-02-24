@@ -10,7 +10,7 @@
 #       010
 #       etc.
 
-REPOS_DIR=/home/ubuntu/repos/test
+REPOS_DIR=/home/ubuntu/repos/vpntest
 
 echo
 echo "Zzz Enhanced VPN installer starting . . ."

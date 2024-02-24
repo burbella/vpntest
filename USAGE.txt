@@ -173,7 +173,7 @@ Update Ubuntu to the latest OS version
 
 run "screen" in case of connection issues
 
-sudo /home/ubuntu/repos/test/install/050_update-os.sh
+sudo /home/ubuntu/repos/vpntest/install/050_update-os.sh
 
 --------------------------------------------------------------------------------
 

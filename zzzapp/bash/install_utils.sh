@@ -7,7 +7,7 @@
 #   execute permission becoming unset
 #   line endings getting messed up
 
-ZZZ_REPOS_NAME=test
+ZZZ_REPOS_NAME=vpntest
 REPOS_DIR=/home/ubuntu/repos/$ZZZ_REPOS_NAME
 ZZZ_CONFIG_FILE=/etc/zzz.conf
 #ZZZ_INSTALLER_DIR=$REPOS_DIR/install
