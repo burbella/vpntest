@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text eol=lf
+
+#-----text files-----
+*.acl      text eol=lf
+*.bash_profile text eol=lf
+*.bashrc   text eol=lf
+*.conf     text eol=lf
+*.css      text eol=lf
+*.js       text eol=lf
+*.md       text eol=lf
+*.py       text eol=lf
+*.sh       text eol=lf
+*.template text eol=lf
+*.toprc    text eol=lf
+*.txt      text eol=lf
+*.vimrc    text eol=lf
+*.wsgi     text eol=lf
+
+#-----binary files-----
+*.gif    binary
+*.gz     binary
+*.ico    binary
+*.jpg    binary
+*.png    binary
+
+# make all files in /config be text
+
