@@ -1,0 +1,20 @@
+#!/bin/bash
+#-----get the hash value inside the git tag-----
+# NOTE: the repos must have been cloned first
+
+source /opt/zzz/util/util.sh
+
+GIT_TAG_LOOKUP=$1
+
+if [[ "$GIT_TAG_LOOKUP" == "" ]];then
+    echo "ERROR: missing tag"
+    exit
+fi
+
+if [[ ! "$GIT_TAG_LOOKUP" =~ ^([A-Za-z0-9.-_]{1,50})$ ]]; then
+    echo "ERROR: bad tag format (must be 1-50 chars, a-z, A-Z, 0-9, period, hyphen, underscore)"
+    exit
+fi
+
+cd $REPOS_DIR
+git rev-list -n 1 tags/$1

@@ -1,0 +1,16 @@
+#!/bin/bash
+#-----daily version check for OS, openvpn, and squid updates-----
+
+/usr/bin/nice -n 19 /opt/zzz/python/bin/check-latest-version.py >>/var/log/zzz/cron/check-latest-version.log 2>&1
+
+# ConfigData['UpdateFile']['linux']['list_os_updates']
+# ZZZ_OS_UPDATES_AVAILABLE=/opt/zzz/apache/OS_Updates.txt
+ZZZ_OS_UPDATES_AVAILABLE=`/opt/zzz/python/bin/config-parse.py --var 'UpdateFile/linux/list_os_updates'`
+
+# List Prepared: 2022-01-22 10:07:06 PST
+ZZZ_CURRENT_DATETIME=`date +'%Y-%m-%d %H:%M:%S %Z'`
+
+echo "List Prepared: $ZZZ_CURRENT_DATETIME" > $ZZZ_OS_UPDATES_AVAILABLE
+echo >> $ZZZ_OS_UPDATES_AVAILABLE
+/usr/bin/nice -n 19 /opt/zzz/python/bin/subprocess/os-list-updates.sh >> $ZZZ_OS_UPDATES_AVAILABLE 2>&1
+

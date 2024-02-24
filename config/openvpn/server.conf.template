@@ -1,0 +1,66 @@
+# Template for making openvpn server config files
+
+port {PORT}
+proto {PROTO}
+dev tun
+
+#TODO: switch from ca to capath when it works
+ca /etc/openvpn/ca-fullchain.crt
+# capath /etc/openvpn/crls
+
+cert /etc/openvpn/vpn.zzz.zzz.crt
+key /etc/openvpn/vpn.zzz.zzz.key  # This file should be kept secret
+
+#TODO: upgrade from dh.pem to EC
+#dh none  # use elliptic curve instead of DH
+dh /etc/openvpn/dh.pem
+
+topology subnet
+
+server {SERVER_IPV4_SUBNET}
+{SERVER_IPV6_SUBNET}
+
+ifconfig-pool-persist {IPP_FILE}
+push "redirect-gateway def1"
+
+{DHCP_OPTION_IPV6}
+push "dhcp-option DNS {DHCP_OPTION_IPV4}"
+
+#-----pfSense kills idle VPN connections quickly, so do a keepalive every 1 second-----
+keepalive 1 120
+
+tls-auth /etc/openvpn/ta.key 0 # This file is secret
+cipher AES-256-GCM
+
+#TODO: remove comp-lzo setting on all clients and servers at the same time or they will not be able to connect
+# comp-lzo no
+allow-compression no
+
+max-clients {MaxClients}
+user nobody
+group nogroup
+persist-key
+persist-tun
+status {OPENVPN_LOG}
+
+;log         openvpn.log
+;log-append  openvpn.log
+
+# log level 0-9
+verb 3
+
+daemon
+
+# get the server cert pass from a file
+# askpass /etc/openvpn/vpn.zzz.zzz_pem_pass.txt
+askpass {SERVER_PASS_OPENVPN}
+
+# force TLS auth server-side
+remote-cert-tls client
+
+# notify the client when the server restarts so the client can auto-reconnect
+explicit-exit-notify 1
+
+auth SHA256
+# crl-verify /etc/openvpn/crl.pem
+crl-verify /etc/openvpn/crls dir

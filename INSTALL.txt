@@ -1,0 +1,195 @@
+Zzz Enhanced VPN Installation Instructions
+==========================================
+
+Latest Release Version: 24
+
+NOTE: This system will require all the server's resources and will make various system config changes. Put it on a box that is not used for anything else.
+
+Start a new Ubuntu 22.04 LTS server
+    minimum requirements: 1 CPU, 2 GB RAM, 20GB HDD, 1 network interface
+Give it an IPv4 (and optional IPv6) external address.
+The server's IPv4 cannot be in this range:
+    10.0.0.0/12 (those are used by the VPN)
+Setup an EXTERNAL firewall with only the SSH and OpenVPN ports allowed into the VPN box:
+    22, 39055, 39066, 39077, 39094
+***BLOCK ALL OTHER INCOMING PORTS***
+Optional: restrict port 22 to specific source IP's.
+Assume we are logged-in with username="ubuntu" and we have full sudo access.
+
+Step 1:
+    run "screen" in case of connection issues
+
+Step 2:
+    Download from the github repos "test":
+        mkdir /home/ubuntu/repos
+        cd /home/ubuntu/repos
+        git clone https://github.com/burbella/test.git
+        cd /home/ubuntu/repos/test
+        git checkout tags/24
+
+Step 3:
+    Install the YAML Config File:
+        sudo cp /home/ubuntu/repos/test/config/zzz.conf /etc
+    Edit the YAML Config File:
+        sudo nano /etc/zzz.conf
+    VPNusers: 'zzz-user1,zzz-user2,zzz-user3'
+        Customize as needed - command-separated usernames
+        The installer will use this to make OpenVPN connection files for each user.
+    IPv4/VPNserver:
+        can be set to an IP address or domain or subdomain
+        defaults to auto-detecting the external IP
+    Domain:
+        keep the TLD as .zzz
+        Optional:
+            customize this in the Config file
+            Use the new domain in all URL's below.
+    Optional: To setup one PC/laptop/phone to connect to two VPN servers, you must customize the "CA" and "Domain" settings each server.
+        CA:
+            Default: 'Zzz CA' --> change to 'Zzz CA something'
+        Domain: 'services.zzz.zzz' --> change to 'services.something.zzz'
+        Use the new domain in all URL's below.
+        Only one VPN server can be connected at a time.
+
+Step 4:
+    a) Run the installer as root: (on a terminal running the "screen" app)
+            sudo /home/ubuntu/repos/test/install.sh
+       Watch the installer progress in a second terminal: (OPTIONAL)
+            sudo tail -F /var/log/zzz/install/install.log
+    b) OS updates will be done, then it will auto-reboot
+    c) After reboot, re-connect to SSH and start the "screen" app again:
+            screen
+       Run the installer again to finish setup:
+            sudo /home/ubuntu/repos/test/install.sh
+       It will check the /etc/zzz.conf file and ask you to confirm if it is correct or not
+       If config errors are reported:
+            fix the config file
+            run the installer again
+       If some config entry is not what you wanted:
+            answer "n" to the confirmation question
+            fix the config file
+            run the installer again
+
+Step 5:
+    REBOOT REQUIRED:
+        when "ZZZEVPN INSTALLER DONE" is printed in the terminal, take note of the instructions printed on the terminal
+        press "y" to reboot
+        the system will be ready to use after this reboot
+    Some OS updates and zzz-installer system file changes do not all take effect until after reboot.
+
+Step 6:
+    Install VPN client configs on all devices
+    Download client configs from this directory on your server:
+        /home/ubuntu/openvpn
+    Install OpenVPN Client on PC
+        Download:
+            https://openvpn.net/community-downloads/
+        Configs go here:
+            Win7/8/10: (replace "USERNAME" with your username)
+                C:\Users\USERNAME\OpenVPN\config
+    Install OpenVPN Client on iPhone:
+        1) app store:
+            https://apps.apple.com/us/app/openvpn-connect/id590379981
+        2) use iTunes on PC to load the client configs into the phone
+            connect the iPhone to PC with USB
+            trust the device
+            wait for it to finish connecting
+            select the phone icon when it appears just below the menu bar
+            select File Sharing
+            under Apps, select OpenVPN
+            click Add File (lower right)
+                select ALL the .ovpn config files to install
+                click Open
+            click Sync (lower right) ***Optional
+        3) activate the VPN profiles on the iPhone:
+            start the OpenVPN app
+            for each VPN profile:
+                select the top-left menu button
+                select Import Profile
+                select the FILE tab at the top
+                select ADD in the profile entry
+                select ADD (again) in the upper right
+
+Step 7:
+    Download and insert these as Trusted Root Certs on all devices that need the VPN
+    SSH directory:
+        /home/ubuntu/public_certs/ca.crt
+    HTTPS download:
+        https://services.zzz.zzz/ca.crt
+    
+    Windows 10:
+        download the cert from the public_certs directory on the server:
+        double-click on the cert in windows explorer
+        click "Install Certificate"
+        select "Current User"
+        click Next
+        select "Place all certificates in the following store"
+        click Browse
+        select "Trusted Root Certification Authorities"
+        click OK
+        click Next
+        click Finish
+        click Yes
+        you should get a popup saying that the import was successful
+        click OK to close the popup
+        click OK to close the Certificate
+
+    Firefox: (does not use the Windows root certificates)
+        open Firefox
+        browse to:
+            about:preferences#privacy
+        scroll down to Certificates
+        click "View Certificates"
+        make sure you're in the Authorities tab
+        click Import
+        browse to the CA cert file and click Open
+        check the box "Trust this CA to identify websites"
+        click OK
+        click OK again
+
+    Installing Root Certs on an iPhone/iPad: (iOS 15.5+)
+    1) Start the OpenVPN app
+        Activate any one of the VPN profiles
+    2) USE SAFARI to browse to this URL: (other browsers will not work)
+        https://services.zzz.zzz/ca.crt
+        a) Click "Show Details"
+        b) Click "visit this website" on the warning page
+        c) Click "Visit Website" on the popup
+        d) Click "Allow" on the popup
+        e) Click "Close" on the popup
+        f) Minimize Safari
+    3) Settings > General > VPN & Device Management:
+        Under "DOWNLOADED PROFILE", select the new profile
+        Click "Install" in the upper right corner
+        Enter your passcode
+        Click "Install" again in the upper right corner
+        Click "Install" on the popup
+        Click "Done" in the upper right corner
+    4) Tell iPhone to trust the SSL Certs:
+        Settings > General > About > Certificate Trust Settings:
+            Under "Enable full trust for root certificates," turn on trust for the certificate.
+
+Step 8: (optional)
+    MaxMind account setup
+    Looking up the country for each IP in logs requires a database from maxmind.com
+    maxmind.com requires you to create an account to download the database
+    Without this, all countries will show as unknown in the log view pages
+    1) Setup a maxmind account:
+        https://www.maxmind.com/en/geolite2/signup
+    2) Generate a license key in the NEW format on maxmind.com
+        Save the license key and account ID
+    3) Install the license key and account ID in the Zzz server by editing the GeoIP config file:
+        sudo nano /etc/GeoIP.conf
+    4) Run geoipupdate
+        sudo /usr/bin/geoipupdate
+    5) Verify if the maxmind DB date updated:
+        https://services.zzz.zzz/z/installed_software
+    6) Edit /etc/zzz.conf:
+            sudo nano /etc/zzz.conf
+        Change this value to True:
+            EnableMaxMind: 'True'
+    7) Run the IP-country update:
+        sudo /opt/zzz/python/bin/update-ip-log.py --country
+    8) Restart apache and the zzz daemon:
+        https://services.zzz.zzz/z/sys/restart/apache
+        https://services.zzz.zzz/z/sys/restart/zzz
+

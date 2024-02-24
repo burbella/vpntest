@@ -1,0 +1,20 @@
+#
+# Zzz Ubuntu Logrotate fragment for squid
+#
+#        compress
+#        delaycompress
+/var/log/squid/*.log /var/log/squid_access/*.log {
+        daily
+        rotate 10
+        size 3M
+        nocompress
+        missingok
+        nocreate
+        sharedscripts
+        prerotate
+                test ! -x /usr/sbin/sarg-reports || /usr/sbin/sarg-reports daily
+        endscript
+        postrotate
+                test ! -e /var/run/squid.pid || test ! -x /usr/sbin/squid || /usr/sbin/squid -k rotate
+        endscript
+}

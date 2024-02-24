@@ -1,0 +1,10 @@
+[Unit]
+Description=Zzz run-on-boot maintenance
+After=named.service syslog.target network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/opt/zzz/util/zzz-run-on-boot.sh
+
+[Install]
+WantedBy=default.target

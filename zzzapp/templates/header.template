@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Language" content="en">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Progressive Web App -->
+    <link rel="manifest" href="/zzz.webmanifest" />
+    <meta name="theme-color" content="#007700" />
+    <script nonce="{CSP_NONCE}" src="/serviceworker-register.js?v=24"></script>
+
+    <!-- all JS files depend on jquery -->
+    <script nonce="{CSP_NONCE}" src="/js/jquery-3.7.1.min.js"></script>
+    
+    <link href="/css/main.css?v=24" rel="stylesheet" type="text/css" />
+    <link href="/css/{selected_colors}.css?v=22" rel="stylesheet" type="text/css" id="link_colors" />
+
+    <!-- zzz_config.js needs to load first-->
+    <script nonce="{CSP_NONCE}" src="/js/zzz_config.js?zzz_config_js_updated={zzz_config_js_updated}"></script>
+    <!-- services.js needs to load second-->
+    <script nonce="{CSP_NONCE}" src="/js/services.js?v=24"></script>
+    <!-- other scripts will load as needed in the body -->
+    <title>{pagetitle}</title>
+
+    <!-- all favicon sizes: 16, 32, 57, 76, 96, 128, 192, 228, 512 -->
+    <!-- any browser -->
+    <link rel="icon" href="/img/{favicon_custom}favicon-16.png" sizes="16x16">
+    <link rel="icon" href="/img/{favicon_custom}favicon-32.png" sizes="32x32">
+    <link rel="icon" href="/img/{favicon_custom}favicon-57.png" sizes="57x57">
+    <link rel="icon" href="/img/{favicon_custom}favicon-76.png" sizes="76x76">
+    <link rel="icon" href="/img/{favicon_custom}favicon-96.png" sizes="96x96">
+    <link rel="icon" href="/img/{favicon_custom}favicon-128.png" sizes="128x128">
+    <link rel="icon" href="/img/{favicon_custom}favicon-192.png" sizes="192x192">
+    <link rel="icon" href="/img/{favicon_custom}favicon-228.png" sizes="228x228">
+    <link rel="icon" href="/img/{favicon_custom}favicon-512.png" sizes="512x512">
+    
+    <!-- Android: 196 -->
+    <!-- zzz.conf option to customize this -->
+    <link rel="icon" href="/img/{favicon_custom}favicon-196.png" sizes="196x196">
+    
+    <!-- iOS: 120, 152, 167, 180 -->
+    <!-- zzz.conf option to customize this -->
+    <link rel="apple-touch-icon" href="/img/{favicon_custom}favicon-120.png" sizes="120x120">
+    <link rel="apple-touch-icon" href="/img/{favicon_custom}favicon-152.png" sizes="152x152">
+    <link rel="apple-touch-icon" href="/img/{favicon_custom}favicon-167.png" sizes="167x167">
+    <link rel="apple-touch-icon" href="/img/{favicon_custom}favicon-180.png" sizes="180x180">
+    <!-- END favicon links -->
+</head>
+<body>

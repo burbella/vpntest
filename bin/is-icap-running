@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check if the daemon is running-----
+ps -ef | grep zzz-icap-server.py | grep -v ' grep '
+ps -ef | grep start-stop-zzz-icap.sh | grep -v ' grep '

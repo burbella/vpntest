@@ -1,0 +1,34 @@
+#-----Easy-RSA 3.1.0 parameter settings template for Zzz -----
+
+#set_var EASYRSA_PKI		"$PWD/pki"
+set_var EASYRSA_PKI		"$PWD/{EASYRSA_PKI}"
+
+set_var EASYRSA_DN	"org"
+
+set_var EASYRSA_REQ_COUNTRY	"US"
+set_var EASYRSA_REQ_PROVINCE	"California"
+set_var EASYRSA_REQ_CITY	"Zzz City"
+set_var EASYRSA_REQ_ORG	"Zzz Org"
+set_var EASYRSA_REQ_EMAIL	"hostmaster@zzz.zzz"
+set_var EASYRSA_REQ_OU		"Zzz Org Unit"
+
+#-----days until root CA expires-----
+#set_var EASYRSA_CA_EXPIRE	6000
+set_var EASYRSA_CA_EXPIRE	{EASYRSA_CA_EXPIRE}
+
+#-----days until certificates expires-----
+#set_var EASYRSA_CERT_EXPIRE	365
+set_var EASYRSA_CERT_EXPIRE	{EASYRSA_CERT_EXPIRE}
+set_var EASYRSA_CRL_DAYS 180
+
+#set_var EASYRSA_REQ_CN		"Zzz CA"
+#set_var EASYRSA_REQ_CN		"vpn.zzz.zzz"
+set_var EASYRSA_REQ_CN		"{EASYRSA_REQ_CN}"
+
+set_var EASYRSA_BATCH		"yes"
+
+#set_var EASYRSA_SSL_CONF   "{EASYRSA_SSL_CONF}"
+#set_var EASYRSA_SAFE_CONF  "{EASYRSA_SAFE_CONF}"
+
+#set_var EASYRSA_SSL_CONF   "$EASYRSA_PKI/openssl-easyrsa.cnf"
+#set_var EASYRSA_SAFE_CONF  "$EASYRSA_PKI/safessl-easyrsa.cnf"

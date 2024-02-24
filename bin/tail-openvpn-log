@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check openvpn log output-----
+sudo tail -f /var/log/syslog | grep --line-buffered openvpn
+

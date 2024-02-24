@@ -1,0 +1,51 @@
+###############################################
+# Client template for OpenVPN 2.4 config file #
+# for connecting to multi-client server.      #
+# This is a UNIFIED file containing all certs #
+###############################################
+
+client
+dev tun
+proto {PROTO}
+remote {server_name} {server_port}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+cipher AES-256-GCM
+
+#TODO: remove comp-lzo setting on all clients and servers at the same time or they will not be able to connect
+# comp-lzo no
+allow-compression no
+
+verb 3
+#TODO: activate new "auth" setting on all clients and servers at the same time or they will not be able to connect
+auth SHA256
+
+# windows-only?
+block-outside-dns
+ignore-unknown-option block-outside-dns
+
+#-----embed key files and certs in OpenVPN UNIFIED format-----
+# file: ca ca.crt
+<ca>
+{ca_cert}
+</ca>
+
+# file: cert USERNAME.crt
+<cert>
+{client_cert_public}
+</cert>
+
+# file: key USERNAME.key
+<key>
+{client_cert_private}
+</key>
+
+# file: tls-auth ta.key 1
+key-direction 1
+<tls-auth>
+{ta_key}
+</tls-auth>
+

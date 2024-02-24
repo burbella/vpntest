@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----daily DNS/IP list downloads-----
+
+/usr/bin/nice -n 19 /opt/zzz/python/bin/download-lists.py --all >> /var/log/zzz/cron/download-lists.log 2>&1

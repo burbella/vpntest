@@ -1,0 +1,3 @@
+# adding the name from /etc/hostname to 127.0.0.1 prevents the following error:
+#   sudo: unable to resolve host
+# 7/31/2019 - /etc/hostname now causes errors in DNS, so leave it out

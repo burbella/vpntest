@@ -1,0 +1,306 @@
+Initial Setup
+=============
+
+***When using a custom domain, replace the custom domain in instructions below where it shows "services.zzz.zzz"
+
+Install OpenVPN client on PC/laptop:
+    https://openvpn.net/community-downloads/
+
+Install the "OpenVPN Connect" client on a smartphone:
+    iphone app store:
+        https://apps.apple.com/us/app/openvpn-connect/id590379981
+    google play store:
+        https://play.google.com/store/apps/details?id=net.openvpn.openvpn
+
+Download and Install OpenVPN client configs:
+    /home/ubuntu/openvpn/*
+
+--------------------------------------------------------------------------------
+
+Usage
+=====
+
+Connect to VPN
+
+Browse to main page:
+    https://services.zzz.zzz/
+
+To populate squid log entries, connect to one of the squid log VPN's:
+    open-squid
+    dns-icap
+    dns-squid
+
+
+--------------------------------------------------------------------------------
+
+Safer Config Edits
+==================
+
+Some config edits may break apps.
+It is safer to test zzz.conf changes before applying them to the live system.
+
+Copy existing config to new file:
+    sudo cp /etc/zzz.conf /etc/zzz.conf.new
+
+Edit and save the new file:
+    sudo nano /etc/zzz.conf.new
+
+Run config test:
+    sudo /opt/zzz/python/bin/config-parse.py --test --config '/etc/zzz.conf.new'
+
+When the new config tests OK, make a backup of the old config and install the new config:
+    sudo cp -p /etc/zzz.conf /etc/zzz.conf.old
+    sudo cp /etc/zzz.conf.new /etc/zzz.conf
+    sudo rm /etc/zzz.conf.new
+
+Run maintenance scripts and restart apps as needed to apply changes.
+The scripts needed will depend on which config entries were changed.
+
+--------------------------------------------------------------------------------
+
+Config File Changes
+===================
+
+Some config file changes only require a few app restarts.
+Others have specific update procedures listed elsewhere in this document.
+Make edits to these entries in /etc/zzz.conf:
+    LogParserRowLimit
+    ProtectedCountries
+    ProtectedIPs
+    ProtectedTLDs
+    TimeZoneDisplay
+
+Restart apps:
+    sudo systemctl restart apache2
+    sudo systemctl restart zzz
+    sudo /home/ubuntu/bin/icap-restart
+
+--------------------------------------------------------------------------------
+
+App Upgrades
+============
+
+OpenVPN:
+    SSH terminal:
+        Run "screen" in case of a lost connection.
+        Run the openvpn upgrader to upgrade to the latest openvpn version:
+            sudo /opt/zzz/upgrade/upgrade-openvpn.sh
+
+Squid:
+    Check the squid download pages for the latest version number:
+        (example: version 5.7)
+        http://www.squid-cache.org/Versions/
+        http://www.squid-cache.org/Versions/v5/
+    SSH terminal:
+        Run "screen" in case of a lost connection.
+        Run the squid upgrader with that version number:
+            sudo /opt/zzz/upgrade/upgrade-squid.sh 5.7
+
+Zzz app:
+    Browse to the Update Zzz App page:
+        https://services.DOMAIN.zzz/z/update_zzz
+        (use the custom URL for your server)
+    click Run Version Checks (optional)
+        this auto-runs daily
+        monitor the version-check job progress by reloading the main page until its status is Done
+            https://services.DOMAIN.zzz/z/
+        when it's done, reload the update_zzz page
+    If an upgrade is available:
+        click Upgrade to the Latest Version of Zzz
+        click Confirm Upgrade
+        Services will be shut down to perform the upgrade
+        Monitor the upgrade's progress on the command line:
+            tail -f /opt/zzz/apache/dev/zzz-upgrade.log
+        It may automatically reboot if needed to complete the upgrade.
+        If more than one version upgrade is involved, each version will auto-install in order from oldest to newest.
+        When it's done updating, the system should be ready to use again
+
+--------------------------------------------------------------------------------
+
+Change the VPN Server's IP/Domain
+=================================
+
+After moving the system to a new machine or changing its IP, run this to reset various system configs.
+This handles the change of internal/external IPs and default network device.
+
+If needed, edit the entry in /etc/zzz.conf:
+    IPv4: VPNserver
+It can be left on AUTODETECT if the external IP is good enough for connections.
+It can also be set to a domain name.
+
+Run the networking update script:
+    sudo /opt/zzz/util/update-server-networking.sh
+
+Follow INSTALL.txt Step 6 to re-install openvpn configs on client devices.
+
+--------------------------------------------------------------------------------
+
+Changing the Apache Domain
+==========================
+
+Edit the domain in /etc/zzz.conf
+
+Run the update script:
+    sudo /opt/zzz/upgrade/re-issue-cert-apache.sh
+
+Start using the new domain in the browser
+
+--------------------------------------------------------------------------------
+
+Changing LogPacketsPerMinute
+============================
+
+Edit the LogPacketsPerMinute in /etc/zzz.conf
+
+Run the update script:
+    sudo /opt/zzz/python/bin/init-iptables.py
+
+--------------------------------------------------------------------------------
+
+Manually Run Maxmind DB update
+==============================
+
+Maxmind DB update only works if this is already setup:
+    Complete step 8 from INSTALL.txt for maxmind account setup
+
+Run this:
+    sudo /usr/bin/geoipupdate
+
+--------------------------------------------------------------------------------
+
+Update Ubuntu to the latest OS version
+======================================
+
+run "screen" in case of connection issues
+
+sudo /home/ubuntu/repos/test/install/050_update-os.sh
+
+--------------------------------------------------------------------------------
+
+Adding/Removing OpenVPN Users
+=============================
+
+Edit the zzz.conf file:
+    add/remove users as needed from the VPNusers comma-separated values string
+
+Run the user update:
+    sudo /opt/zzz/util/openvpn-add-delete-users.sh
+Check the output to make sure the add/delete actions are being done on the correct users
+Press "y" to proceed with the user updates
+
+If users are being removed, openvpn will auto-restart.
+Deleted users will lose access immediately.
+
+Client files for new users will be in the /home/ubuntu/openvpn directory.
+Install the openvpn client files with the instructions in INSTALL.txt - step 6 and step 7
+
+
+--------------------------------------------------------------------------------
+
+Re-issue cert for an existing user
+==================================
+
+Run the re-issue script:
+    sudo /opt/zzz/util/openvpn-re-issue-user.sh USERNAME
+Press "y" to proceed with the update
+
+openvpn will auto-restart.
+The user will lose access until you install the new client file on their devices.
+
+Install the openvpn client files with the instructions in INSTALL.txt - step 6
+    delete the old VPN profiles from the devices
+
+--------------------------------------------------------------------------------
+
+MOTD error
+==========
+
+This MOTD error doesn't auto-resolve:
+    Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+
+Run this manually to fix:
+    /home/ubuntu/bin/fix_ubuntu_upgrade_motd
+
+--------------------------------------------------------------------------------
+
+Moving the root Certificate Authority key file/password off the server
+======================================================================
+
+For extra security, you may download the root CA key file:
+    /home/ubuntu/easyrsa3/pki/private/ca.key
+Then remove it from the server.
+The CA password is here:
+    /opt/zzz/data/ssl-private/ca-root.pass
+The key and pass are only needed when replacing intermediate CA's, which should rarely be needed.
+
+If the key is lost, the entire PKI can be re-built with this script:
+    sudo /opt/zzz/upgrade/replace_pki.sh
+This will require re-installing the new files on all clients:
+    root CA cert
+    openvpn config files
+Follow INSTALL.txt steps 6 and 7
+
+--------------------------------------------------------------------------------
+
+Server Migration
+================
+
+Instructions for moving an existing system to a new VPN server.
+
+Note the old server's version: (adjust URL for the domain in use)
+    https://services.zzz.zzz/z/installed_software
+        version info should be at the top:
+            Zzz system version: 24 (last updated 2022-07-02 05:14:07)
+
+Setup a new server:
+    during the checkout in INSTALL.txt Step 2, make sure to use the same version number
+        git checkout tags/24
+
+Run the backup script on the old server:
+    sudo /opt/zzz/util/zzz_backup.sh
+
+The backup and checksum files will be located here:
+    /home/ubuntu/backup/backup-VERSION-DATETIME.tar.gz
+    /home/ubuntu/backup/backup-VERSION-DATETIME.tar.gz.sha512
+    Example:
+        /home/ubuntu/backup/backup-24-2022-10-27-06-09-25.tar.gz
+        /home/ubuntu/backup/backup-24-2022-10-27-06-09-25.tar.gz.sha512
+
+Copy the backup and checksum files to the same directory on the new server.
+
+Run the restore script on the new server:
+    The restore can optionally include the old zzz.conf config file.
+    Install the old config file:
+        sudo /opt/zzz/util/zzz_restore.sh -c -f backup-24-2022-10-27-06-09-25.tar.gz
+    Exclude the old config file:
+        sudo /opt/zzz/util/zzz_restore.sh -f backup-24-2022-10-27-06-09-25.tar.gz
+
+Run the networking update script:
+    sudo /opt/zzz/util/update-server-networking.sh
+
+If the new VPN Server has a different IP/Domain:
+    Follow INSTALL.txt Step 6 to re-install openvpn configs on client devices.
+
+--------------------------------------------------------------------------------
+
+Favicon Customization
+=====================
+
+zzz.conf entries:
+    Favicon:
+        use_custom: 'False',
+        line1: 'ZZZ',
+        line2: 'VPN',
+        line3: '', # leave a line blank if not needed
+
+Limits: 6 characters per line, 1-3 lines, letters and numbers only
+
+Edit the Favicon entry in zzz.conf
+
+Run the script to build the favicons:
+    sudo /opt/zzz/python/bin/build-favicon.py
+
+If it reports any errors, edit the config and try again.
+
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,252 @@
+<div id="loading_overlay" class="page_loading_overlay display_block">Loading...<span id="loading_timer"></span></div>
+
+<script nonce="{CSP_NONCE}" src="/js/ip_log_common.js?v=22"></script>
+<script nonce="{CSP_NONCE}" src="/js/ip_log.js?v=22"></script>
+<script nonce="{CSP_NONCE}">
+    var ip_list={js_ip_list};
+    $(function() {{
+        // jQuery start
+        enable_overlay();
+        show_loading_overlay_timer();
+        
+        load_ip_log_data('{load_max_age}', '{load_sort_by}');
+        
+        // attach JS events to page elements
+        load_js_ip_log_common();
+        load_js_ip_log();
+        
+        start_clock();
+    }});
+</script>
+<table class="width_max no_border">
+    <tr>
+        <td class="no_border">
+            <b>IP Logs</b> - <a href="{URL_Services}">Back to Manage Services</a>
+        </td>
+        <td id="show_clock" class="no_border right_align"></td>
+    </tr>
+</table>
+
+<!--
+<p>IP-User Map:<br><pre>
+{ip_user_map}
+</pre></p>
+-->
+
+<table>
+<tr>
+    <td rowspan="3">
+        <form id="log_options">
+            <p>
+                <b>Filters:</b><br>
+                <input type="checkbox" id="checkbox_private_ip" name="checkbox_private_ip" value="1">Hide PRIVATE IP's<br>
+                <input type="checkbox" id="checkbox_accepted" name="checkbox_accepted" value="1">Hide Accepted<br>
+                <!-- TODO: add this feature or remove the checkbox
+                <input type="checkbox" id="checkbox_show_summary" name="checkbox_show_summary" value="1">Show Summary Data<br>
+                -->
+            </p>
+            
+            <p>
+                <table><tr>
+                    <td>VPN Users:<br>(source IP's)</td>
+                    <td>
+                        <div id="list_of_users">
+                        {list_of_users}
+                        </div>
+                        <input type="radio" name="limit_by_user" value="all" checked>All Users
+                    </td>
+                </tr></table>
+                <table><tr>
+                    <td>
+                        <p>Countries:</p>
+                        <p>
+                            <input type="radio" name="country_display" value="show" checked> Show<br>
+                            <input type="radio" name="country_display" value="hide"> Hide<br>
+                        </p>
+                    </td>
+                    <td>
+                        <div id="list_of_countries">
+                        {list_of_countries}
+                        </div>
+                    </td>
+                </tr></table>
+            </p>
+        </form>
+        <p>
+            <form id="log_options_lines" method="post">
+                <!--
+                Lines to Analyze:
+                <input type="text" maxlength="6" size="6" name="lines_to_analyze" value="{lines_to_analyze}">
+                -->
+                <input type="hidden" name="action" value="ip_log_view">
+                <input type="checkbox" id="checkbox_highlight_ips" value="1"> Highlight <span class="text_green">protected</span>/<span class="text_red">blocked</span> IP's (slow)<br>
+                Limit by Last Updated:
+                <select name="max_age" id="max_age">
+                    <option value="hour" {selected_hour}>1 hour ago</option>
+                    <option value="six_hour" {selected_six_hour}>6 hours ago</option>
+                    <option value="day" {selected_day}>24 hours</option>
+                    <option value="three_day" {selected_three_day}>3 days</option>
+                    <option value="week" {selected_week}>7 days</option>
+                    <option value="second_week" {selected_second_week}>7-14 days</option>
+                    <option value="no_limit" {selected_no_limit}>No limit</option>
+                </select>
+                <br>
+                Sort By:
+                <select name="sort_by" id="sort_by">
+                    <option value="last_updated" {selected_sort_last_updated}>Last Updated</option>
+                    <option value="date_ip" {selected_sort_date_ip}>Date/IP</option>
+                    <option value="num_packets" {selected_sort_num_packets}># of Packets</option>
+                </select>
+                <br>
+                <a id="update_results" class="clickable">Update Results</a>
+            </form>
+        </p>
+    </td>
+    <td rowspan="3">
+        <form>
+            <b>Pending Updates - IP:</b> <a id="clear_ip_updates" class="clickable">Clear</a><br>
+            <textarea id="ip_updates" readonly="readonly" rows="14" cols="44"></textarea><br>
+            <a id="ip_commit_updates" class="clickable">Commit IP Updates</a>
+            <div id="status_ip_updates"></div>
+        </form>
+    </td>
+    <!-- no rowspan because 2 rows below are used -->
+    <td>
+        <a id="ip_delete_old" class="clickable">Delete OLD IP Data (over 30 days old)</a>
+        <a id="cancel_ip_delete_old" class="hide_item">CANCEL Delete OLD IP Data</a>
+        <br>
+        <br>
+        <br>
+        <a id="confirm_ip_delete_old" class="hide_item">Confirm Delete OLD IP Data</a>
+        <div id="status_ip_delete_old"></div>
+    </td>
+</tr>
+<!-- 2nd and 3rd row for last column -->
+<tr>
+    <td>
+        <a id="ip_delete_all" class="clickable">Delete ALL IP Data from DB</a>
+        <a id="cancel_ip_delete_all" class="hide_item">CANCEL Delete ALL IP Data</a>
+        <br>
+        <br>
+        <br>
+        <a id="confirm_ip_delete_all" class="hide_item">Confirm Delete ALL IP Data from DB</a>
+        <div id="status_ip_delete_all"></div>
+    </td>
+</tr>
+<tr>
+    <td>
+        IP Log Rows in DB: <span id="rows_in_db">{rows_in_db}</span>
+        <br>
+        Oldest entry: <span id="oldest_entry">{oldest_entry}</span>
+        <br>
+        Newest entry: <span id="newest_entry">{newest_entry}</span>
+    </td>
+</tr>
+</table>
+<hr>
+<table>
+    <tr>
+        <td class="top_align">
+            <b>IP/URL Analysis:</b><br>
+            <span class="clickable">(G)</span> - Google<br>
+            <span class="clickable">(L)</span> - IP Location<br>
+            <span class="clickable">(N)</span> - nslookup<br>
+            <span class="clickable">(R)</span> - Reverse DNS<br>
+            <span class="clickable">(W)</span> - Whois
+        </td>
+        <td>
+            <b>Blocking:</b><br>
+            <span class="clickable_red">(I)</span> - Block IP (iptables)<br>
+            <span class="clickable_red">(IC)</span> - Block class-C IP (iptables)
+        </td>
+        <td>
+            View Last Updated: <span id="last_time_view_updated"></span><br>
+            (<span id="view_updated_minutes_ago"></span> - data from <span id="view_data_minutes_ago"></span>)
+            <span id="last_time_view_updated_seconds" class="hide_item"></span>
+            <span id="parsed_data_age_minutes" class="hide_item"></span>
+            <br>
+            Logs Last Parsed: <span id="last_time_parsed">{show_last_time_parsed}</span><br>
+            (<span id="minutes_ago"></span>)
+            <span id="last_time_parsed_seconds" class="hide_item">{last_time_parsed_seconds}</span>
+            <a id="ip_log_parse_now" class="clickable">Parse Now</a><br>
+            <span id="status_ip_log_parse_now"></span>
+            <!--
+            TODO: auto-adjust this number when checkboxes affect the display?
+                  make the numbers accurate
+            Lines in logfile: {lines_in_logfile}<br>
+            Lines analyzed: {lines_to_analyze}<br>
+            Lines displayed: {lines_displayed}
+            -->
+        </td>
+    </tr>
+</table>
+
+<table id='logdata'>
+{full_table_html}
+</table>
+
+<div id='div_summary_data' class='hide_item'>
+    <b>Summary of IP's for date range: {summary_start_date} - {summary_end_date}</b>
+    <table id='summary_data'>
+    {summary_table_html}
+    </table>
+</div>
+
+<!-- TEST -->
+<!--
+<hr>
+<h2>filepath_list:</h2>
+<pre>{filepath_list}</pre>
+-->
+
+<!--
+<hr>
+<h2 class="warning_text">TEST IP Lists:</h2>
+<pre>
+Reference - Config Protected IP's:
+{config_protected_ips}
+
+Last Times Parsed:
+    DB: {db_last_time_parsed}
+    all: {last_time}
+    accepted: {last_time_accepted}
+    blocked: {last_time_blocked}
+
+filepath_list:
+{filepath_list}
+
+parsed_logs:
+{parsed_logs}
+
+Protected IP's Found: {protected_list_count}
+{protected_ip_list}
+
+Private IP's Found: {private_list_count}
+{private_ip_list}
+
+Public IP's Found: {public_list_count}
+{public_ip_list}
+
+Total IP's Found: {list_count}
+{full_ip_list}
+
+IP's by Date - PARSED:
+{ips_by_date}
+
+IP's by Date - DB:
+{db_ip_list}
+
+IP's by Last Updated - PARSED:
+{ips_by_last_updated}
+
+IP's by Last Updated - DB:
+{db_ip_list_by_last_updated}
+
+</pre>
+<hr>
+<h2>TEST Sample Parsed Log Data:</h2>
+<pre>{TESTDATA}</pre>
+<hr>
+-->
+
+<!-- END TEST -->

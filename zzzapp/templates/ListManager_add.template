@@ -1,0 +1,31 @@
+<script nonce="{CSP_NONCE}" src="/js/list_manager.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        load_js_list_add();
+    }});
+</script>
+
+<h2>Add List</h2>
+
+<p>
+    Name: <input type="text" id="list_name" size="60" maxlength="200">
+</p>
+<p>
+    URL: <input type="text" id="list_url" size="120" maxlength="1000">
+</p>
+<p>
+    List Type:
+    <select id="list_type">
+        <option value="dns-deny">dns-deny</option>
+        <!--TODO: add code support for other list types
+        <option value="ip-deny">ip-deny</option>
+        <option value="ip-allow">ip-allow</option>
+        -->
+    </select>
+</p>
+
+<p id="add_button">
+    <a id="add_list_save_changes" class="clickable">Add List</a>
+    <span id="status_save_changes"></span>
+</p>

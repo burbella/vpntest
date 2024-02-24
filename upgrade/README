@@ -1,0 +1,68 @@
+Upgrade Setup Procedure
+=======================
+
+Example: upgrade from version 15 to version 16
+
+**************************************************
+
+update INSTALL.txt:
+
+1) Latest Release Version at the top
+2) The version indicated in Step 2 git checkout
+
+**************************************************
+
+update BOTH version numbers at the bottom of the installer SQL to the new version:
+    install/database_setup.sql
+        insert into zzz_system (version, available_version, json, last_updated) values (16, 16, '', datetime('now'));
+
+**************************************************
+
+No DB schema changes?
+    Use upgrade-simple.sh as a template.
+    Create a new upgrade file with the version numbers in it.
+    
+    Example new upgrade file:
+        /upgrade/zzz/upgrade-zzz_15_16.sh
+    
+    Hard-code the current and new versions:
+        CURRENT_VERSION=15
+        NEW_VERSION=16
+
+Upgrade with DB schema changes?
+    Use upgrade-with-db.sh as a template.
+    Create an upgrade file and a DB file.
+    
+    Example DB file:
+        /upgrade/db/db_15_16.sql
+    
+    Example upgrade file:
+        /upgrade/zzz/upgrade-zzz_15_16.sh
+
+
+Hard-code the current and new versions:
+    CURRENT_VERSION=15
+    NEW_VERSION=16
+
+--------------------------------------------------------------------------------
+
+Release Deployment
+==================
+
+Apply a version tag to the appropriate github history entry
+
+--------------------------------------------------------------------------------
+
+Upgrade Scripts
+===============
+
+Maxmind IP-Country DB:
+upgrade-maxmind-db.sh
+    download the latest DB from Maxmind
+    rebuild the SQLite country-IP DB and ipset country-IP files
+
+OpenVPN:
+upgrade-openvpn.sh
+
+Squid:
+upgrade-squid.sh

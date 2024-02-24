@@ -1,0 +1,20 @@
+#!/bin/bash
+#-----DELETE LOCAL CHANGES, then pull the latest code from GitHub-----
+# NOTE: the repos must have been cloned first
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+ZZZ_GIT_BRANCH=$1
+if [[ "$ZZZ_GIT_BRANCH" == "" ]]; then
+    ZZZ_GIT_BRANCH=master
+fi
+
+cd $REPOS_DIR
+/usr/bin/git fetch
+/usr/bin/git clean -f
+/usr/bin/git reset --hard
+/usr/bin/git checkout $ZZZ_GIT_BRANCH
+/usr/bin/git pull

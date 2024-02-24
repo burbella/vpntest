@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check a user's activity-----
+sudo tail -f /var/log/squid_access/access.log | grep --line-buffered -vP '(TCP_DENIED/403|invalid\-request|HIER_NONE)'
+

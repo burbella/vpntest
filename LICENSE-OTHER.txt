@@ -1,0 +1,16 @@
+
+Other Licenses:
+
+This product includes GeoLite2 data created by MaxMind, available from
+<a href="https://www.maxmind.com">https://www.maxmind.com</a>.
+
+**************************************************
+
+We use country IP data from <a href="https://www.ipdeny.com">IPDENY.COM</a>.
+http://www.ipdeny.com/ipblocks/data/countries/Copyrights.txt
+
+**************************************************
+
+https://datahub.io/core/country-list#python
+This DATABASE is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: http://www.opendatacommons.org/licenses/pddl/1.0/
+

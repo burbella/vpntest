@@ -1,0 +1,8 @@
+{
+    "python.linting.ignorePatterns": [
+        "**/site-packages/**/*.py",
+        ".vscode/*.py",
+        "**/templates/*.template"
+    ],
+    "editor.suggest.showFolders": true,
+}

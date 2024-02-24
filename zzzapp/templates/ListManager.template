@@ -1,0 +1,35 @@
+<script nonce="{CSP_NONCE}" src="/js/list_manager.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        load_js_list_manager();
+    }});
+</script>
+<h2>List Manager</h2>
+<p>
+    Manage DNS and IP lists for allowing or denying.
+</p>
+<p>
+    <a href="/z/list_manager?action=add_list" target="_blank">Add a New List</a>
+</p>
+<p>
+    <a href="/z/edit_dns" target="_blank">Edit DNS</a> - Edit the list of blocked domains
+</p>
+<p>
+    <a href="/z/edit_ip" target="_blank">Edit IP</a> - Edit the list of blocked IP's
+</p>
+<p>
+    <a href="/z/settings" target="_blank">Settings</a> - Edit the list of Allowed IP's
+</p>
+<hr>
+<p>Estimated BIND memory usage for active lists: {estimated_memory_usage} MB</p>
+<table id="lists_table">
+    <tbody>
+        {lists_table_rows}
+    </tbody>
+</table>
+<p>
+    <p><a class="clickable" id="save_changes">Save Changes</a> <span id="status_save_changes"></span></p>
+
+    <p><a class="clickable" id="download_lists">Download Latest Lists</a> <span id="status_download_lists"></span></p>
+</p>

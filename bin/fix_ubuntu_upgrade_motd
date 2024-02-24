@@ -1,0 +1,8 @@
+#!/bin/bash
+#-----fix ubuntu upgrade error message-----
+
+#ERROR doesn't auto-resolve:
+# Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+#FIX: truncate the textfile
+sudo truncate -s 0 /var/lib/ubuntu-release-upgrader/release-upgrade-available
+sudo /home/ubuntu/bin/regen-motd

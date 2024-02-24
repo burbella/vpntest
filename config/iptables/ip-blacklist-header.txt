@@ -1,0 +1,5 @@
+#-----Zzz app auto-generated custom IP blocking rules-----
+*filter
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT

@@ -1,0 +1,5 @@
+<hr>
+<a href="{url_index}"><img src="/img/{favicon_custom}favicon-48.png" class="zzz_header_img zzz_img_logo"></a>
+<p><a href="{url_index}">Manage Services</a></p>
+</body>
+</html>

@@ -1,0 +1,62 @@
+#!/bin/bash
+#-----DELETE LOCAL CHANGES, then pull the given code version from GitHub-----
+# NOTE: the repos must have been cloned first
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+GIT_PARAM=$1
+GIT_BRANCH=$2
+
+#-----version tag must match a safe pattern (version number, "master", "latest" version)-----
+# prod versions: 1,2,3,...
+# dev version: 22a1, 23aWhatever
+if [[ "$GIT_PARAM" =~ ^([0-9]{1,8}(|a[A-Za-z0-9.-_]{1,50})|master|branch|latest|latest_dev)$ ]]; then
+    echo "good param: $GIT_PARAM"
+    if [[ "$GIT_PARAM" == "branch" ]]; then
+        if [[ "$GIT_BRANCH" =~ ^origin\/[A-Za-z0-9-]{1,250}$ ]]; then
+            echo "branch: $GIT_BRANCH"
+        else
+            echo "bad branch, exiting..."
+            exit
+        fi
+    fi
+else
+    echo "bad param, exiting..."
+    exit
+fi
+
+# REPOS_DIR is set by util.sh above
+cd $REPOS_DIR
+
+if [[ "$GIT_PARAM" == "0" ]]; then
+    echo "version=0, just a test, exiting without checkout..."
+    exit
+fi
+
+/usr/bin/git fetch
+
+#-----delete edited files so they don't block a checkout-----
+/usr/bin/git clean -f -d
+/usr/bin/git reset --hard
+
+if [[ "$GIT_PARAM" == "branch" ]]; then
+    /usr/bin/git checkout $GIT_BRANCH
+elif [[ "$GIT_PARAM" == "latest" ]]; then
+    LATEST_VERSION=`git tag | grep -P '^\d+$' | sort -g | tail -1`
+    /usr/bin/git checkout tags/$LATEST_VERSION
+elif [[ "$GIT_PARAM" == "latest_dev" ]]; then
+    LATEST_DEV_VERSION=`git tag | /opt/zzz/python/bin/mixed-sort.py | tail -1`
+    /usr/bin/git checkout tags/$LATEST_DEV_VERSION
+elif [[ "$GIT_PARAM" == "master" ]]; then
+    /usr/bin/git checkout master
+else
+    /usr/bin/git checkout tags/$GIT_PARAM
+fi
+
+/usr/bin/git pull
+
+#-----upgrade scripts need to be executable-----
+chmod 755 $REPOS_DIR/upgrade/zzz/*.sh

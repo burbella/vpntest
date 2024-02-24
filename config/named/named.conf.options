@@ -1,0 +1,80 @@
+#-----Zzz named.conf-----
+
+acl "trusted" {
+	localhost; # ns1 - can be set to localhost
+	10.5.0.0/24; # server and clients (squid proxy only)
+	10.6.0.0/24; # server and clients (DNS block only)
+	10.7.0.0/24; # server and clients (DNS block + squid proxy)
+	10.8.0.0/24; # server and clients
+	10.9.0.0/24; # server and clients (IPv6, DNS block, squid proxy)
+};
+
+acl "filtered" {
+	10.6.0.0/24; # server and clients (DNS block only)
+	10.7.0.0/24; # server and clients (DNS block, squid proxy)
+	10.9.0.0/24; # server and clients (IPv6, DNS block, squid proxy)
+};
+
+acl "unfiltered" {
+	localhost; # need BIND to respond to local requests
+	10.5.0.0/24; # server and clients (squid proxy only)
+	10.8.0.0/24; # server and clients
+};
+
+options {
+	forwarders {
+		8.8.8.8;
+		8.8.4.4;
+		#IPv6 only
+		#2001:4860:4860::8888;
+		#2001:4860:4860::8844;
+	};
+	listen-on port 53 { 127.0.0.1; 10.5.0.1; 10.6.0.1; 10.7.0.1; 10.8.0.1; };
+	#IPv6 only
+	#listen-on-v6 port 53 { ::1; INSERT_IP64_BLOCK_HERE/64; };
+	directory 	"/var/cache/bind";
+	dump-file 	"/var/cache/bind/cache_dump.db";
+	statistics-file "/var/cache/bind/named_stats.txt";
+	memstatistics-file "/var/cache/bind/named_mem_stats.txt";
+	allow-query { trusted; };
+	allow-query-cache { trusted; };
+	allow-recursion { trusted; };
+	recursion yes;
+
+	dnssec-enable yes;
+	dnssec-validation yes;
+
+	/* Path to ISC DLV key */
+	bindkeys-file "/etc/bind/bind.keys";
+
+	managed-keys-directory "/var/cache/bind";
+};
+
+#-----apparmor is set by default to allow /var/log/named/* ----
+logging {
+	channel default_debug {
+		file "/var/log/named/named.log";
+		severity dynamic;
+	};
+};
+
+#---------------------------------------------------------------------------------------------------
+
+view filtered {
+	match-clients { "filtered"; };
+
+	#-----BIND wants all zones in the views when using views, so we duplicate common entries-----
+	include "/etc/bind/named.conf.default-zones";
+	
+	#-----this includes the ad blacklists and the custom blocked DNS entries-----
+	include "/etc/bind/named.conf.local";
+};
+
+view unfiltered {
+	match-clients { "unfiltered"; };
+	
+	#-----BIND wants all zones in the views when using views, so we duplicate common entries-----
+	include "/etc/bind/named.conf.default-zones";
+	
+	include "/etc/bind/named-zzz.conf";
+};

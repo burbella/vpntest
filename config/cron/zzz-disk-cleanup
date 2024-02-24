@@ -1,0 +1,9 @@
+#!/bin/bash
+#-----run weekly disk cleanup apps in cron-----
+
+# always safe
+/usr/bin/nice -n 19 apt -y -q clean >>/var/log/zzz/cron/disk-cleanup.log 2>&1
+
+# usually safe
+/usr/bin/nice -n 19 apt -y -q autoremove >>/var/log/zzz/cron/disk-cleanup.log 2>&1
+

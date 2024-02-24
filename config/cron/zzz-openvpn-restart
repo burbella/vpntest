@@ -1,0 +1,8 @@
+#!/bin/bash
+#-----restart openvpn for better stability-----
+
+SHOULD_RESTART=`/opt/zzz/python/bin/get-settings.py --var restart_openvpn_weekly`
+if [[ "$SHOULD_RESTART" == "True" ]]; then
+    echo "Restarting OpenVPN"
+    /opt/zzz/python/bin/subprocess/openvpn-restart.sh
+fi

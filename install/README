@@ -1,0 +1,22 @@
+Install Files
+=============
+
+These files are only needed during installation.
+They are app configs and associated shell scripts.
+Run install.sh in the main directory to install the app.
+
+--------------------------------------------------------------------------------
+
+requirements.txt:
+
+5/5/2023:
+
+boto3 and botocore usually receive daily updates, but old versions usually work OK for many months
+
+dnspython cannot upgrade beyond 2.0.0 because ipwhois requires dnspython==2.0.0
+ipwhois 1.2.0 is the latest version, released 9/17/2020
+    replace ipwhois with RDAP?
+
+requests cannot upgrade beyond 2.29.0 because 2.30.0 requires urllib3 2.0.2
+urllib3 cannot upgrade beyond 1.26.15 because boto3 and botocore require urllib3<1.27
+    latest version: 2.0.2

@@ -1,0 +1,3 @@
+#!/bin/bash
+#-----monitor daemon logs-----
+tail -F /var/log/zzz/daemon-test-errfile /var/log/zzz/daemon-test-outfile

@@ -1,0 +1,13 @@
+#!/bin/bash
+#-----list the github branches still open-----
+# NOTE: the repos must have been cloned first
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+cd $REPOS_DIR
+/usr/bin/git fetch
+ZZZ_GIT_STATUS=`git status --branch | head -1`
+echo "$ZZZ_GIT_STATUS"

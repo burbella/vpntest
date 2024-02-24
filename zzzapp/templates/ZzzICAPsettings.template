@@ -1,0 +1,64 @@
+<script nonce="{CSP_NONCE}" src="/js/icap_settings.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        load_js_icap_settings();
+    }});
+</script>
+<p><b>ICAP Settings</b> - <a href="{URL_Services}">Back to Manage Services</a></p>
+<p>
+    <form>
+        <table class="no_border">
+            <tbody>
+                <tr>
+                    <td class="no_border"><a class="clickable border-green" id="save_settings2">Save ICAP Settings</a> <span id="status_save_settings2"></span></td>
+                    <td class="hide_item no_border width_300 right_align"><a class="clickable" id="toggle_condensed_view" data-viewtype="{viewtype}">Switch to Condensed View</a></td>
+                </tr>
+            </tbody>
+        </table>
+        <p id="error_output_details2" class="hide_item"></p>
+        <hr>
+        <p><b>Regular Expressions</b></p>
+        
+        <table class="no_border">
+            <tr>
+                <td class="no_border">
+                    Empty strings allowed in these fields:<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Domain (blank applies to all domains)<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Replacement String<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;User Notes
+                </td>
+                <td class="no_border width_200">&nbsp;</td>
+                <td class="no_border top_align">
+                    Add pre-defined regexes:<br>
+                    <table class="no_border">
+                        <tr><td class="no_border"><a id="add_regex_aside" class="clickable">aside</a></td></tr>
+                        <tr><td class="no_border"><a id="add_regex_iframe" class="clickable">iframe</a></td></tr>
+                        <tr><td class="no_border"><a id="add_regex_refresh" class="clickable">refresh</a></td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <p>
+            ICAP settings will not apply to domains listed in NoBumpSites:
+            <a id="toggle_nobumpsites" class="clickable">Show NoBumpSites</a>
+            <a id="edit_nobumpsites" class="clickable">Edit NoBumpSites on Settings page</a>
+        </p>
+        <pre id="nobumpsites" class="hide_item">{nobumpsites}</pre>
+
+        <table id="regex_table">
+            <tbody>
+                {regex_rows}
+            </tbody>
+        </table>
+        
+        <p><a class="clickable" id="add_regex_row">Add New Regex</a></p>
+        <hr>
+        <p><a class="clickable border-green" id="save_settings">Save ICAP Settings</a> <span id="status_save_settings"></span></p>
+        <p id="error_output_details" class="hide_item"></p>
+    </form>
+</p>
+<pre>
+{TESTDATA}
+</pre>

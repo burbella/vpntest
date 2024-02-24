@@ -1,0 +1,27 @@
+#!/bin/bash
+#-----check apache webserver error log-----
+
+SHOW_ALL_LOGDATA=$1
+
+if [[ "$SHOW_ALL_LOGDATA" == "--show-all" ]]; then
+    sudo tail -F /var/log/apache2/error.log
+    exit
+fi
+
+#-----remove junk from the log lines-----
+# original:
+# [Mon Dec 05 08:30:28.366916 2022] [wsgi:error] [pid 800330:tid 140321541191424] [remote 10.7.0.3:60226] LOGDATA
+# reduced:
+# [Mon Dec 05 08:30:28.366916 2022] LOGDATA
+# sudo tail -f /var/log/apache2/error.log | sed --regexp-extended --unbuffered 's/^(\[.*?\]) \[.*?\] \[.*?\] \[.*?\] (.*)/\1 \2/'
+
+# reduced more:
+# [Mon Dec 05 08:30:28.366916 2022] LOGDATA --> [Mon Dec 05 08:30:28 2022] LOGDATA
+#           1                   2      3
+# sudo tail -f /var/log/apache2/error.log | sed --regexp-extended --unbuffered 's/^(\[.*?)\..*? (.*?\]) \[.*?\] \[.*?\] \[.*?\] (.*)/\1 \2 \3/'
+
+# re-arranged:
+# [Mon Dec 05 08:30:28.366916 2022] LOGDATA --> [2022 Dec 05 08:30:28] LOGDATA
+#       1   2     3             4      5
+sudo tail -F /var/log/apache2/error.log | sed --regexp-extended --unbuffered 's/^.*? (.*?) (.*?) (.*?)\..*? (.*?)\] \[.*?\] \[.*?\] \[.*?\] (.*)/[\4 \1 \2 \3] \5/'
+

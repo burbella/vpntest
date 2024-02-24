@@ -1,0 +1,10 @@
+// Zzz custom TLD bind include file
+
+// for BIND 9.16: (put in the zone file)
+//   dnssec-policy "default";
+
+zone "{DomainWithoutTLD}.zzz" {{
+    type master;
+    notify no;
+    file "{DomainWithoutTLD}.zzz.zone.file";
+}};

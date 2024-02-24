@@ -1,0 +1,16 @@
+<tr id="main_table_row_{list_id}" class="{row_color}">
+    <td class="center_align">{delete_button}</td>
+    <td class="center_align">{view_button} {edit_button}</td>
+    <td class="center_align">{is_active_checkbox}</td>
+    <td class="center_align">{auto_update_checkbox}</td>
+    <td class="">
+        <span id="show_not_saved_{list_id}" class="update_fail"></span> {list_name}
+    </td>
+    <td class="">{list_type}</td>
+    <td class="right_align">{list_length}</td>
+    <td class="">{list_url}</td>
+    <td class="">{zzz_last_updated}</td>
+    <td class="">{download_status}</td>
+    <td class="width_300">{list_data}</td>
+    <td class="">{rejected_entries}</td>
+</tr>

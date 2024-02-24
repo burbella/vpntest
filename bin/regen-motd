@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#-----import the shell utils-----
+source /opt/zzz/util/util.sh
+exit_if_not_running_as_root
+
+/bin/run-parts /etc/update-motd.d/ > /run/motd.dynamic
+

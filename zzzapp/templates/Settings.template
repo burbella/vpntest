@@ -1,0 +1,215 @@
+<script nonce="{CSP_NONCE}" src="/js/settings_python.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        load_js_settings();
+    }});
+</script>
+<p><b>Settings</b> - <a href="{URL_Services}">Back to Manage Services</a></p>
+<p>
+    <form>
+        <!-- just hide these unused checkboxes for now, until the references are safely removed from JS and python -->
+        <span class="hide_item">
+            <input type="checkbox" id="set_autoplay" {autoplay} >block autoplay
+            <span id="status_set_autoplay"></span>
+            <a class="clickable" id="show_hide_autoplay">Show List</a>
+            <pre id="autoplay_list" class="hide_item">{autoplay_list}</pre>
+            <input type="checkbox" id="set_social" {social} >block Social
+            <span id="status_set_social"></span>
+            <a class="clickable" id="show_hide_social">Show List</a>
+            <pre id="social_list" class="hide_item">{social_list}</pre>
+            <input type="checkbox" id="set_telemetry" {telemetry} >block telemetry
+            <span id="status_set_telemetry"></span>
+            <a class="clickable" id="show_hide_telemetry">Show List</a>
+            <pre id="telemetry_list" class="hide_item">{telemetry_list}</pre>
+        </span>
+        <table>
+            <tr>
+                <td class="top_align">
+                    <p><input type="checkbox" id="set_duplicate_domain" {duplicate_domain} >
+                        Hide duplicate domains in Squid Log server-side<br>
+                        (client never gets the table rows)
+                        <span id="status_set_duplicate_domain"></span>
+                    </p>
+                    <p><input type="checkbox" id="set_dark_mode" {dark_mode} >Dark Mode
+                        <span id="status_set_dark_mode"></span>
+                    </p>
+                    <p><input type="checkbox" id="set_links_by_function" {links_by_function} >Sort Index Page Links by Function
+                        <span id="status_set_links_by_function"></span>
+                    </p>
+                    <p><input type="checkbox" id="set_icap_condensed" {icap_condensed} >ICAP Settings Page Condensed View
+                        <span id="status_set_icap_condensed"></span>
+                    </p>
+                    <p><input type="checkbox" id="set_show_dev_tools" {show_dev_tools} >Show Dev Tools
+                        <span id="status_set_show_dev_tools"></span><br>
+                        (mostly on the Update Zzz page)
+                    </p>
+                    <p><input type="checkbox" id="set_restart_openvpn_weekly" {restart_openvpn_weekly} >Restart OpenVPN Weekly
+                        <span id="status_set_restart_openvpn_weekly"></span>
+                    </p>
+                    <hr class="hr_thin">
+                    <p>The open-squid VPN has variable settings for testing:</p>
+                    <p><input type="checkbox" id="set_test_server_dns_block" {test_server_dns_block} >Test Server DNS Block
+                        <span id="status_set_test_server_dns_block"></span>
+                    </p>
+                    <p><input type="checkbox" id="set_test_server_squid" {test_server_squid} >Test Server Squid Logging
+                        <span id="status_set_test_server_squid"></span>
+                    </p>
+                </td>
+                <td class="top_align">
+                    <table class="no_border">
+                        <tr><td class="no_border">
+                            <p><b>Zzz System Updates</b></p>
+                            <p><input type="checkbox" id="set_check_zzz_update" {check_zzz_update} >Check for updates daily
+                                <span id="status_set_check_zzz_update"></span><br>
+                                This does a git fetch.
+                            </p>
+                            <p><input type="checkbox" id="set_auto_install_zzz_update" {auto_install_zzz_update} >Auto-install updates
+                                <span id="status_set_auto_install_zzz_update"></span><br>
+                                Selecting this activates the daily check also.<br>
+                                This pulls the latest codebase from github with <br>
+                                a hard reset, overwriting local changes.
+                            </p>
+                            <hr class="hr_thin">
+                            <p>
+                                After saving settings, it may help to clear the browser DNS cache:<br>
+                                Chrome: <a href="#" class="cursor_copy">chrome://net-internals/#dns</a><br>
+                                Firefox: <a href="#" class="cursor_copy">about:networking#dns</a><br>
+                                <span id="clipboard_copy_info">(click to copy to clipboard, then paste in another tab)</span>
+                            </p>
+                            <p>
+                                Also flush the OS DNS cache:<br>
+                                iPhone: turn airplane mode on/off<br>
+                                Windows: run cmd<br>
+                                ipconfig /flushdns
+                            </p>
+                        </td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <p><a class="clickable border-green" id="save_settings2">Save Settings</a> <span id="status_save_settings2"></span></p>
+        <hr>
+        <div>
+            <p>
+                <b>Country IP/DNS Blocks</b>
+                <a href="/z/network_service?action=ips_by_country" target="_blank">View IP's by Country</a>
+            </p>
+            <p>Protected from blocking (zzz.conf): {ProtectedCountries}</p>
+            <p>We use country IP data from <a href="https://www.ipdeny.com" target="_blank">IPDENY.COM</a></p>
+            <p>
+                <input type="checkbox" id="set_block_country_ip_always" {block_country_ip_always} >Apply Country-IP blocks to all VPN's
+                <span id="status_set_block_country_ip_always"></span>
+            </p>
+            <p>
+                <input type="checkbox" id="set_block_country_tld" {block_country_tld} >Block Country-TLD's in DNS-blocked VPN's for the selected countries (*.xx)
+                <span id="status_set_block_country_tld"></span>
+                <br>
+                <input type="checkbox" id="set_block_country_tld_always" {block_country_tld_always} >Block Country-TLD's in ALL VPN's for the selected countries (*.xx)
+                <span id="status_set_block_country_tld_always"></span>
+            </p>
+            <table>
+                <tr>
+                    <td class="border-right">
+                        <b>All Countries:</b> (click to block)<br>
+                        <a class="clickable" id="block_all_countries">Block All</a><br>
+                        Scroll to: <input type="text" id="country_scroll" size="20" maxlength="100"><br>
+                        <span id="status_country_menu"></span>
+                    </td>
+                    <td class="top_align border-left">
+                        <b>Blocked Countries:</b> (click to remove)<br>
+                        <a class="clickable" id="unblock_all_countries">Unblock All</a><br>
+                        <span id="status_blocked_country_menu">&nbsp;</span><br>
+                        <span id="action_blocked_country_menu">&nbsp;</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="border-right">
+                        <select multiple size="10" id="country_menu">
+                        {CountryMenu}
+                        </select>
+                    </td>
+                    <td class="border-left">
+                        <select multiple size="10" id="blocked_country_menu">
+                        {BlockedCountryMenu}
+                        </select>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <div>
+            <p><b>Top-Level Domain (TLD) Block</b></p>
+            <p>Protected from blocking: {ProtectedTLDs}</p>
+            <p>
+                <input type="checkbox" id="set_block_tld_always" {block_tld_always} >Apply TLD blocks to all VPN's
+                <span id="status_set_block_tld_always"></span>
+            </p>
+            <table>
+                <tr>
+                    <td>
+                        <b>All TLDs:</b> (click to block)<br>
+                        <a class="clickable" id="block_all_tlds">Block All</a>
+                        <a class="clickable" id="block_unicode_tlds">Block Unicode</a><br>
+                        <span id="status_tld_menu"></span><br>
+                        <select multiple size="10" id="tld_menu">
+                        {TLDmenu}
+                        </select>
+                    </td>
+                    <td>
+                        <b>Blocked TLDs:</b> (click to remove)<br>
+                        <a class="clickable" id="unblock_all_tlds">Unblock All</a><br>
+                        <span id="status_blocked_tld_menu"></span><br>
+                        <select multiple size="10" id="blocked_tld_menu">
+                        {BlockedTLDmenu}
+                        </select>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <p><b>Allow IP's</b></p>
+        <p>
+            Overrides any blocked IP's in the blocked countries above or <a href="/z/edit_ip">IP block page</a><br>
+            One entry per line.<br>
+            <span id="status_allow_ips"></span><br>
+            <textarea cols="60" rows="10" id="allow_ips">{AllowIPs}</textarea>
+        </p>
+        <hr>
+        <p>
+            <p><b>Hide Domains from Squid Log Display</b></p>
+            <p>
+                Reduce clutter in the squid log display by hiding the listed domains.<br>
+                One entry per line.<br>
+                <span id="status_squid_hide_domains"></span><br>
+                <textarea cols="60" rows="10" id="squid_hide_domains">{SquidHideDomains}</textarea>
+            </p>
+        </p>
+        <hr>
+        <p>
+            <p><b>Hide IP's from IP Log Display</b></p>
+            <p>
+                Reduce clutter in the IP log display by hiding the listed IP's.  IP's and CIDR entries are OK here.<br>
+                One entry per line.<br>
+                <span id="status_hide_ips"></span><br>
+                <textarea cols="60" rows="10" id="hide_ips">{HideIPs}</textarea>
+            </p>
+        </p>
+        <hr>
+        <p id="nobumpsites">
+            <p><b>Squid NoBumpSites</b></p>
+            <p>
+                Squid may break connections to some domains.  List them here to have squid do less-aggressive interception.<br>
+                ICAP will not be available for domains on this list.<br>
+                One entry per line.<br>
+                <span id="status_squid_nobumpsites"></span><br>
+                <textarea cols="60" rows="10" id="squid_nobumpsites">{SquidNoBumpSites}</textarea>
+            </p>
+        </p>
+        <hr>
+        <p><a class="clickable border-green" id="save_settings">Save Settings</a> <span id="status_save_settings"></span></p>
+    </form>
+</p>
+<pre>
+{TESTDATA}
+</pre>

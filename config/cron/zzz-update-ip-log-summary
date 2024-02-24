@@ -1,0 +1,3 @@
+#!/bin/bash
+#-----iptables log summary table needs to be updated daily-----
+/usr/bin/nice -n 19 /opt/zzz/python/bin/update-ip-log.py --summary >>/var/log/zzz/cron/update-ip-log-summary.log 2>&1

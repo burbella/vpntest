@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check a user's activity-----
+sudo grep "$1]" /var/log/messages
+

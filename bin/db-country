@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sqlite3 /opt/zzz/sqlite/country-IP.sqlite3
+

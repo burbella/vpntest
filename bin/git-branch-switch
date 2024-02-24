@@ -1,0 +1,21 @@
+#!/bin/bash
+#-----switch branches-----
+# NOTE: the repos must have been cloned first
+
+ZZZ_BRANCH=$1
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+if [[ "$ZZZ_BRANCH" == "" ]]; then
+    echo "ERROR: branch not specified"
+    exit
+fi
+
+cd $REPOS_DIR
+/usr/bin/git fetch
+
+echo "switching git branch to: $ZZZ_BRANCH"
+git switch $ZZZ_BRANCH

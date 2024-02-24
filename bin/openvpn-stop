@@ -1,0 +1,9 @@
+#!/bin/bash
+#-----stops OpenVPN-----
+
+echo Stopping OpenVPN...
+
+/opt/zzz/python/bin/subprocess/openvpn-stop.sh
+
+echo DONE
+

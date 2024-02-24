@@ -1,0 +1,43 @@
+<script nonce="{CSP_NONCE}" src="/js/edit_dns.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        load_js_edit_dns();
+    }});
+</script>
+<h2>Edit DNS</h2>
+<p>
+    <form>
+        <h3>Add DNS Entries: (one domain per line)</h3>
+        <div id="status_submit_added_domains"></div>
+        <textarea id="domains_to_add" cols="100" rows="10"></textarea><br>
+        <a id="submit_added_domains" class="clickable">Add Domains</a>
+    </form>
+</p>
+<hr>
+<p>
+    <form>
+        <h3>Edit Existing List of DNS Entries: (one domain per line)</h3>
+        <div id="status_submit_new_list"></div>
+        <textarea id="replace_domain_list" cols="100" rows="10">{dns_domains_to_replace}</textarea><br>
+        <a id="submit_new_list" class="clickable">Replace Domains</a>
+    </form>
+</p>
+<hr>
+<p>
+    <h3>DNS Backup Files:</h3>
+    <div id="dns_backup_files">
+        <table>
+            <tr>
+                <td>{dns_backup_files}</td>
+                <td class="top_align"><textarea id="show_file" rows=10 cols=60></textarea><br>
+                <a class="clickable" id="copy_to_replace">Copy to the Edit Existing List box</a></td>
+            </tr>
+        </table>
+    </div>
+</p>
+<hr>
+<p>
+    <h3>Related Tasks:</h3>
+    {html_dns_requests}
+</p>

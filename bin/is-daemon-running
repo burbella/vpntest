@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check if the daemon is running-----
+ps -ef | grep services_zzz.py | grep -v ' grep '
+ps -ef | grep start-stop-zzz.sh | grep -v ' grep '

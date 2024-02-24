@@ -1,0 +1,3 @@
+#!/bin/bash
+#-----list the OS updates installation history-----
+zgrep -h 'status installed' /var/log/dpkg.log* | sort

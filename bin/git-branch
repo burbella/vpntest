@@ -1,0 +1,30 @@
+#!/bin/bash
+#-----list the github branches still open-----
+# NOTE: the repos must have been cloned first
+
+ZZZ_INCLUDE_STATUS=$1
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+cd $REPOS_DIR
+/usr/bin/git fetch
+
+if [[ "$ZZZ_INCLUDE_STATUS"=="--include-status" ]]; then
+    /home/ubuntu/bin/git-status
+fi
+
+ZZZ_BRANCHES=`/usr/bin/git branch --no-color --all --no-merged`
+echo "$ZZZ_BRANCHES"
+
+#-----after checkout of a branch, that branch name is no longer in the --no-merged list-----
+# get the branch name with a different command
+# expect: "* (HEAD detached at origin/store-lists-separately)"
+ZZZ_GIT_BRANCH_HEAD=`git branch --no-color --contains HEAD`
+ZZZ_BRANCH_REGEX="^\* \(HEAD detached at (origin\/[A-Za-z0-9-]{1,250})\)"
+if [[ "$ZZZ_GIT_BRANCH_HEAD" =~ $ZZZ_BRANCH_REGEX ]]; then
+    ZZZ_BRANCH_NAME="${BASH_REMATCH[1]}"
+    echo "remotes/$ZZZ_BRANCH_NAME"
+fi

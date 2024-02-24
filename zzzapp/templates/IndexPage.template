@@ -1,0 +1,166 @@
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        start_clock();
+        attach_content_collapsed_toggle();
+    }});
+</script>
+
+{RebootNeededWarning}
+
+<!-- <p><b>Zzz Enhanced VPN - Manage Services</b></p> -->
+<table class="width_max no_border">
+    <tr>
+        <td class="no_border"><b>Zzz Enhanced VPN - Manage Services</b></td>
+        <td id="show_clock" class="no_border right_align"></td>
+    </tr>
+</table>
+
+<br>
+
+<table class="{hide_links_default}">
+    <tr>
+        <td>Apache</td>
+        <td><a href="/z/sys/restart/apache">Restart</a> &#8226;
+            <a href="/z/sys/reload/apache">Reload</a>
+        </td>
+    </tr>
+    <tr>
+        <td>DNS</td>
+        <td>
+            <a href="/z/sys/reload/bind">Reload BIND</a> &#8226;
+            <a href="/z/sys/restart/bind">Restart BIND</a> &#8226;
+            <a href="/z/edit_dns">Edit DNS Blocks</a> &#8226;
+            <a href="/z/list_manager">List Manager</a>
+        </td>
+    </tr>
+    <tr>
+        <td>iptables</td>
+        <td><a href="/z/edit_ip">Edit IP Blocks</a> &#8226;
+            <a href="/z/iptables_log">View IP Log</a> &#8226;
+            <a href="/z/ip_log_raw_data">IP Raw Data</a>
+        </td>
+    </tr>
+    <tr>
+        <td>OpenVPN</td>
+        <td><a href="/z/sys/restart/openvpn">Restart</a></td>
+    </tr>
+    <tr>
+        <td>Squid</td>
+        <td><a href="/z/squid_log">View Squid Log</a> &#8226;
+            <a href="/z/sys/restart/squid">Restart</a> &#8226;
+            <a href="/z/sys/reload/squid">Reload</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Network Services</td>
+        <td><a href="/z/network_service">Whois, nslookup, reverse DNS</a> &#8226;
+            <a href="/z/network_service?action=whois_cache">Whois Cache</a> &#8226;
+            <a href="/z/network_service?action=ipwhois_cache">IP-Whois Cache</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Zzz ICAP Server</td>
+        <td><a href="/z/sys/restart/zzz_icap">Restart</a> &#8226;
+            <a href="/z/sys/reload/zzz_icap">Reload</a> &#8226;
+            <a href="/z/icap_settings">ICAP Settings</a>
+        </td>
+    </tr>
+    <tr>
+        <td>OS</td>
+        <td><a href="/z/system_status">System Status</a> &#8226;
+            <a href="/z/installed_packages">Recent Installed OS Packages</a> &#8226;
+            <a href="/z/installed_software">Installed Software</a> &#8226;
+            <a href="/z/update_os">Update OS Packages</a> &#8226;
+            <a href="/z/sys/restart/linux">Reboot OS</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Zzz System</td>
+        <td><a href="/z/settings">Settings</a> &#8226;
+            <a href="/z/task_history">Task History</a> &#8226;
+            <a href="/z/update_zzz">Update Zzz App</a> &#8226;
+            <a href="/z/sys/restart/zzz">Restart Zzz Daemon</a>
+        </td>
+    </tr>
+</table>
+
+<table class="{hide_links_by_function}">
+    <tr>
+        <td>Reload</td>
+        <td>
+            <a href="/z/sys/reload/apache">Apache</a> &#8226;
+            <a href="/z/sys/reload/bind">BIND</a> &#8226;
+            <a href="/z/sys/reload/zzz_icap">ICAP</a> &#8226;
+            <a href="/z/sys/reload/squid">Squid</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Restart</td>
+        <td>
+            <a href="/z/sys/restart/apache">Apache</a> &#8226;
+            <a href="/z/sys/restart/bind">BIND</a> &#8226;
+            <a href="/z/sys/restart/zzz_icap">ICAP</a> &#8226;
+            <a href="/z/sys/restart/openvpn">OpenVPN</a> &#8226;
+            <a href="/z/sys/restart/squid">Squid</a> &#8226;
+            <a href="/z/sys/restart/zzz">Zzz Daemon</a> &#8226;
+            <a href="/z/sys/restart/linux">Reboot OS</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Settings</td>
+        <td>
+            <a href="/z/edit_dns">Edit DNS Blocks</a> &#8226;
+            <a href="/z/edit_ip">Edit IP Blocks</a> &#8226;
+            <a href="/z/settings">Zzz Settings</a> &#8226;
+            <a href="/z/icap_settings">ICAP Settings</a>
+        </td>
+    </tr>
+    <tr>
+        <td>Tools</td>
+        <td>
+            <a href="/z/iptables_log">View IP Log</a> &#8226;
+            <a href="/z/ip_log_raw_data">IP Raw Data</a> &#8226;
+            <a href="/z/squid_log">View Squid Log</a> &#8226;
+            <a href="/z/network_service">Whois, nslookup, reverse DNS</a> &#8226;
+            <a href="/z/network_service?action=whois_cache">Whois Cache</a> &#8226;
+            <a href="/z/network_service?action=ipwhois_cache">IP-Whois Cache</a><br>
+            <br>
+            <a href="/z/installed_software">Installed Software</a> &#8226;
+            <a href="/z/installed_packages">Recent Installed OS Packages</a> &#8226;
+            <a href="/z/system_status">System Status</a> &#8226;
+            <a href="/z/task_history">Task History</a> &#8226;
+            
+            <a href="/z/update_os">Update OS Packages</a> &#8226;
+            <a href="/z/update_zzz">Update Zzz App</a>
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+<table class="no_border">
+    <tr>
+        <td class="no_border top_align">
+            <p><b>System Messages:</b></p>
+            <table>
+                <!-- TODO: fix the version check before showing this
+                <tr><td>{ZzzUpdatesNeeded}</td></tr>
+                -->
+                <tr><td>{OpenVPNUpdatesNeeded}</td></tr>
+                <tr><td>{MOTD}</td></tr>
+            </table>
+        </td>
+        <td class="no_border top_align">
+            <table>
+                <tr><th>Process</th><th>Running?</th></tr>
+                {RunningProcesses}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+<p><b>Task Status</b></p>
+{TaskStatus}

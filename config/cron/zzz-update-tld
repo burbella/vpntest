@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----weekly TLD list update-----
+
+/usr/bin/nice -n 19 /opt/zzz/upgrade/upgrade-tld.sh >>/var/log/zzz/cron/upgrade-tld.log 2>&1

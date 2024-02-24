@@ -1,0 +1,2 @@
+The /named/settings directory is for extra BIND configs that get swapped in or out according to changes in the Settings page.
+

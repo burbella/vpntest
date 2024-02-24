@@ -1,0 +1,175 @@
+#-----Zzz squid config template-----
+# Settings will generate the config file from this and ConfigData
+
+acl manager proto cache_object
+acl localhost src 127.0.0.1/32 ::1
+acl to_localhost dst 127.0.0.0/8 0.0.0.0/32 ::1
+
+#-----local networks - IPv4-----
+acl localnet src 10.0.0.0/8
+acl localnet src 172.16.0.0/12
+acl localnet src 192.168.0.0/16
+
+#-----local networks - IPv6-----
+#acl localnet src fc00::/7       # RFC 4193 local private network range
+#acl localnet src fe80::/10      # RFC 4291 link-local (directly plugged) machines
+
+acl SSL_ports port 443
+#acl SSL_ports port 3129
+acl SSL_ports port {https_port}
+acl Safe_ports port 80		# http
+acl Safe_ports port 443		# https
+acl Safe_ports port 1025-65535	# unregistered ports
+acl CONNECT method CONNECT
+
+#-----list of sites to block, stored in a file-----
+# NOTE: this doesn't work with ssl_bump, only http
+acl Block_sites dstdomain "/etc/squid/blocked-sites.txt"
+acl Block_IPs dst "/etc/squid/blocked-ips.txt"
+
+http_access allow manager localhost
+http_access deny manager
+
+#-----implement the ACL for blocking sites-----
+http_access deny Block_sites
+http_access deny Block_IPs
+
+# Deny requests to unsafe ports
+http_access deny !Safe_ports
+
+# Deny CONNECT to non-secure SSL ports
+http_access deny CONNECT !SSL_ports
+
+# stop local apps from using the proxy to request http://localhost/
+http_access deny to_localhost
+
+# allow access from local networks
+http_access allow localnet
+http_access allow localhost
+
+# deny all by default
+http_access deny all
+
+# intercept on port 3128
+http_port {http_port} intercept
+
+#-----give it another port for non-intercept traffic-----
+http_port {non_intercept_port}
+
+#-----no disk cache-----
+#cache_dir ufs /var/spool/squid 100 16 256
+
+coredump_dir /var/spool/squid
+
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+refresh_pattern -i (/cgi-bin/|\?) 0	0%	0
+refresh_pattern .		0	20%	4320
+
+#-----prevents the error: WARNING: Could not determine this machines public hostname-----
+visible_hostname {visible_hostname}
+
+#---------------------------------------------------------------------------------------------------
+
+#-----SSL support-----
+# apparently the options param is buggy, so leave it out
+# options=NO_SSLv3,NO_TLSv1,NO_TLSv1_1
+https_port {https_port} intercept ssl-bump generate-host-certificates=on \
+    dynamic_cert_mem_cache_size=4MB \
+    tls-cert=/etc/squid/ssl_cert/squid-ca-nopass-fullchain.crt \
+    tls-key=/etc/squid/ssl_cert/squid-ca-nopass.key \
+    tls-dh=/etc/squid/ssl_cert/dhparam.pem
+sslcrtd_program /lib/squid/security_file_certgen -s {ssl_db_cache} -M 4MB
+sslcrtd_children 8 startup=1 idle=1
+sslpassword_program /opt/zzz/data/ssl-private/squid-cert-pass.sh
+
+#-----custom logformat to include SSL SNI-----
+logformat ssl_custom_format %ts.%03tu %6tr %>a %Ss/%03>Hs %<st %rm %ru %[un %Sh/%<a %mt %ssl::>sni
+
+#-----better security-----
+tls_outgoing_options min-version=1.2
+
+#-----new peek-and-splice feature to defeat HSTS------
+acl bump_step1 at_step SslBump1
+acl bump_step2 at_step SslBump2
+acl bump_step3 at_step SslBump3
+acl nobumpsites ssl::server_name "/etc/squid/nobumpsites.acl"
+acl nopeeksites ssl::server_name "/etc/squid/nopeeksites.acl"
+
+#-----Settings will enable bump when ICAP is enabled-----
+{ssl_bump}
+
+#-----default is peek-peek-splice, except nopeeksites just get a splice-----
+# ssl_bump splice bump_step1 nopeeksites
+# ssl_bump splice bump_step2 nopeeksites
+# ssl_bump splice bump_step3 nopeeksites
+# ssl_bump peek bump_step1 !nopeeksites
+# ssl_bump peek bump_step2 !nopeeksites
+# ssl_bump splice bump_step3 !nopeeksites
+
+#-----ICAP uses peek-stare-bump, except nobumpsites get peek-peek-splice-----
+# ssl_bump peek bump_step1 all
+# ssl_bump peek bump_step2 nobumpsites
+# ssl_bump splice bump_step3 nobumpsites
+# ssl_bump stare bump_step2
+# ssl_bump bump bump_step3
+
+sslproxy_cert_error deny all
+
+#---------------------------------------------------------------------------------------------------
+
+#-----ICAP data pass-thru to python-----
+# Settings will set this to off/on as needed
+icap_enable {icap_activate}
+adaptation_send_client_ip on
+adaptation_send_username off
+icap_client_username_encode off
+icap_client_username_header X-Authenticated-User
+icap_preview_enable on
+icap_preview_size 1024
+icap_service zzz_service_request reqmod_precache icap://localhost:{icap_port}/zzzdataclean bypass=on
+icap_service zzz_service_response respmod_precache icap://localhost:{icap_port}/zzzdataclean bypass=on
+adaptation_access zzz_service_request allow all
+adaptation_access zzz_service_response allow all
+adaptation_meta X-zzz-host "%ssl::>sni" all
+icap_log {icap_log}
+
+#---------------------------------------------------------------------------------------------------
+
+#-----make it restart faster (default is 30 seconds)-----
+shutdown_lifetime 1 seconds
+
+#-----limit memory usage-----
+cache_mem 50 MB
+
+#-----specify log locations and permissions-----
+cache_effective_user proxy
+cache_effective_group proxy
+access_log daemon:{access_log} logformat=ssl_custom_format
+cache_log {cache_log}
+icon_directory /usr/share/squid/icons/
+error_directory /usr/share/squid/errors/en/
+pid_filename {pid_filename}
+
+#TEST - put this back to "1" before going live, "3" has info for nopeeksites testing
+#-----DEBUG LOGGING-----
+# 1 is default
+# 7 is lots of extra logging
+# 9 is max, makes massive logs
+debug_options ALL,1
+
+#-----WSS protocol fails (EX: twitch chat)-----
+# tell squid not to bump protocols it can't handle
+on_unsupported_protocol tunnel all
+
+# multi-squid required params:
+#   visible_hostname
+#   access_log
+#   cache_log
+#   pid_filename
+#   cache_dir - not using disk, memory cache only
+# optional or already done:
+#   unique_hostname
+#   http_port
+#   include
+

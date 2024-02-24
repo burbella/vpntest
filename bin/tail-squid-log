@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check a user's activity-----
+sudo tail -f /var/log/squid/cache.log
+

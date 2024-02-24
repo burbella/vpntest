@@ -1,0 +1,33 @@
+<h2>Whois Lookup</h2>
+<table class="no_border">
+    <tr>
+        <td class="no_border"><a href="/z/whois_cache">Whois Cache</a></td>
+        <td class="no_border width_30"></td>
+        <td class="no_border"><a href="/z/ipwhois_cache">IP-Whois Cache</a></td>
+    </tr>
+</table>
+<form>
+<p>
+    Domain/IP/CIDR: <input type="text" id="domain" size="60" maxlength="128" autofocus><br>
+    <input type="checkbox" id="whois_server_only">(Whois) only lookup the whois server<br>
+    <input type="checkbox" id="nslookup_dns_blocked">(nslookup) use DNS-blocked lookup
+</p>
+</form>
+<table class="no_border">
+    <tr>
+        <td class="no_border width_200"><a id="lookup_whois" class="clickable">Whois Lookup</a></td>
+        <td class="no_border width_200"><a id="do_nslookup" class="clickable">nslookup</a></td>
+        <td class="no_border"><a id="do_reverse_dns" class="clickable">Reverse DNS</a></td>
+    </tr>
+    <tr>
+        <td class="no_border">&nbsp;</td>
+    </tr>
+    <tr>
+        <td class="no_border"><a id="do_external_whois" class="clickable">Run External Whois Lookup</a></td>
+        <td class="no_border"><a id="do_search_ipinfo" class="clickable">IP Location</a></td>
+    </tr>
+</table>
+
+<hr>
+<div id="network_service_output">
+</div>

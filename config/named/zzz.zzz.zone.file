@@ -1,0 +1,12 @@
+$TTL    86400   ; one day  
+@       IN      SOA     zzz.zzz. hostmaster.zzz.zzz. (
+               2019022201
+                    28800
+                     7200
+                   864000
+                    86400 )          
+                NS      nslocal
+                A       10.7.0.1 
+@       IN      A       10.7.0.1 
+*       IN      A       10.7.0.1
+

@@ -1,0 +1,3 @@
+#!/bin/bash
+#-----monitor ICAP server data captured from the client/server intercept-----
+tail -F /var/log/zzz/icap/zzz-icap-data

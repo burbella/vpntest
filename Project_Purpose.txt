@@ -1,0 +1,16 @@
+Project Purpose
+===============
+
+Study various features of VPN's and squid proxies.
+
+Analyze network traffic through the proxy.
+
+Practice Python and BASH programming.
+
+Automate installation, configuration, and routine upgrades as much as practical.
+
+Automate detection and blocking of unwanted traffic.
+    (Example: blocking domains based on whois data)
+
+Prepare for a career in CyberSecurity.
+

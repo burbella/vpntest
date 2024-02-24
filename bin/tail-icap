@@ -1,0 +1,3 @@
+#!/bin/bash
+#-----monitor ICAP server logs-----
+tail -F /var/log/zzz/icap/zzz-icap-{errfile,outfile}

@@ -1,0 +1,4 @@
+#-----rotate iptables logs every minute to keep them small-----
+
+# m h dom mon dow user  command
+* * * * *   root   /usr/sbin/logrotate /etc/logrotate.d/zzz-iptables

@@ -1,0 +1,16 @@
+#!/bin/bash
+#-----restarts Zzz ICAP server-----
+# zzz_icap gets stuck on restart if you don't stop squid first
+
+echo "Restarting Zzz ICAP server..."
+
+#sudo systemctl stop squid
+sudo systemctl stop squid-icap
+
+sudo systemctl restart zzz_icap
+
+#sudo systemctl start squid
+sudo systemctl start squid-icap
+
+echo "DONE"
+

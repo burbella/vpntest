@@ -1,0 +1,9 @@
+#!/bin/bash
+#-----restarts Squid-----
+
+echo "Restarting Squid..."
+
+/opt/zzz/python/bin/subprocess/squid-restart.sh
+
+echo "DONE"
+

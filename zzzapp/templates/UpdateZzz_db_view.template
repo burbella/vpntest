@@ -1,0 +1,68 @@
+<script nonce="{CSP_NONCE}" src="/js/update_zzz_db_view.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_update_zzz_db_view();
+}});
+</script>
+<h2>DB Viewer</h2>
+
+<p>
+    Table:
+    <select id="table_menu">
+        <option value="">Select Table</option>
+        {table_options}
+    </select>
+
+    &nbsp;
+    Format:
+    <select id="format_menu">
+        {format_options}
+    </select>
+
+    &nbsp;
+    Max Rows: (1-10000)
+    <input id="max_rows" type="text" size="6" value="100" maxlength="6">
+
+    &nbsp;
+    Max Data per table cell: (KB)
+    <input id="max_table_cell_data" type="text" size="5" value="50" maxlength="5">
+
+    &nbsp;
+    <a id="view_table" class="clickable">View Table</a>
+
+    &nbsp;
+    <a id="view_schema" class="clickable">View Schema</a>
+</p>
+<p>
+    Where: <select id="column_menu"><option>select a table</option></select>
+    <select id="compare_menu">
+        <option value="equals">equals</option>
+        <option value="contains">contains</option>
+        <option value="starts_with">starts with</option>
+        <option value="ends_with">ends with</option>
+        <option value="greater_than">greater than</option>
+        <option value="less_than">less than</option>
+    </select>
+    <input id="column_value" type="text" size="30" maxlength="1000">
+    <select id="order_asc_desc">
+        <option value="asc">order by asc</option>
+        <option value="desc">order by desc</option>
+    </select>:
+    <select id="order_column_menu"><option>select a table</option></select>
+
+    &nbsp;
+    <a id="query_with_where" class="clickable">include Where</a>
+    &nbsp;
+    <a id="query_with_order_by" class="clickable">include OrderBy</a>
+    &nbsp;
+    <a id="query_with_both" class="clickable">include Both</a>
+    <br>
+    <!-- [\w :.-] -->
+    ( allowed characters: space, a-z A-Z 0-9 _ : . - )
+</p>
+<hr>
+
+<p id="db_status" class="font-courier"></p>
+
+<p id="db_output" class="font-courier"></p>

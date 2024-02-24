@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----hourly memory checks-----
+
+/usr/bin/nice -n 19 /opt/zzz/python/bin/memory-check.py --all --restart >> /var/log/zzz/cron/memory-check.log 2>&1

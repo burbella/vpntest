@@ -1,0 +1,49 @@
+#!/bin/bash
+#-----grep the GitHub repos with junk filtered out-----
+
+# Skip these:
+# /.git/
+# /OLD/
+# /docs/
+# /external/
+# Binary files
+
+# optionally skip these: test, upgrade/zzz
+
+source /opt/zzz/util/util.sh
+
+while getopts "tu" opt; do
+    case ${opt} in
+        t )
+            ZZZ_SKIP_TEST_DIR=True
+            ;;
+        u )
+            ZZZ_SKIP_UPGRADE_DIR=True
+            ;;
+        \? )
+            echo "INVALID OPTION: $OPTARG" 1>&2
+            ZZZ_ERROR_EXIT=True
+            ;;
+    esac
+done
+shift $((OPTIND -1))
+
+if [[ "$ZZZ_ERROR_EXIT" == "True" ]]; then
+    exit
+fi
+
+ZZZ_EXTRA_OPTS=
+if [[ "$ZZZ_SKIP_TEST_DIR" == "True" ]]; then
+    ZZZ_EXTRA_OPTS="--exclude-dir=test"
+fi
+
+cd $REPOS_DIR
+#grep --exclude-dir=.git --exclude-dir=OLD --exclude-dir=docs --exclude-dir=external $ZZZ_EXTRA_OPTS -rin "$1" . | grep -vP '^Binary file '
+
+# grep options: recursive, case-insensitive, skip binary, show line numbers
+if [[ "$ZZZ_SKIP_UPGRADE_DIR" == "True" ]]; then
+    ZZZ_EXTRA_OPTS="$ZZZ_EXTRA_OPTS --exclude-dir=upgrade/zzz"
+    grep --exclude-dir={.git,OLD,docs,external} $ZZZ_EXTRA_OPTS -riIn "$1" . | grep -vP '^\.\/upgrade\/zzz'
+else
+    grep --exclude-dir={.git,OLD,docs,external} $ZZZ_EXTRA_OPTS -riIn "$1" .
+fi

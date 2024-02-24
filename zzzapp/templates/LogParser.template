@@ -1,0 +1,162 @@
+<div id="loading_overlay" class="page_loading_overlay display_block">Loading...<span id="loading_timer"></span></div>
+
+<script nonce="{CSP_NONCE}" src="/js/ip_log_common.js?v=22"></script>
+<script nonce="{CSP_NONCE}" src="/js/squid_log_python.js?v=22"></script>
+<script nonce="{CSP_NONCE}">
+    var ip_list={js_ip_list};
+    $(function() {{
+        // jQuery start
+        enable_overlay();
+        show_loading_overlay_timer();
+        
+        load_squid_log_data({lines_to_analyze}, true);
+        
+        // attach JS events to page elements
+        load_js_ip_log_common();
+        load_js_squid_log();
+        
+        start_clock();
+    }});
+</script>
+<table class="width_max no_border">
+    <tr>
+        <td class="no_border">
+            <b>Squid Logs</b> - <a href="{URL_Services}">Back to Manage Services</a>
+        </td>
+        <td id="show_clock" class="no_border right_align"></td>
+    </tr>
+</table>
+
+<!--
+<p>IP-User Map:<br><pre>
+{ip_user_map}
+</pre></p>
+-->
+
+<table><tr><td rowspan="3">
+    <form id="log_options">
+        <p>
+            <b>Filters:</b><br>
+            <input type="checkbox" id="checkbox_extra_columns" name="checkbox_extra_columns" value="1" checked="checked">Hide Extra Columns
+            (<input type="checkbox" id="checkbox_more_columns" name="checkbox_more_columns" value="1" checked="checked">More)<br>
+            <input type="checkbox" id="checkbox_dns_blocked" name="checkbox_dns_blocked" value="1">Hide DNS-blocked connections<br>(server IP={server_ip})<br>
+            <input type="checkbox" id="checkbox_duplicates" name="checkbox_duplicates" value="1" checked="checked">Hide duplicate domains<br>
+            <input type="checkbox" id="checkbox_403" name="checkbox_403" value="1">Hide HTTP 403's<br>
+            <input type="checkbox" id="checkbox_200" name="checkbox_200" value="1">Hide HTTP 200's<br>
+            <!-- TODO: add this feature or remove the checkbox
+            <input type="checkbox" id="checkbox_conn_start" name="checkbox_conn_start" value="1">Sort by connection start time<br>
+            -->
+        </p>
+        
+        <p>
+            <table><tr>
+                <td>VPN Users:<br>(source IP's)</td>
+                <td>
+                    <div id="list_of_users">
+                    {list_of_users}
+                    </div>
+                    <input type="radio" name="limit_by_user" value="all" checked>All Users
+                </td>
+            </tr></table>
+            <table><tr>
+                <td>
+                    <p>Countries:</p>
+                    <p>
+                        <input type="radio" name="country_display" value="show" checked> Show<br>
+                        <input type="radio" name="country_display" value="hide"> Hide<br>
+                    </p>
+                </td>
+                <td>
+                    <div id="list_of_countries">
+                    {list_of_countries}
+                    </div>
+                </td>
+            </tr></table>
+        </p>
+    </form>
+    <p>
+        <form id="log_options_lines" method="post">
+            Lines to Analyze:
+            <input type="text" maxlength="6" size="6" id="lines_to_analyze" value="{lines_to_analyze}">
+            <br>
+            <a id="update_results" class="clickable">Update Results</a>
+        </form>
+    </p>
+</td>
+<td rowspan="3">
+    <form>
+        <b>Pending Updates - DNS:</b> <a id="clear_dns_updates" class="clickable">Clear</a><br>
+        <textarea id="dns_updates" readonly="readonly" rows="14" cols="50"></textarea><br>
+        <a id="dns_commit_updates" class="clickable">Commit DNS Updates</a>
+        <div id="status_dns_updates"></div>
+        <hr>
+        <b>Pending Updates - IP:</b> <a id="clear_ip_updates" class="clickable">Clear</a><br>
+        <textarea id="ip_updates" readonly="readonly" rows="14" cols="44"></textarea><br>
+        <a id="ip_commit_updates" class="clickable">Commit IP Updates</a>
+        <div id="status_ip_updates"></div>
+    </form>
+</td>
+<!-- no rowspan because 2 rows below are used -->
+<td>
+    <a id="squid_delete_old" class="clickable">Delete OLD Squid Data (over 30 days old)</a>
+    <a id="cancel_squid_delete_old" class="hide_item">CANCEL Delete OLD Squid Data</a>
+    <br>
+    <br>
+    <br>
+    <a id="confirm_squid_delete_old" class="hide_item">Confirm Delete OLD Squid Data</a>
+    <div id="status_squid_delete_old"></div>
+</td>
+</tr>
+<!-- 2nd and 3rd row for last column -->
+<tr>
+    <td>
+        <a id="squid_delete_all" class="clickable">Delete ALL Squid Data from DB</a>
+        <a id="cancel_squid_delete_all" class="hide_item">CANCEL Delete ALL Squid Data</a>
+        <br>
+        <br>
+        <br>
+        <a id="confirm_squid_delete_all" class="hide_item">Confirm Delete ALL Squid Data from DB</a>
+        <div id="status_squid_delete_all"></div>
+    </td>
+</tr>
+<tr>
+    <td>
+        Squid Log Rows in DB: <span id="rows_in_db">{rows_in_db}</span>
+        <br>
+        Oldest entry: <span id="oldest_entry">{oldest_entry}</span>
+        <br>
+        Newest entry: <span id="newest_entry">{newest_entry}</span>
+    </td>
+</tr>
+</table>
+<hr>
+<table>
+    <tr>
+        <td class="top_align">
+            <b>IP/DNS Analysis:</b><br>
+            <span class="clickable">(G)</span> - Google<br>
+            <span class="clickable">(L)</span> - IP Location<br>
+            <span class="clickable">(N)</span> - NS Lookup<br>
+            <span class="clickable">(R)</span> - Reverse DNS<br>
+            <span class="clickable">(W)</span> - Whois
+        </td>
+        <td>
+            <b>Blocking:</b><br>
+            <span class="clickable_red">(D)</span> - Block domain (DNS)<br>
+            <span class="clickable_red">(S)</span> - Block subdomain (DNS)<br>
+            <span class="clickable_red">(I)</span> - Block IP (iptables)<br>
+            <span class="clickable_red">(IC)</span> - Block class-C IP (iptables)
+        </td>
+        <td>
+            <!--TODO: auto-adjust this number when checkboxes affect the display?
+                      make the numbers accurate-->
+            Lines in logfile: <span id="lines_in_logfile">{lines_in_logfile}</span><br>
+            Lines analyzed: <span id="lines_analyzed">{lines_analyzed}</span><br>
+            Lines displayed: <span id="lines_displayed">{lines_displayed}</span>
+        </td>
+    </tr>
+</table>
+
+<table id='logdata'>
+{full_table_html}
+</table>

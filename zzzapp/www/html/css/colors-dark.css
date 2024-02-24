@@ -1,0 +1,220 @@
+/* Zzz Enhanced VPN - dark mode CSS */
+
+.border-green {
+    border-color: #00aa00;
+    border-width: 2px;
+    border-style: solid;
+}
+
+/* make a table cell with only a left border visible */
+.border-left {
+    border-bottom: none;
+    border-left: 1px solid #ffffff;
+    border-right: none;
+    border-top: none;
+}
+/* make a table cell with only a right border visible */
+.border-right {
+    border-bottom: none;
+    border-left: none;
+    border-right: 1px solid #ffffff;
+    border-top: none;
+}
+
+.border-red {
+    border-color: #aa0000;
+    border-width: 2px;
+    border-style: solid;
+}
+
+.border-yellow {
+    border-color: #fff600;
+    border-width: 2px;
+    border-style: solid;
+}
+
+.clickable {
+    /*background-color: #87cefa;*/
+    background-color: RoyalBlue;
+    color: #000000;
+    cursor: pointer;
+}
+
+.clickable:active {
+    background-color: DarkGray;
+    color: red;
+}
+
+.clickable_red {
+    background-color: #883333;
+    color: #000000;
+    cursor: pointer;
+}
+
+.clickable_red:active {
+    background-color: DarkGray;
+    color: #000000;
+}
+
+.gray-bg {
+    /* background-color: DarkGray; */
+    background-color: #333333;
+}
+
+.green-bg {
+    background-color:green;
+}
+
+.queued_for_update {
+    /* yellow */
+    /* background-color: #44ff44; */
+    
+    background-color: yellow;
+    color: #000000;
+}
+
+.text_green {
+    color: #00cc00;
+}
+
+.text_red {
+    color: #cc0000;
+}
+
+.text_yellow {
+    color: #fff600;
+}
+
+.update_fail {
+    background-color: #990000;
+    color: #000000;
+}
+
+.update_success {
+    /* yellow */
+    /* background-color: #44ff44; */
+    
+    color: #000000;
+    background-color: Lime;
+}
+
+.warning_text {
+    background-color: yellow;
+    color: #000000;
+}
+
+/**************************************************/
+/* Settings menus */
+.selected_option {
+    background-color: #009900;
+    color: #ff0000;
+}
+
+.protected_option {
+    color: LightGray;
+    background-color: #990000;
+}
+
+/**************************************************/
+/* HTML tag styles */
+
+a:link {
+    color: DodgerBlue;
+}
+
+a:visited {
+    color: MediumPurple;
+}
+
+hr {
+    height:2px;
+    border-width:0;
+    color:LightGray;
+    background-color:LightGray
+}
+
+html {
+    font-family: Arial, Helvetica, sans-serif;
+    /*font-family: "Lucida Console", Monaco, monospace;*/
+    /*font-size: 1em;*/
+    font-size: medium;
+    color: #aaaaaa;
+    background-color: #000000;
+}
+
+input[type='text'] {
+    background-color: #222222;
+    color: LightGray;
+    border: 2px solid LightGray;
+    font-family: monospace;
+}
+
+input[type='radio']:after {
+    background-color: #444444;
+    border: 2px solid #000000;
+    width: 10px;
+    height: 10px;
+    border-radius: 8px;
+    top: -0px;
+    left: -0px;
+    position: relative;
+    content: '';
+    display: inline-block;
+    visibility: visible;
+}
+
+input[type='radio']:checked:after {
+    background-color: DarkGray;
+    border: 2px solid #000000;
+    width: 10px;
+    height: 10px;
+    border-radius: 8px;
+    top: -0px;
+    left: -0px;
+    position: relative;
+    content: '';
+    display: inline-block;
+    visibility: visible;
+}
+
+select {
+    background-color: #222222;
+    color: LightGray;
+    border: 2px solid LightGray;
+    /*font-family: "Lucida Console", Monaco, monospace;*/
+    font-family: monospace;
+}
+
+table {
+    border: 1px solid #ffffff;
+    border-spacing: 0px;
+    padding: 0px;
+    border-collapse:collapse;
+    table-layout: fixed;
+    /*font-family: "Lucida Console", Monaco, monospace;*/
+    font-family: monospace;
+    /*font-size: small;*/
+}
+
+td {
+    border: 1px solid #ffffff;
+    padding: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /*word-wrap: break-word;*/
+}
+
+textarea {
+    background-color: #000000;
+    color: LightGray;
+    border: 2px solid LightGray;
+}
+
+th {
+    border: 1px solid #ffffff;
+    padding: 2px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: medium;
+}
+

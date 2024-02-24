@@ -1,0 +1,78 @@
+Apache Configs for Ubuntu
+=========================
+
+Older CentOS versions of apache used just 2 large files:
+    /etc/httpd/httpd.conf
+    /etc/httpd/ssl.conf
+
+---------------------------------------------------------------------------------------------------
+
+For now, adapt the CentOS files to work with Ubuntu paths without splitting them up
+
+Backup the Ubuntu default apache.conf:
+/etc/apache2/apache.conf --> /etc/apache2/apache.conf.orig
+
+
+DocumentRoot "/var/www/html"
+
+<Directory "/var/www/html">
+    #-----adblock pixel - Give it a stupid long cache control header, which ought to mean fewer repeated requests-----
+    # Reference: https://charlieharvey.org.uk/page/adblocking_with_bind_apache
+    <FilesMatch "a.gif$">
+        Header set Cache-Control "max-age=60, public"
+        #Header set Cache-Control "max-age=290304000, public"
+    </FilesMatch>
+    
+    RewriteEngine On
+    RewriteBase /
+    
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-l
+    RewriteRule ^(.*)$ http://10.7.0.1/a.gif
+</Directory>
+
+
+Include /etc/httpd/conf/ssl.conf
+
+---------------------------------------------------------------------------------------------------
+
+PID file: /var/run/apache2/apache2.pid
+
+Ubuntu has many files/directories in /etc/apache2
+
+Main config:
+    apache2.conf
+
+Activates port listeners: (ports 80 and 443 are already there, no changes needed)
+    ports.conf
+
+Sub-configs:
+    conf-available/
+    ./conf-available/charset.conf
+    ./conf-available/localized-error-pages.conf
+    ./conf-available/other-vhosts-access-log.conf
+    ./conf-available/security.conf
+    ./conf-available/serve-cgi-bin.conf
+
+Soft links to enable sub-configs:
+    conf-enabled/
+
+One-line mod loaders:
+    mods-available/
+
+Soft links to enable each mod:
+    mods-enabled/
+
+Site configs:
+    sites-available/
+
+Soft links to enable sites:
+    sites-enabled/
+
+
+Logs:
+    /var/log/apache2/access.log
+    /var/log/apache2/error.log
+    /var/log/apache2/other_vhosts_access.log
+

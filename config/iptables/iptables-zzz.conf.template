@@ -1,0 +1,27 @@
+#-----Zzz app required routing rules-----
+# 10.5 - dns-icap (separate squid service for this one)
+# 10.6 - dns
+# 10.7 - dns-squid
+# 10.8 - open
+# 10.9 - open-squid (Settings controls whether this is used or not)
+*nat
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+{disable_open_squid}-A PREROUTING -s {class_b_open_squid}/24 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports {port_squid_http} ! -d 10.0.0.0/8
+{disable_open_squid}-A PREROUTING -s {class_b_open_squid}/24 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports {port_squid_https} ! -d 10.0.0.0/8
+
+-A PREROUTING -s {class_b_dns_squid}/24 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports {port_squid_http} ! -d 10.0.0.0/8
+-A PREROUTING -s {class_b_dns_squid}/24 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports {port_squid_https} ! -d 10.0.0.0/8
+
+-A PREROUTING -s {class_b_dns_icap}/24 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports {port_squid_icap_http} ! -d 10.0.0.0/8
+-A PREROUTING -s {class_b_dns_icap}/24 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports {port_squid_icap_https} ! -d 10.0.0.0/8
+
+-A POSTROUTING -s {class_b_dns_icap}/24 -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {class_b_open}/24 -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {class_b_dns_squid}/24 -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {class_b_dns}/24 -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {class_b_open_squid}/24 -o {network_interface_internal} -j MASQUERADE
+COMMIT
+

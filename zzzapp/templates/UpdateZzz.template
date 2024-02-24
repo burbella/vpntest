@@ -1,0 +1,181 @@
+<script nonce="{CSP_NONCE}" src="/js/update_zzz.js"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_update_zzz();
+}});
+</script>
+<h2>Update Zzz</h2>
+
+<p class="font-courier">
+    {zzz_upgrades_needed}
+</p>
+
+<!-- production -->
+{dev_upgrade_warning}
+<table class="no_border {show_hide_upgrade_zzz}"><tr>
+    <td class="width_300 no_border">
+        <a id="upgrade_zzz" class="clickable">Upgrade to the Latest Version of Zzz</a>
+        <a id="cancel_upgrade_zzz" class="hide_item">CANCEL Upgrade</a>
+    </td>
+    <td class="no_border">
+        <a id="confirm_upgrade_zzz" class="hide_item">Confirm Upgrade</a>
+    </td>
+</tr></table>
+<pre id="status_upgrade_zzz"></pre>
+
+<hr>
+
+<p>
+    <b>Version Checks:</b> OpenVPN, Zzz System<br>
+</p>
+<p>
+    <a id="version_checks" class="clickable">Run Version Checks</a>
+</p>
+<pre id="status_version_checks"></pre>
+
+<hr>
+
+<h3>Dev Tools</h3>
+<div id="dev_tools_note" class="{dev_tools_note}">
+    <p><span class="warning_text">Dev Tools hidden in Settings</span></p>
+</div>
+<div id="dev_tools" class="{dev_tools}">
+    <p><span class="warning_text">WARNING: These tools may make the system unstable</span></p>
+    <p><a href="/z/db_view">DB Viewer</a></p>
+    <table>
+    <tr><td>
+        <a id="request_code_diff" class="clickable">Request Code Diff</a><br>
+        This will ask the daemon to get a code diff between the repos and installed code.<br>
+        When the output is ready, click (Refresh) below to see it.<br>
+        <a href='#scroll_to_code_diff'>scroll to Code Diff</a><br>
+        <pre id="status_request_code_diff"></pre>
+    </td></tr>
+    <tr><td>
+        <a id="request_pytest" class="clickable">Run PyTest</a><br>
+        This will ask the daemon to run pytest on the python scripts.<br>
+        When the output is ready, click (Refresh) below to see it.<br>
+        <a href='#scroll_to_pytest_output'>scroll to PyTest Output</a><br>
+        <pre id="status_request_pytest"></pre>
+    </td></tr>
+    <tr><td>
+        <a id="install_updates" class="clickable">Install Codebase</a>
+        <a id="cancel_install_updates" class="hide_item">CANCEL Code Install</a>
+        <a id="confirm_install_updates" class="hide_item">Confirm Install Codebase</a><br>
+        This will install code from the repos directory to the running directory.<br>
+        Make sure to restart any affected services (apache, zzz daemon, etc.)<br>
+        <a href='#scroll_to_installer_output'>scroll to Installer Output</a><br>
+        <pre id="status_install_updates"></pre>
+    </td></tr>
+    <tr><td>
+        <a id="request_git_diff" class="clickable">Request Git Diff</a>
+        Branch: <select id="git_diff_branch_menu">{show_branches}</select>
+        <a id="request_git_branch" class="clickable">refresh branch list</a>
+        <br>
+        This will ask the daemon to diff the local repos files with github files.<br>
+        When the output is ready, click (Refresh) below to see it.<br>
+        <a href='#scroll_to_git_output'>scroll to Git Output</a><br>
+        <pre id="status_request_git_diff"></pre>
+    </td></tr>
+    <!-- pull requests not needed, since git reset does a pull
+    <tr><td>
+        <a id="request_git_pull" class="clickable">Request Git Pull</a><br>
+        This will ask the daemon to pull the latest code from github.<br>
+        When the output is ready, click (Refresh) below to see it.<br>
+        <a href='#scroll_to_git_output'>scroll to Git Output</a><br>
+        <pre id="status_request_git_pull"></pre>
+    </td></tr>
+    -->
+    <tr><td>
+        <a id="request_git_reset" class="clickable">Request Git Hard Reset &amp; Checkout</a>
+        Branch: <select id="git_reset_branch_menu">{show_branches}</select><br>
+        Checked-Out: <span class="text_green">{branch_checked_out}</span><br>
+        This will ask the daemon to do a HARD RESET of the local repos and pull the latest code from github.<br>
+        This will erase local changes.  It is useful if local changes are blocking a pull.<br>
+        When the output is ready, click (Refresh) below to see it.<br>
+        <a href='#scroll_to_git_output'>scroll to Git Output</a><br>
+        <pre id="status_request_git_reset"></pre>
+    </td></tr>
+    </table>
+    
+    <hr>
+    <a class="clickable" id="show_hide_app_versions">Show PIP Versions</a>
+    <div class="hide_item" id="app_versions">
+        <!-- pip upgrades -->
+        <div>
+            <p>
+                <b class="text_green">Python Packages:</b>
+                <input type="checkbox" id="pip_local_only" checked="checked">local only &nbsp;
+                <input type="checkbox" id="pip_hide_dependencies">hide dependencies &nbsp;
+                <a id="load_python_pip_versions" class="clickable font-courier">Check PIP Versions</a>
+                <a id="wait_python_pip_versions" class="hide_item warning_text font-courier">Check PIP Versions loading...</a>
+            </p>
+            <p>
+                <a id="pipdeptree_all" class="clickable" data-onclick="zzz_all_packages">pipdeptree - all packages</a>
+            </p>
+            <p id="pip_info" class="font-courier">
+                requirements.txt file entries are <span class="text_green">highlighted</span><br>
+                <!--
+                <span class="gray-bg"><span class="text_green">highlighted gray</span> entries cannot upgrade due to limits specified below</span>
+                -->
+            </p>
+            <!--
+            <p class="font-courier">
+                dnspython cannot upgrade beyond 2.0.0 because ipwhois requires dnspython==2.0.0<br>
+                - ipwhois 1.2.0 is the latest version, released 9/17/2020<br>
+            </p>
+            -->
+            <div id="pipdeptree" class="hide_item"></div>
+            <p id="python_pip_version_data" class="font-courier"></p>
+        </div>
+        <hr class="text_green green-bg">
+        <!-- dev -->
+        <div class="{show_hide_upgrade_dev}">
+            <b class="text_green">Zzz System - Dev Versions Available:</b>
+            <table class="no_border"><tr>
+                <td class="no_border">
+                    <select id="upgrade_dev_menu">
+                        <option value="None" selected="selected">Select a Dev Version</option>
+                        {upgrade_dev_menu}
+                    </select>
+                </td>
+                <td class="width_300 no_border">
+                    <a id="upgrade_dev" class="clickable">Upgrade to the Selected DEV Version of Zzz</a>
+                    <a id="cancel_upgrade_dev" class="hide_item">CANCEL DEV Upgrade</a>
+                </td>
+                <td class="no_border">
+                    <a id="confirm_upgrade_dev" class="hide_item">Confirm DEV Upgrade</a>
+                </td>
+            </tr></table>
+            <pre id="status_upgrade_dev"></pre>
+            <pre>Zzz System Info: installed_version={installed_version}, available_version={available_version}, dev_version: {show_dev_version}
+            ip_log_last_time_parsed={ip_log_last_time_parsed}, system last updated {last_updated}</pre>
+        </div>
+        <!-- TODO: fix squid version check, then remove hide_item -->
+        <div class="text_green hide_item">
+            <hr class="text_green green-bg">
+            <b>Squid Updates:</b>
+            <pre>{squid_latest_version}</pre>
+        </div>
+    </div>
+
+    <hr>
+    <p><b>Zzz Updates: </b><a id='refresh_code_diff' class='clickable'>(Refresh)</a></p>
+    {zzz_update_requests_html}
+    
+    <p id='scroll_to_code_diff'><b>Latest Code Diff: (repos directory vs. installed code)</b></p>
+    <p id='print_code_diff' class="font-courier">{code_diff_filedata}</p>
+    <hr>
+    
+    <p id='scroll_to_pytest_output'><b>Latest PyTest:</b></p>
+    <a href="/z/coverage">Coverage Report</a>
+    <p id='print_pytest' class="font-courier">{pytest_filedata}</p>
+    <hr>
+    
+    <p id='scroll_to_installer_output'><b>Latest Zzz Installer Output:</b></p>
+    <p id='print_installer_output' class="font-courier">{zzz_installer_output_filedata}</p>
+    <hr>
+    
+    <p id='scroll_to_git_output'><b>Latest Zzz Git Diff/Pull/Reset Output:</b></p>
+    <p id='print_git_output' class="font-courier">{zzz_git_output_filedata}</p>
+</div>

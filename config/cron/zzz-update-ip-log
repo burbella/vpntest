@@ -1,0 +1,9 @@
+#-----process iptables logs often to keep the UI log display updated-----
+# at its busiest, the logs should rotate every 3 minutes, so running update-ip-log.py every 4 minutes should work OK
+# also process squid logs every minute
+
+# m h dom mon dow user  command
+# * * * * *   root   /opt/zzz/python/bin/update-ip-log.py --update >>/var/log/zzz/cron/update-ip-log.log 2>&1
+# * * * * *   root   /opt/zzz/python/bin/update-squid-log.py --update >>/var/log/zzz/cron/update-squid-log.log 2>&1
+#TODO: run as www-data?
+* * * * *   root   /opt/zzz/util/update-logs.sh

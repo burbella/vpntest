@@ -1,0 +1,72 @@
+#!/bin/bash
+#-----recreate ipsets on boot-----
+# This file should be installed here:
+#   /usr/share/netfilter-persistent/plugins.d/
+
+set -e
+
+rc=0
+
+#-----load IP's into allowlist, blacklist, and country ipsets-----
+# don't worry about errors on create if the lists already exist, they won't break anything
+load_rules()
+{
+    /etc/iptables/ipset-create-allow-ip.sh
+    /etc/iptables/ipset-create-blacklist.sh
+    /etc/iptables/ipset-create-countries.sh
+    
+    /etc/iptables/ipset-update-allow-ip.sh
+    
+    /etc/iptables/ipset-update-blacklist.sh
+    
+    /etc/iptables/ipset-update-countries.sh
+    
+    #-----IPv6-----
+    # separate set of lists for IPv6 - assume empty shell scripts are installed if not using IPv6, so it's still safe to run
+    # /etc/iptables/ipset-ipv6-create-blacklist.sh
+    # /etc/iptables/ipset-ipv6-create-countries.sh
+    # /etc/iptables/ipset-ipv6-create-allow-ip.sh
+    
+    # /etc/iptables/ipset-ipv6-update-blacklist.sh
+    # /etc/iptables/ipset-ipv6-update-countries.sh
+    # /etc/iptables/ipset-ipv6-update-allow-ip.sh
+}
+
+save_rules()
+{
+    # don't need an ipset save option because the .conf files save ipset data
+    echo "Save does nothing for now"
+}
+
+flush_rules()
+{
+    # don't need an ipset flush option because iptables flushes are enough?
+    echo "Flush does nothing for now"
+}
+
+
+#TEST: compare ipdeny countries to maxmind countries to see if the lists differ
+
+case "$1" in
+start|restart|reload|force-reload)
+	load_rules
+	;;
+save)
+	save_rules
+	;;
+stop)
+	# Why? because if stop is used, the firewall gets flushed for a variable
+	# amount of time during package upgrades, leaving the machine vulnerable
+	# It's also not always desirable to flush during purge
+	echo "Automatic flushing disabled, use \"flush\" instead of \"stop\""
+	;;
+flush)
+	flush_rules
+	;;
+*)
+    echo "Usage: $0 {start|restart|reload|force-reload|save|flush}" >&2
+    exit 1
+    ;;
+esac
+
+exit $rc

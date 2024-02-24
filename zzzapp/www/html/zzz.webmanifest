@@ -1,0 +1,67 @@
+{
+    "short_name": "ZzzEVPN",
+    "name": "Zzz Enhanced VPN",
+    "icons": [
+        {
+            "src": "/img/custom/favicon-192.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/custom/favicon-512.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/custom/favicon-192.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/img/custom/favicon-512.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "maskable"
+        }
+    ],
+    "id": "/z/?v=24",
+    "start_url": "/z/?v=24",
+    "background_color": "#000000",
+    "display": "minimal-ui",
+    "scope": "/",
+    "theme_color": "#007700",
+    "shortcuts": [
+        {
+            "name": "IP Log View",
+            "short_name": "IP Log",
+            "description": "IP Log View",
+            "url": "/z/iptables_log",
+            "icons": [{ "src": "/img/custom/favicon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Squid Log View",
+            "short_name": "Squid Log",
+            "description": "Squid Log View",
+            "url": "/z/squid_log",
+            "icons": [{ "src": "/img/custom/favicon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Settings",
+            "short_name": "Settings",
+            "description": "Settings",
+            "url": "/z/settings",
+            "icons": [{ "src": "/img/custom/favicon-192.png", "sizes": "192x192" }]
+        }
+    ],
+    "description": "Zzz Enhanced VPN",
+    "screenshots": [
+        {
+            "src": "/img/custom/favicon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

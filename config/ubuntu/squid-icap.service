@@ -1,0 +1,22 @@
+[Unit]
+Description=Squid HTTP Proxy with ICAP
+After=syslog.target network-online.target
+Wants=network-online.target
+Documentation=man:squid(8)
+
+[Service]
+Type=notify
+PrivateTmp=true
+WorkingDirectory=/etc/squid
+ExecStart=/usr/sbin/squid -sYC -f /etc/squid/squid-icap.conf
+LimitNPROC=10
+DeviceAllow=/dev/null rw
+DeviceAllow=/dev/net/tun rw
+ProtectSystem=true
+ProtectHome=true
+KillMode=process
+RestartSec=5s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

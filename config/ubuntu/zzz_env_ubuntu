@@ -1,0 +1,12 @@
+# Zzz Custom BASH Environment Vars - Ubuntu
+
+ZZZ_LIB_PATH=/lib:/lib/x86_64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu:/usr/local/lib
+ZZZ_USER=ubuntu
+
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ZZZ_LIB_PATH
+LD_RUN_PATH=$LD_RUN_PATH:$ZZZ_LIB_PATH
+PATH=$PATH:$HOME/bin:/home/$ZZZ_USER/bin:/opt/zzz/python/bin
+PS1="\n\u@\h \t\n\w> "
+PYTHONPATH=/opt/zzz/python/lib
+
+export LD_LIBRARY_PATH LD_RUN_PATH PATH PS1 PYTHONPATH

@@ -1,0 +1,18 @@
+#!/bin/bash
+#-----truncates the data log for Zzz ICAP server-----
+# zzz_icap gets stuck on stop if you don't stop squid first
+
+echo "Truncating data log for Zzz ICAP server..."
+
+#sudo systemctl stop squid
+sudo systemctl stop squid-icap
+
+sudo systemctl stop zzz_icap
+sudo truncate --size=0 /var/log/zzz/icap/zzz-icap-data
+sudo systemctl start zzz_icap
+
+#sudo systemctl start squid
+sudo systemctl start squid-icap
+
+echo "DONE"
+

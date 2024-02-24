@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----check a user's activity-----
+sudo tail -F /opt/zzz/apache/dev/zzz-upgrade.log
+

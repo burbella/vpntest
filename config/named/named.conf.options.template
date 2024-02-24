@@ -1,0 +1,118 @@
+#-----Zzz named.conf.options-----
+
+acl "trusted" {{
+	localhost; # ns1 - can be set to localhost
+	#10.5.0.0/24; # server and clients (DNS block + squid proxy w/ICAP)
+	{IPV4_CLASS_C_DNS_ICAP};
+	#10.6.0.0/24; # server and clients (DNS block only)
+	{IPV4_CLASS_C_DNS};
+	#10.7.0.0/24; # server and clients (DNS block + squid proxy)
+	{IPV4_CLASS_C_DNS_SQUID};
+	#10.8.0.0/24; # server and clients
+	{IPV4_CLASS_C_OPEN};
+	#10.9.0.0/24; # server and clients (squid proxy only)
+	{IPV4_CLASS_C_OPEN_SQUID};
+	#{IPV6_IP6TABLES_5}
+	#{IPV6_IP6TABLES_6}
+	#{IPV6_IP6TABLES_7}
+	#{IPV6_IP6TABLES_8}
+	#{IPV6_IP6TABLES_9}
+}};
+
+acl "filtered" {{
+	#10.5.0.0/24; # server and clients (DNS block + squid proxy w/ICAP)
+	{IPV4_CLASS_C_DNS_ICAP};
+	#10.6.0.0/24; # server and clients (DNS block only)
+	{IPV4_CLASS_C_DNS};
+	#10.7.0.0/24; # server and clients (DNS block, squid proxy)
+	{IPV4_CLASS_C_DNS_SQUID};
+	#10.9.0.0/24; # server and clients (squid proxy only)
+	{IPV4_CLASS_C_OPEN_SQUID_FILTERED};
+
+	#{IPV6_IP6TABLES_6}
+	#{IPV6_IP6TABLES_7}
+	#{IPV6_IP6TABLES_9}
+}};
+
+acl "unfiltered" {{
+	localhost; # need BIND to respond to local requests
+	#10.8.0.0/24; # server and clients
+	{IPV4_CLASS_C_OPEN};
+	#10.9.0.0/24; # server and clients (squid proxy only)
+	{IPV4_CLASS_C_OPEN_SQUID_UNFILTERED};
+
+	#{IPV6_IP6TABLES_5}
+	#{IPV6_IP6TABLES_8}
+}};
+
+options {{
+	forwarders {{
+		{IPV4_DNS};
+		{IPV4_DNS2};
+		#{IPV6_DNS};
+		#{IPV6_DNS2};
+	}};
+	listen-on port 53 {{
+		127.0.0.1;
+		{DHCP_OPTION_IPV4_OPEN_SQUID};
+		{DHCP_OPTION_IPV4_DNS};
+		{DHCP_OPTION_IPV4_DNS_ICAP};
+		{DHCP_OPTION_IPV4_DNS_SQUID};
+		{DHCP_OPTION_IPV4_OPEN};
+	}};
+	#listen-on-v6 port 53 {{ ::1; {IPV6_IP6TABLES_SUBNET_64}; }};
+	# listen-on-v6 {{ any; }};
+	directory 	"/var/cache/bind";
+	dump-file 	"/var/cache/bind/cache_dump.db";
+	statistics-file "/var/cache/bind/named_stats.txt";
+	memstatistics-file "/var/cache/bind/named_mem_stats.txt";
+	allow-query {{ trusted; }};
+	allow-query-cache {{ trusted; }};
+	allow-recursion {{ trusted; }};
+	recursion yes;
+	
+	#TODO: remove this for ubuntu 20, add new bind-9.16 commands for DNSSEC
+	#dnssec-enable yes;
+	
+	dnssec-validation auto;
+
+	/* Path to ISC DLV key */
+	bindkeys-file "/etc/bind/bind.keys";
+
+	managed-keys-directory "/var/cache/bind";
+}};
+
+#-----apparmor is set by default to allow /var/log/named/* ----
+logging {{
+	channel default_debug {{
+		file "/var/log/named/named.log";
+		severity dynamic;
+	}};
+}};
+
+#---------------------------------------------------------------------------------------------------
+
+view filtered {{
+	match-clients {{ "filtered"; }};
+
+	#-----BIND wants all zones in the views when using views, so we duplicate common entries-----
+	include "/etc/bind/named.conf.default-zones";
+	
+	#-----this includes the ad blacklists and the custom blocked DNS entries-----
+	include "{CONFIG_DIRECTORY}/named.conf.local";
+}};
+
+view unfiltered {{
+	match-clients {{ "unfiltered"; }};
+	
+	#-----BIND wants all zones in the views when using views, so we duplicate common entries-----
+	include "/etc/bind/named.conf.default-zones";
+	
+	include "/etc/bind/named-zzz.conf";
+	
+	# Settings flags determine if these INCLUDEs are active:
+	# include "/etc/bind/settings/countries.conf";
+	# include "/etc/bind/settings/tlds.conf";
+	{BLOCK_COUNTRY_TLDS_ALWAYS}
+	{BLOCK_TLD_ALWAYS}
+}};

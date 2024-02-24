@@ -1,0 +1,8 @@
+<script nonce="{CSP_NONCE}" src="/js/redirect.js?v=24"></script>
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        do_redirect('{INTERNAL_PATH}');
+    }});
+</script>
+<div id="redirect_error"></div>

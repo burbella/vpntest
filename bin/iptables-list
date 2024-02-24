@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo IPv4 NAT:
+sudo iptables -L -t nat
+
+echo ------------------------------------------------------------
+echo IPv4 FILTER:
+sudo iptables -L -t filter -n
+
+echo ------------------------------------------------------------
+echo IPv6 NAT:
+sudo ip6tables -L -t nat
+
+echo ------------------------------------------------------------
+echo IPv6 FILTER:
+sudo ip6tables -L -t filter -n

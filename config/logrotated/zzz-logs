@@ -1,0 +1,59 @@
+#
+# Zzz Ubuntu Logrotate fragment for various logfiles
+#
+
+#-----log files for the cron can get large, so rotate them-----
+/var/log/zzz/cron/update-ip-log.log {
+    rotate 10
+    size 5M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 root root
+}
+
+#-----log files for the cron can get large, so rotate them-----
+/var/log/zzz/cron/update-squid-log.log {
+    rotate 10
+    size 5M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 root root
+}
+
+#-----disk check logs-----
+/var/log/zzz/cron/disk-check.log {
+    rotate 10
+    size 1M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 root root
+}
+
+#-----memory check logs-----
+/var/log/zzz/cron/memory-check.log {
+    rotate 10
+    size 1M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 root root
+}

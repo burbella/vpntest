@@ -1,0 +1,6 @@
+#!/bin/bash
+#-----weekly BIND restart-----
+# BIND tends to use more memory over time
+# restart resets memory usage
+
+systemctl restart bind9

@@ -1,0 +1,173 @@
+/* Zzz Enhanced VPN - main CSS */
+
+.center_align {
+    text-align: center;
+}
+
+.cursor_copy {
+    cursor: copy;
+}
+
+.display_block {
+    display: block;
+}
+
+.do_not_wrap_text {
+    white-space: nowrap;
+}
+
+.font-arial {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: medium;
+}
+
+.font-courier {
+    /*font-family: "Courier New", Courier, monospace;*/
+    /*font-family: "Lucida Console", Monaco, monospace;*/
+    font-family: monospace;
+    /*font-size: small;*/
+    /*font-size: 12px;*/
+    /*font-size: 1em;*/
+}
+
+.font-large {
+    font-size: large;
+}
+
+.height_30 {
+    height: 30px;
+}
+
+.hide_item {
+    display: none;
+}
+
+.hr_thin {
+    height: 1px;
+}
+
+.no_border {
+    border-style: none;
+}
+
+.page_loading_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #222222;
+    color: #ffffff;
+    font-size: xx-large;
+    font-weight: bold;
+    opacity: 0.8;
+    z-index: 10000;
+    text-align: center;
+}
+
+.right_align {
+    text-align: right;
+}
+
+.td_expanded_wide {
+    width: 800px;
+    white-space: pre-wrap;
+}
+
+.top_align {
+    vertical-align: top;
+}
+
+.valign_middle {
+    vertical-align: middle;
+}
+
+.valign_top {
+    vertical-align: top;
+}
+
+.width_30 {
+    width: 30px;
+}
+
+.width_200 {
+    width: 200px;
+}
+
+.width_300 {
+    width: 300px;
+}
+
+.width_600 {
+    width: 600px;
+}
+
+/* icap settings condensed view */
+.width_48 {
+    width: 48px;
+}
+.width_63 {
+    width: 63px;
+}
+.width_105 {
+    width: 105px;
+}
+.width_304 {
+    width: 304px;
+}
+.width_441 {
+    width: 441px;
+}
+/* end icap settings condensed view */
+
+.width_max {
+    width: 100%;
+}
+
+.wrap_text {
+    white-space: pre-wrap;
+}
+
+.zzz_header_img {
+    float: left;
+    padding: 5px;
+    vertical-align: middle;
+}
+
+.zzz_img_logo {
+    height: 32px;
+    width: 32px;
+}
+
+/**************************************************/
+
+/* hide large table cell data until click-to-expand */
+
+.expandable_container {
+    position: relative;
+}
+
+.content_collapsed {
+    cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    position: absolute;
+    text-overflow: ellipsis;
+    white-space: pre-wrap;
+    /* width: 300px; */
+}
+
+.content_expanded {
+    cursor: pointer;
+    white-space: pre-wrap;
+    /* width: 300px; */
+    /*word-break: break-all;*/
+}
+
+.expandable_spacer {
+    height: 0;
+    overflow: hidden;
+}
+
+/**************************************************/
+

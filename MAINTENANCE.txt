@@ -1,0 +1,44 @@
+Zzz Enhanced VPN Maintenance
+============================
+
+These are the commands to restart all apps.
+
+Apache server:
+    sudo systemctl restart apache2
+
+BIND:
+    sudo systemctl restart bind9
+
+ICAP server:
+    sudo /home/ubuntu/bin/icap-restart
+
+OpenVPN servers:
+    sudo /home/ubuntu/bin/openvpn-restart
+
+Squid:
+    sudo /home/ubuntu/bin/squid-restart
+
+Zzz daemon:
+    sudo systemctl restart zzz
+
+--------------------------------------------------------------------------------
+
+Log Monitoring:
+
+/home/ubuntu/bin/tail-icap
+/home/ubuntu/bin/tail-daemon
+/home/ubuntu/bin/tail-apache-log
+/home/ubuntu/bin/tail-upgrade-log
+
+--------------------------------------------------------------------------------
+
+Find Large Files/Directories:
+
+Top 100:
+    /home/ubuntu/bin/find_large_files.sh
+
+All files over 1MB:
+    /home/ubuntu/bin/find_large_files.sh --show-all
+
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,43 @@
+<script nonce="{CSP_NONCE}" src="/js/edit_ip_python.js?v=1.0"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_edit_ip();
+}});
+</script>
+<h2>Edit IP Blocks</h2>
+<p>
+    <form>
+        <h3>Add IP Entries: (one IP per line)</h3>
+        <div id="status_submit_added_ips"></div>
+        <textarea id="ips_to_add" cols="30" rows="10"></textarea><br>
+        <a id="submit_added_ips" class="clickable">Add IPs</a>
+    </form>
+</p>
+<hr>
+<p>
+    <form>
+        <h3>Edit Existing List of IP Entries: (one IP per line)</h3>
+        <div id="status_submit_new_list"></div>
+        <textarea id="replace_ip_list" cols="30" rows="30">{ips_to_replace}</textarea><br>
+        <a id="submit_new_list" class="clickable">Replace IPs</a>
+    </form>
+</p>
+<hr>
+<p>
+    <h3>IP Backup Files:</h3>
+    <div id="ip_backup_files">
+        <table>
+            <tr>
+                <td>{ip_backup_files}</td>
+                <td class="top_align"><textarea id="show_file" rows=10 cols=60></textarea><br>
+                <a class="clickable" id="copy_to_replace">Copy to the Edit Existing List box</a></td>
+            </tr>
+        </table>
+    </div>
+</p>
+<hr>
+<p>
+    <h3>Related Tasks:</h3>
+    {html_ip_requests}
+</p>

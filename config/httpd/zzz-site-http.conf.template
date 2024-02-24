@@ -1,0 +1,39 @@
+# default servername prevents the error "apache2: Could not reliably determine the server's fully qualified domain name"-----
+ServerName localhost
+
+<VirtualHost 10.7.0.1:80>
+	# h2 is SSL-only
+	Protocols http/1.1
+
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+    ServerName {Domain}
+    ErrorDocument 404 "page not found"
+    ErrorDocument 500 "internal server error"
+
+	ErrorLog ${{APACHE_LOG_DIR}}/error.log
+	CustomLog ${{APACHE_LOG_DIR}}/access.log combined
+
+	#TODO: make CSP work
+	# test: Content-Security-Policy-Report-Only
+	Header set Content-Security-Policy "default-src 'self';"
+	
+    <Directory "/var/www/html">
+        
+        SetOutputFilter DEFLATE
+        AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+        
+        Options FollowSymLinks
+        AllowOverride None
+        
+		DirectoryIndex index.htm
+        
+        Order Deny,Allow
+        Deny from all
+        Allow from {VpnIPRange} {IPv4Internal}
+        
+    </Directory>
+    
+</VirtualHost>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet

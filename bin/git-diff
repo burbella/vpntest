@@ -1,0 +1,18 @@
+#!/bin/bash
+#-----run a diff against the GitHub repos-----
+# NOTE: the repos must have been cloned first
+
+source /opt/zzz/util/util.sh
+
+#-----must run as the ubuntu user-----
+exit_if_not_running_as_ubuntu
+
+ZZZ_GIT_BRANCH=$1
+if [[ "$ZZZ_GIT_BRANCH" == "" ]]; then
+    ZZZ_GIT_BRANCH=master
+fi
+
+cd $REPOS_DIR
+git status
+echo '============================================================'
+git diff $ZZZ_GIT_BRANCH

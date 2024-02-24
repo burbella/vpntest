@@ -1,0 +1,49 @@
+<script nonce="{CSP_NONCE}" src="/js/zzz_test.js"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_zzz_test();
+}});
+</script>
+
+<h2>Test Page</h2>
+<p>Test various features</p>
+
+<hr>
+
+<table>
+<tr><td>
+    utf8_country_menu:<br>
+    <select multiple size="10" id="utf8_country_menu">
+        {utf8_country_menu}
+    </select>
+</td>
+<td>
+    country_menu:<br>
+    <select multiple size="10" id="country_menu">
+        {country_menu}
+    </select>
+</td></tr>
+</table>
+
+<hr>
+
+<p><b>HTML5 new input types</b></p>
+<form>
+    <p>Color: <input type="color"></p>
+    <p>Date: <input type="date"></p>
+    <p>Datetime-local: <input type="datetime-local"></p>
+    <p>Month: <input type="month"></p>
+    <p>Week: <input type="week"></p>
+    <p>Time: <input type="time"></p>
+    <p>Email: <input type="email"></p>
+    <p>Number: <input type="number" min="1" max="10000" step="1000"></p>
+    <p>Range: <input type="range"></p>
+    <p>Search: <input type="search"></p>
+    <p>Phone: <input type="tel"></p>
+    <p>URL: <input type="url"></p>
+</form>
+
+<pre>
+{DNSDenylist}
+</pre>

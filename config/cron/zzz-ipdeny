@@ -1,0 +1,18 @@
+#!/bin/bash
+#-----weekly ipdeny files update-----
+
+systemctl stop apache2
+systemctl stop zzz
+
+#-----download ipdeny files-----
+/usr/bin/nice -n 19 /opt/zzz/upgrade/upgrade-ipdeny.sh >>/var/log/zzz/cron/upgrade-ipdeny.log 2>&1
+/usr/bin/nice -n 19 /opt/zzz/python/bin/update-ipset-countries.py >>/var/log/zzz/cron/upgrade-ipdeny.log 2>&1
+
+# restart is more reliable than start with apache2
+# sometimes start just fails for some reason
+systemctl restart apache2
+
+systemctl start zzz
+
+#-----update the ip-country lookup table-----
+/usr/bin/nice -n 19 /opt/zzz/python/bin/update-ip-country-db.py --update >>/var/log/zzz/cron/update-ip-country-db.log 2>&1

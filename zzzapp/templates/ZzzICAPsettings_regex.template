@@ -1,0 +1,28 @@
+<tr id="main_table_row_{regex_id}"><td>
+    <table id="regex_id_{regex_id}" class="no_border"><tbody>
+    <tr>
+        <td class="no_border"><a class="clickable regex_delete" data-onclick="main_table_row_{regex_id}">Delete</a></td>
+        <td class="no_border">
+            Domain: <input type="text" size="40" maxlength="100" id="domain_name_{regex_id}" value="{domain_name}">
+            <span id="not_saved_{regex_id}" class="update_fail"></span>
+        </td>
+    </tr>
+    <tr>
+        <td class="no_border">Compiled OK? <span id="db_test_link_{regex_id}">{regex_compiled}</span></td>
+        <td class="no_border">
+            Regex Pattern: <input type="text" size="60" maxlength="10240" id="pattern_{regex_id}" value="{regex_pattern}">
+        </td>
+    </tr>
+    <tr class="{compile_message_class}">
+        <td class="no_border">&nbsp;</td>
+        <td class="no_border text_red" id="compile_message_{regex_id}">{compile_message}</td>
+    </tr>
+    <tr>
+        <td class="no_border">Enabled: <input type="checkbox" id="enabled_{regex_id}" {regex_enabled}></td>
+        <td class="no_border">Replacement String: <input type="text" size="60" maxlength="10240" id="replacement_{regex_id}" value="{replacement_str}"></td>
+    </tr>
+    <tr>
+        <td class="no_border" colspan="2">Notes: <input type="text" size="60" maxlength="10240" id="notes_{regex_id}" value="{notes}"></td>
+    </tr>
+    </tbody></table>
+</td></tr>

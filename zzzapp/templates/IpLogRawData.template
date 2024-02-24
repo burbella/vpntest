@@ -1,0 +1,63 @@
+<script nonce="{CSP_NONCE}" src="/js/ip_log_raw_data.js"></script>
+<script nonce="{CSP_NONCE}" src="/js/ip_log_common.js"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_ip_log_raw_data();
+}});
+</script>
+
+<h2>IP Log Raw Data</h2>
+<p>
+    Logfile: <select id="logfile">{logfile_menu}</select>
+    <input type="checkbox" id="hide_internal_connections" checked="checked">Hide Internal Connections
+    <a id="view_log" class="clickable">View Log</a>
+    <span id="loading_msg" class="hide_item warning_text"></span>
+    <span id="TESTDATA"></span>
+</p>
+<p>
+    Limit by:
+    <br>
+    Source IPs(comma-separated): <input type="text" id="src_ip" size="80" maxlength="400">
+    <br>
+    Source Ports(comma-separated): <input type="text" id="src_ports" size="50" maxlength="200">
+    <br>
+    <br>
+    Destination IPs(comma-separated): <input type="text" id="dst_ip" size="80" maxlength="400">
+    <br>
+    Destination Ports(comma-separated): <input type="text" id="dst_ports" size="50" maxlength="200">
+</p>
+<!-- TODO:
+    <p>Includes data from the selected log and one previous log</p>
+-->
+<hr>
+
+<span id="status_post"></span>
+
+<span id="show_all_data">
+    <p id="show_rowcount"></p>
+    <p id="ip_summary"></p>
+
+    <table id="src_ip_analysis"></table>
+    <br>
+    <table id="dst_ip_analysis"></table>
+    <!-- side-by-side tables
+    <table class="no_border">
+        <tr>
+            <td class="no_border top_align">
+                <table id="src_ip_analysis"></table>
+            </td>
+            <td class="no_border width_30">&nbsp;</td>
+            <td class="no_border top_align">
+                <table id="dst_ip_analysis"></table>
+            </td>
+        </tr>
+    </table>
+    -->
+
+    <hr>
+
+    <table id="logdata">
+        <tr><td>Select a File to View</td></tr>
+    </table>
+</span>

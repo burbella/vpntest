@@ -1,0 +1,9 @@
+<tr id="header">
+    <td class="width_48">Delete</td>
+    <td class="width_304">Domain</td>
+    <td class="width_105">Compiled OK?</td>
+    <td class="width_441">Regex Pattern</td>
+    <td class="width_63">Enabled?</td>
+    <td class="width_441">Replacement String</td>
+    <td class="width_441">Notes</td>
+</tr>

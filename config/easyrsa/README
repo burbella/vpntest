@@ -1,0 +1,6 @@
+Ubuntu EasyRSA configs
+
+vars-openvpn
+vars-squid
+
+These files are used for PKI setup.

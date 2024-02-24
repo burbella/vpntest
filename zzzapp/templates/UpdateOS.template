@@ -1,0 +1,29 @@
+<script nonce="{CSP_NONCE}" src="/js/update_os_python.js"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_update_os();
+}});
+</script>
+<h2>Update OS Packages</h2>
+<p><a id="request_pending_updates" class="clickable">Request List of Pending Updates</a><br>
+This will ask the daemon to get a list of pending updates.<br>
+When the list is ready, click (Refresh) below to see the list.<br>
+<pre id="status_request_pending_updates"></pre>
+</p>
+<p>
+    <a id="install_updates" class="clickable">Install Updates</a>
+    <a id="cancel_install_updates" class="hide_item">CANCEL Updates</a>
+    <a id="confirm_install_updates" class="hide_item">Confirm Install Updates</a>
+    <pre id="status_install_updates"></pre>
+</p>
+<hr>
+<p><h3>OS Updates: </h3><a id="refresh_list" class="clickable">(Refresh)</a></p>
+{os_update_requests_html}
+
+<p><b>Latest List of Updates:</b></p>
+<p id="print_pending_updates" class="font-courier">{pending_updates_filedata}</p>
+<hr>
+
+<p><b>Latest OS Update Output:</b></p>
+<p id="os_update_output" class="font-courier">{os_update_output_filedata}</p>

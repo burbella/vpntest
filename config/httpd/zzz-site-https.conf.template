@@ -1,0 +1,99 @@
+#-----apache SSL port 443 config-----
+# modified settings from the default SSL config: /etc/apache2/mods-available/ssl.conf
+
+#Listen 10.7.0.1:443 https
+# Store this file in the config directory "/etc/apache2/sites-available"
+
+<IfModule mod_ssl.c>
+    SSLRandomSeed startup builtin
+    SSLRandomSeed startup file:/dev/urandom 1024
+    SSLRandomSeed connect builtin
+    SSLRandomSeed connect file:/dev/urandom 1024
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    
+    AddType application/x-x509-ca-cert .crt
+    AddType application/x-pkcs7-crl .crl    
+    
+    SSLPassPhraseDialog  exec:/usr/share/apache2/ask-for-passphrase
+    
+    SSLSessionCache         shmcb:${{APACHE_RUN_DIR}}/ssl_scache(512000)
+    SSLSessionCacheTimeout  300
+    
+    #-----OCSP Stapling-----
+    #SSLStaplingCache shmcb:${{APACHE_RUN_DIR}}/stapling_cache(128000)
+    
+    #-----custom options for Zzz app-----
+    SSLOptions +StrictRequire
+    SSLHonorCipherOrder On
+    SSLCipherSuite ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+    SSLPassPhraseDialog "exec:/opt/zzz/data/ssl-private/apache-cert-pass.sh"
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+    Header always set X-Frame-Options DENY
+    
+    <VirtualHost 10.7.0.1:443>
+    
+        Protocols h2 h2c http/1.1
+        
+        ServerName {Domain}
+    
+        SSLEngine on
+        
+        #-----modern apache wants all the chained certs in one file-----
+        #SSLCertificateFile /etc/ssl/certs/{Domain}.crt
+        SSLCertificateFile {ApacheAllCerts}
+        SSLCertificateKeyFile /etc/ssl/private/{Domain}.key
+        #SSLCertificateChainFile /etc/ssl/certs/zzz-default-openvpn-fullchain.crt
+
+        #-----OCSP Stapling-----
+        #SSLUseStapling on
+        #SSLOCSPEnable on
+        
+        DocumentRoot "/var/www/html"
+        ErrorDocument 404 "page not found"
+        ErrorDocument 500 "internal server error"
+
+        #-----loads python3 WSGI scripts in mod_wsgi-----
+        WSGIDaemonProcess zzz.zzz python-home=/opt/zzz/venv python-path=/opt/zzz/venv/lib/python3.10/site-packages:/opt/zzz/python/lib:/usr/lib/python3.10
+        WSGIProcessGroup zzz.zzz
+        WSGIScriptAlias /z /var/www/wsgi/zzz.wsgi process-group=zzz.zzz
+        
+        <Directory />
+            SSLRequireSSL
+            Options FollowSymLinks
+            AllowOverride None
+        </Directory>
+    
+        SSLVerifyClient none
+        SSLProxyEngine off
+        
+        #-----Content Security Policy-----
+        # test: Content-Security-Policy-Report-Only
+        Header set Content-Security-Policy "default-src 'strict-dynamic'; base-uri 'self'; child-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; object-src 'none'; script-src 'self' 'nonce-%{{CSP_NONCE}}e' 'strict-dynamic'; style-src 'self'; style-src-elem 'self' 'nonce-%{{CSP_NONCE}}e' 'strict-dynamic'; worker-src 'self';"
+        #
+        #-----secure CSP stuff requires debugging-----
+        # script-src 'nonce-random123' 'strict-dynamic';
+        # report-uri https://reporting.zzz.zzz;
+        #
+        #-----less-safe backwards compatibility-----
+        # script-src 'unsafe-inline' https:;
+        #Header set Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'unsafe-inline';"
+        
+        #-----client-side cache control-----
+        ExpiresActive On
+        ExpiresByType application/javascript "access plus 1 month"
+        ExpiresByType text/css "access plus 1 month"
+        
+        <Directory "/var/www/html">
+            Options FollowSymLinks
+            AllowOverride None
+            
+            DirectoryIndex index.htm
+            
+            Order Deny,Allow
+            Deny from all
+            Allow from {VpnIPRange} {IPv4Internal}
+            
+        </Directory>
+    
+    </VirtualHost>
+</IfModule>

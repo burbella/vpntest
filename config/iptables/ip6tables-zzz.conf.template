@@ -1,0 +1,38 @@
+#-----Zzz app IPv6 required routing rules-----
+#
+# 10.5 - open-squid
+# 10.6 - dns
+# 10.7 - dns-squid
+# 10.8 - open
+# 10.9 - IPv6 TEST (apply IPv6 to the other 4 IP's and remove this)
+*nat
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+
+# IPv4 samples for reference
+#-A PREROUTING -s 10.5.0.0/24 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 3128
+#-A PREROUTING -s 10.5.0.0/24 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 3129 ! -d 10.0.0.0/8
+#-A PREROUTING -s 10.7.0.0/24 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 3128
+#-A PREROUTING -s 10.7.0.0/24 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 3129 ! -d 10.0.0.0/8
+#-A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+#-A POSTROUTING -s 10.7.0.0/24 -o eth0 -j MASQUERADE
+#-A POSTROUTING -s 10.6.0.0/24 -o eth0 -j MASQUERADE
+#-A POSTROUTING -s 10.5.0.0/24 -o eth0 -j MASQUERADE
+
+#EXAMPLES: 2000:1111:2222:3333:10:9:0:0/96
+#          2000:1111:2222:3333:10:0:0:0/80
+#-----need a /96 and /80 for redirects to squid-----
+-A PREROUTING -s {IPV6_IP6TABLES_5} -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 3128
+-A PREROUTING -s {IPV6_IP6TABLES_5} -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 3129 ! -d {IPV6_IP6TABLES_SUBNET_80}
+-A PREROUTING -s {IPV6_IP6TABLES_7} -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 3128
+-A PREROUTING -s {IPV6_IP6TABLES_7} -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 3129 ! -d {IPV6_IP6TABLES_SUBNET_80}
+
+-A POSTROUTING -s {IPV6_IP6TABLES_5} -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {IPV6_IP6TABLES_6} -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {IPV6_IP6TABLES_7} -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {IPV6_IP6TABLES_8} -o {network_interface_internal} -j MASQUERADE
+-A POSTROUTING -s {IPV6_IP6TABLES_9} -o {network_interface_internal} -j MASQUERADE
+COMMIT
+

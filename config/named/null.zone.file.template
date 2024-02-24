@@ -1,0 +1,12 @@
+$TTL    30   ; 86400 seconds in one day 
+@       IN      SOA     deny.{DomainWithoutTLD}.zzz. hostmaster.{DomainWithoutTLD}.zzz. (
+               2021032201 ; serial number
+                       60 ; refresh period
+                       60 ; retry period
+                   864000 ; expire time
+                       30 ) ; minimum ttl    
+                NS      nslocal
+                A       0.0.0.0
+@       IN      A       0.0.0.0
+*       IN      A       0.0.0.0
+

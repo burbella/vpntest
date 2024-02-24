@@ -1,0 +1,10 @@
+<script nonce="{CSP_NONCE}">
+    $(function() {{
+        // jQuery start
+        attach_content_collapsed_toggle();
+    }});
+</script>
+<h2>Task History</h2>
+<p>Latest tasks in the database:</p>
+
+{TaskStatus}

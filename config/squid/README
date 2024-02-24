@@ -1,0 +1,9 @@
+blocked-ips.txt
+List of blocked IP's for squid (not used since iptables works better)
+
+blocked-sites.txt:
+List of blocked subdomains for squid (not used since subdomains work OK in BIND)
+
+nobumpsites.acl:
+List of domains/subdomains to avoid doing squid's SSL_Bump on because it breaks connections
+

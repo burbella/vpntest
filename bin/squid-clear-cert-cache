@@ -1,0 +1,25 @@
+#!/bin/bash
+#-----clear the squid SSL certs cache-----
+
+#-----import the shell utils-----
+source /opt/zzz/util/util.sh
+exit_if_not_running_as_root
+
+systemctl stop squid
+systemctl stop squid-icap
+
+rm -rf /var/cache/squid/ssl_db
+rm -rf /var/cache/squid_icap/ssl_db
+
+#-----re-initialize the certs cache-----
+/lib/squid/security_file_certgen -c -s /var/cache/squid/ssl_db -M 16MB
+/lib/squid/security_file_certgen -c -s /var/cache/squid_icap/ssl_db -M 16MB
+chown -R proxy.proxy /var/cache/squid/ssl_db
+chown -R proxy.proxy /var/cache/squid_icap/ssl_db
+
+if [[ "$1" == "no-restart" ]]; then
+    exit
+fi
+
+systemctl start squid
+systemctl start squid-icap

@@ -1,0 +1,23 @@
+#!/bin/bash
+#-----weekly maxmind DB update-----
+
+#-----don't proceed unless the config is OK-----
+source /opt/zzz/util/util.sh
+exit_if_configtest_invalid
+
+#-----only run this if maxmind is enabled-----
+convert_string_to_uppercase `/opt/zzz/python/bin/config-parse.py --var 'EnableMaxMind' --yaml`
+ENABLEMAXMIND=$ZZZ_UPPERCASE_RESULT
+if [[ "$ENABLEMAXMIND" == "TRUE" ]]; then
+    #-----stop things that query the maxmind DB-----
+    systemctl stop apache2
+    systemctl stop zzz
+    
+    /usr/bin/geoipupdate
+    
+    # restart is more reliable than start with apache2
+    # sometimes start just fails for some reason
+    systemctl restart apache2
+    
+    systemctl start zzz
+fi

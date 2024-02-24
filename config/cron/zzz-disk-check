@@ -1,0 +1,4 @@
+#!/bin/bash
+#-----run weekly disk check app in cron-----
+
+/usr/bin/nice -n 19 /opt/zzz/python/bin/disk-check.py --all --flush-data --delay 300 >> /var/log/zzz/cron/disk-check.log 2>&1

@@ -1,0 +1,5 @@
+#!/bin/bash
+#-----list the OS updates available-----
+sudo apt-get -y -q update
+sudo apt-get -s -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+

@@ -1,0 +1,14 @@
+<tr>
+    <th>Delete</th>
+    <th>View / Edit</th>
+    <th>Active?</th>
+    <th>Auto-Update?</th>
+    <th>List</th>
+    <th>Type</th>
+    <th>Length</th>
+    <th>URL</th>
+    <th>Last Updated</th>
+    <th>Download Status</th>
+    <th>Contents</th>
+    <th>Invalid Entries</th>
+</tr>

@@ -1,0 +1,14 @@
+#!/bin/bash
+#-----certs over 1 year duration are not accepted in some browsers, so re-issue certs every month-----
+# Reference: /upgrade/replace_pki.sh
+#            /install/070_setup-pki.sh
+# Install/Upgrade Files: /config/easyrsa/vars-openvpn
+#                        /config/easyrsa/vars-squid
+
+/usr/bin/nice -n 19 /opt/zzz/upgrade/re-issue-cert-apache.sh >>/var/log/zzz/cron/re-issue-cert-apache.log 2>&1
+
+/usr/bin/nice -n 19 /opt/zzz/upgrade/re-issue-cert-squid.sh >>/var/log/zzz/cron/re-issue-cert-squid.log 2>&1
+
+#-----also rebuild the OpenVPN CRL monthly-----
+# VPN connections fail if the CRL reaches the 180-day expiration
+/usr/bin/nice -n 19 /opt/zzz/util/build-crl-openvpn.sh >>/var/log/zzz/cron/build-crl-openvpn.log 2>&1

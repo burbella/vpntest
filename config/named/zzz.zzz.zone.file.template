@@ -1,0 +1,14 @@
+$TTL    86400   ; one day  
+@       IN      SOA     {DomainWithoutTLD}.zzz. hostmaster.{DomainWithoutTLD}.zzz. (
+               2021032201
+                    28800
+                     7200
+                   864000
+                    86400 )          
+                NS      nslocal
+                A       10.7.0.1 
+@       IN      A       10.7.0.1 
+                {IPV6_AAAA_RECORD}
+*       IN      A       10.7.0.1
+                {IPV6_AAAA_RECORD}
+
