@@ -32,51 +32,10 @@ class ZzzFeatures:
     ConfigData: dict = None
     zzz_SettingsData: dict = None
     zzz_redis: zzzevpn.ZzzRedis = None
-    custom_module_dir: str = '/opt/zzz/python/lib/custom'
-    custom_module_filepath = None
     custom_icap = None
 
     def __init__(self):
         pass
-
-    #TODO: find custom script referenced in Config?
-    # self.server.ZzzFeatures.ConfigData['icap_custom_module']
-    def load_custom_module(self, icap_settings: zzzevpn.ZzzICAPsettings, module_filename: str):
-        self.custom_module_filepath = f'{self.custom_module_dir}/{module_filename}'
-        spec = None
-        custom_module = None
-        if not os.path.exists(self.custom_module_filepath):
-            #TODO: log the error
-            icap_settings.util.log_stderr(f'file not found: {self.custom_module_filepath}')
-            self.custom_icap = None
-            return
-
-        try:
-            spec = importlib.util.spec_from_file_location('custom_module', self.custom_module_filepath)
-        except:
-            #TODO: log the error
-            icap_settings.util.log_stderr('ERROR: spec_from_file_location() failed')
-            self.custom_icap = None
-            return
-
-        try:
-            custom_module = importlib.util.module_from_spec(spec)
-        except:
-            #TODO: log the error
-            icap_settings.util.log_stderr('ERROR: module_from_spec() failed')
-            self.custom_icap = None
-            return
-
-        try:
-            spec.loader.exec_module(custom_module)
-        except:
-            #TODO: log the error
-            icap_settings.util.log_stderr('ERROR: exec_module() failed')
-            self.custom_icap = None
-            return
-
-        # success
-        self.custom_icap = custom_module.CustomICAP(icap_settings)
 
 #--------------------------------------------------------------------------------
 
@@ -150,6 +109,42 @@ class ICAPHandler(BaseICAPRequestHandler):
     
     ##################################################
 
+    #TODO: find custom script referenced in Config?
+    # self.server.ZzzFeatures.ConfigData['icap_custom_module']
+    def load_custom_module(self, icap_settings: zzzevpn.ZzzICAPsettings, module_filename: str):
+        custom_module_dir: str = '/opt/zzz/python/lib/custom'
+        custom_module_filepath = f'{custom_module_dir}/{module_filename}'
+        spec = None
+        custom_module = None
+        if not os.path.exists(custom_module_filepath):
+            #TODO: log the error
+            # icap_settings.util.log_stderr(f'file not found: {custom_module_filepath}')
+            return None
+
+        try:
+            spec = importlib.util.spec_from_file_location('custom_module', custom_module_filepath)
+        except:
+            #TODO: log the error
+            icap_settings.util.log_stderr('ERROR: spec_from_file_location() failed')
+            return None
+
+        try:
+            custom_module = importlib.util.module_from_spec(spec)
+        except:
+            #TODO: log the error
+            icap_settings.util.log_stderr('ERROR: module_from_spec() failed')
+            return None
+
+        try:
+            spec.loader.exec_module(custom_module)
+        except:
+            #TODO: log the error
+            icap_settings.util.log_stderr('ERROR: exec_module() failed')
+            return None
+
+        # success
+        return custom_module.CustomICAP(icap_settings)
+
     #TODO: last_lookup_time var to prevent checking the redis server more than once a second
     #-----update local var from thread settings-----
     def zzz_get_icap_settings(self):
@@ -166,8 +161,9 @@ class ICAPHandler(BaseICAPRequestHandler):
             self.icap_settings.get_settings()
             #TODO: if there is more than one thread, make sure all threads get new data before setting this to False
             self.zzz_redis.icap_reload_set(False)
-        if not self.server.ZzzFeatures.custom_icap:
-            self.server.ZzzFeatures.load_custom_module(self.icap_settings, 'CustomICAP.py')
+        #TODO - check a config param before trying to load the custom module
+        # if not self.server.ZzzFeatures.custom_icap:
+        #     self.server.ZzzFeatures.custom_icap = self.load_custom_module(self.icap_settings, 'CustomICAP.py')
 
     def zzz_log_message(self, data):
         self.icap_settings.util.log_stderr(data)
