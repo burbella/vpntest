@@ -168,4 +168,9 @@ sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/pip3 install --upgrade $ZZZ_PIP_VERS
 sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r $REPOS_DIR/install/requirements-tools.txt
 sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r $REPOS_DIR/install/requirements-alt.txt
 
+#-----fix a bug that makes ICAP crash in python 3.10-----
+for i in venv venv_alt venvtest ; do
+    perl -pi -e "s/collections.Callable/collections.abc.Callable/g" /opt/zzz/$i/lib/python3.10/site-packages/pyicap.py
+done
+
 echo "$ZZZ_SCRIPTNAME - END"
