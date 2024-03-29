@@ -58,6 +58,7 @@ done
 # check for updates: zzz, openvpn, squid
 for i in \
     zzz-download-lists \
+    zzz-save-motd \
     zzz-update-ip-log-summary \
     zzz-check-latest-version ; do
     cp $ZZZ_CONFIG_DIR/cron/$i $CRON_DAILY_DIR

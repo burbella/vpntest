@@ -1,4 +1,7 @@
 #!/bin/bash
-#-----save MOTD info where apache can find it-----
 
-run-parts --regex='^9' /etc/update-motd.d/ > /opt/zzz/apache/motd.txt
+#-----standard MOTD generation-----
+/bin/run-parts /etc/update-motd.d/ > /run/motd.dynamic
+
+#-----save MOTD info where apache can find it-----
+# run-parts --regex='^9' /etc/update-motd.d/ > /opt/zzz/apache/motd.txt
