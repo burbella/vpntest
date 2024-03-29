@@ -290,6 +290,6 @@ create table zzz_system(
 -- Init DB values
 insert into settings (json, last_updated) values ('', datetime('now'));
 insert into zzz_system (version, available_version, json, ip_log_last_time_parsed, last_updated)
-    values (24, 24, '', '2020-01-01T00:00:00.000000', datetime('now'));
+    values (25, 25, '', '2020-01-01T00:00:00.000000', datetime('now'));
 insert into work_available (check_requests_table) values (1);
 
