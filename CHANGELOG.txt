@@ -1,3 +1,10 @@
 zzzevpn CHANGELOG
 =================
 
+version 25
+
+bugfixes:
+    ICAP crash fix
+    MOTD auto-update
+documentation:
+    readme and screenshots

@@ -1,7 +1,7 @@
 Zzz Enhanced VPN Installation Instructions
 ==========================================
 
-Latest Release Version: 24
+Latest Release Version: 25
 
 NOTE: This system will require all the server's resources and will make various system config changes. Put it on a box that is not used for anything else.
 
@@ -25,7 +25,7 @@ Step 2:
         cd /home/ubuntu/repos
         git clone https://github.com/burbella/vpntest.git
         cd /home/ubuntu/repos/vpntest
-        git checkout tags/24
+        git checkout tags/25
 
 Step 3:
     Install the YAML Config File:
