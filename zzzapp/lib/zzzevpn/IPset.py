@@ -184,7 +184,9 @@ class IPset:
         #   because "IPSET_NAME" is installed and running
         #   we build a new list separate from the installed list, then swap it in
         with open(blacklist_filepath, 'r') as blacklist_file, open(ipset_filepath, 'w') as write_file:
-            data_to_write = ['create blacklist2 hash:net family inet hashsize 1024 maxelem 500000 -quiet\n']
+            data_to_write = [
+                'create blacklist2 hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n'
+            ]
             for item in blacklist_file:
                 #TODO: validate IP's (even though they should have been validated on upload)
                 item = item.strip("\n")
@@ -213,7 +215,9 @@ class IPset:
         #   because "IPSET_NAME" is installed and running
         #   we build a new list separate from the installed list, then swap it in
         with open(allowlist_filepath, 'r') as allowlist_file, open(ipset_filepath, 'w') as write_file:
-            data_to_write = ['create allow-ip2 hash:net family inet hashsize 1024 maxelem 500000 -quiet\n']
+            data_to_write = [
+                'create allow-ip2 hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n'
+            ]
             for item in allowlist_file:
                 #TODO: validate IP's (even though they should have been validated on upload)
                 item = item.strip("\n")
@@ -234,7 +238,9 @@ class IPset:
         #-----merge all the changes into a single file and call the installer shell script-----
         ipset_merged_filepath = self.ConfigData['IPdeny']['ipv4']['conf_file']
         with open(ipset_merged_filepath, 'w') as write_file:
-            single_ipset_data_to_write = ['create countries-new hash:net family inet hashsize 1024 maxelem 250000 -quiet\n']
+            single_ipset_data_to_write = [
+                'create countries-new hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n'
+            ]
             for country_code in self.settings.SettingsData['blocked_country']:
                 #-----using lowercase country codes when reading ipset files-----
                 # only ipdeny files have lowercase
