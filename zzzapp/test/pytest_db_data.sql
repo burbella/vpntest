@@ -18,7 +18,7 @@ values('COM', 0),
 ('ORG', 0),
 ('TOP', 1);
 
-update settings set json='{"autoplay": "true", "social": "true", "telemetry": "false", "duplicate_domain": "false", "block_country_tld": "true", "block_country_tld_always": "true", "block_country_ip_always": "false", "block_tld_always": "true", "dark_mode": "true", "check_zzz_update": "true", "auto_install_zzz_update": "false", "show_dev_tools": "true", "blocked_country": ["AQ", "TG"], "blocked_tld": ["XXX", "XYZ"]}',
+update settings set json='{"autoplay": "true", "social": "true", "telemetry": "false", "duplicate_domain": "false", "block_country_tld": "true", "block_country_tld_always": "true", "block_country_ip_always": "false", "block_custom_ip_always": "false", "block_tld_always": "true", "dark_mode": "true", "check_zzz_update": "true", "auto_install_zzz_update": "false", "show_dev_tools": "true", "blocked_country": ["AQ", "TG"], "blocked_tld": ["XXX", "XYZ"]}',
     squid_nobumpsites='google.com',
     squid_hide_domains='microsoft.com',
     hide_ips='1.2.3.4',

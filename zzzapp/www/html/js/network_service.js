@@ -71,7 +71,8 @@ function should_set_domain(set_domain='', action='') {
     if (set_domain != '') {
         $('#domain').val(set_domain);
         if (action == 'whois') { $('#lookup_whois').click(); return; }
-        if (action == 'nslookup') { $('#do_nslookup').click(); return; }
+        else if (action == 'nslookup') { $('#do_nslookup').click(); return; }
+        else if (action == 'reverse_dns') { $('#do_reverse_dns').click(); return; }
     }
 }
 

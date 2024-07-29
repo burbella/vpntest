@@ -7,40 +7,98 @@ $(function() {{
 }});
 </script>
 
-<h2>IP Log Raw Data</h2>
+<table class="width_max no_border">
+    <tr>
+        <td class="no_border"><b>IP Log Raw Data</b></td>
+        <td id="show_clock" class="no_border right_align"></td>
+    </tr>
+</table>
+
 <p>
     Logfile: <select id="logfile">{logfile_menu}</select>
-    <input type="checkbox" id="hide_internal_connections" checked="checked">Hide Internal Connections
     <a id="view_log" class="clickable">View Log</a>
     <span id="loading_msg" class="hide_item warning_text"></span>
     <span id="TESTDATA"></span>
 </p>
 <p>
-    Limit by:
+    Sort by: <select id="sort_by" data-last-query="{sort_by}">
+        <!-- <option value="ip" selected="selected">IP</option> -->
+        <option value="ip">IP</option>
+        <option value="packets">packets</option>
+        <option value="bytes">bytes</option>
+    </select>
     <br>
-    Source IPs(comma-separated): <input type="text" id="src_ip" size="80" maxlength="400">
-    <br>
-    Source Ports(comma-separated): <input type="text" id="src_ports" size="50" maxlength="200">
-    <br>
-    <br>
-    Destination IPs(comma-separated): <input type="text" id="dst_ip" size="80" maxlength="400">
-    <br>
-    Destination Ports(comma-separated): <input type="text" id="dst_ports" size="50" maxlength="200">
+    <table>
+        <tr><td>
+            <b>Limit Results By:</b>
+            <br>
+            <input type="checkbox" id="hide_internal_connections" {hide_internal_connections}>Hide Internal Connections - <input type="checkbox" id="show_max_bps_columns" {show_max_bps_columns}>Show more bps columns - <input type="checkbox" id="auto_update_file_list" {auto_update_file_list}>Auto-update file list
+            <br>
+            Source IPs(comma-separated): <input type="text" id="src_ip" size="80" maxlength="400" value="{src_ip}">
+            <br>
+            Source Ports(comma-separated): <input type="text" id="src_ports" size="50" maxlength="200" value="{src_ports}">
+            <br>
+            <br>
+            Destination IPs(comma-separated): <input type="text" id="dst_ip" size="80" maxlength="400" value="{dst_ip}">
+            <br>
+            Destination Ports(comma-separated): <input type="text" id="dst_ports" size="50" maxlength="200" value="{dst_ports}">
+            <br>
+            Status: <input type="checkbox" id="include_accepted_packets" {include_accepted_packets}> accepted - <input type="checkbox" id="include_blocked_packets" {include_blocked_packets}> blocked
+            <br>
+            Protocol: <input type="checkbox" id="protocol_tcp" {protocol_tcp}> TCP - <input type="checkbox" id="protocol_udp" {protocol_udp}> UDP - <input type="checkbox" id="protocol_icmp" {protocol_icmp}> ICMP - <input type="checkbox" id="protocol_other" {protocol_other}> Other
+            <br>
+            PREC/TOS(a.k.a. DS): <input type="checkbox" id="prec_tos_zero" {prec_tos_zero}> zero - <input type="checkbox" id="prec_tos_nonzero" {prec_tos_nonzero}> nonzero
+            <br>
+            Flags: <input type="checkbox" id="flags_any" {flags_any}> any - <input type="checkbox" id="flags_none" {flags_none}> none
+        </td></tr>
+        <tr><td>
+            <b>Highlight Results:</b>
+            <br>
+            Bytes/sec exceeding: <input type="text" id="flag_bps_above_value" size="10" maxlength="10" value="{flag_bps_above_value}">
+            <br>
+            Packets/sec exceeding: <input type="text" id="flag_pps_above_value" size="10" maxlength="10" value="{flag_pps_above_value}">
+        </td></tr>
+    </table>
+
 </p>
+
 <!-- TODO:
     <p>Includes data from the selected log and one previous log</p>
 -->
-<hr>
 
 <span id="status_post"></span>
 
 <span id="show_all_data">
-    <p id="show_rowcount"></p>
-    <p id="ip_summary"></p>
-
-    <table id="src_ip_analysis"></table>
-    <br>
-    <table id="dst_ip_analysis"></table>
+    <span id="logdata_misc_info" class="hide_item">
+        <hr>
+        Raw Data Rows: <span id="show_rowcount"></span><br>
+        Time Range: <span id="start_timestamp"></span> - <span id="end_timestamp"></span><br>
+        Duration: <span id="duration"></span> seconds <span id="bps_limit_displayed"></span><br>
+        <br>
+        <table>
+            <tr>
+                <td class="top_align">
+                    <b>IP Analysis:</b><br>
+                    <span class="clickable">(G)</span> - Google<br>
+                    <span class="clickable">(L)</span> - IP Location<br>
+                    <span class="clickable">(R)</span> - Reverse DNS<br>
+                    <span class="clickable">(W)</span> - Whois
+                </td>
+                <td class="top_align">
+                    Source Ports:<br>
+                    <textarea id="displayed_src_ports" rows="5" cols="7" readonly></textarea>
+                </td>
+                <td class="top_align">
+                    Destination Ports:<br>
+                    <textarea id="displayed_dst_ports" rows="5" cols="7" readonly></textarea>
+                </td>
+            </tr>
+        </table>
+        <br>
+        <table id="src_ip_analysis"></table>
+        <br>
+        <table id="dst_ip_analysis"></table>
+    </span>
     <!-- side-by-side tables
     <table class="no_border">
         <tr>
@@ -56,7 +114,6 @@ $(function() {{
     -->
 
     <hr>
-
     <table id="logdata">
         <tr><td>Select a File to View</td></tr>
     </table>

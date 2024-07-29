@@ -181,7 +181,14 @@ class Config:
                 'conf_file': '/etc/iptables/ipset-update-countries-ipv6.conf',
             },
         },
-        
+
+        #TEST
+        #-----apply optional custom rules to the IPtables config-----
+        'IPtablesCustomRules': {
+            'DestinationPorts': [], # destination port(s)
+            'Enable': False, # custom rules are disabled by default
+        },
+
         'IPv4': {
             'Internal': '',
             'IPCountry': { # database SQL scripts to update the IP-country data
@@ -1173,6 +1180,53 @@ space_allocated={space_allocated}
 
     #--------------------------------------------------------------------------------
 
+    #-----optional, so it won't error if the data is missing or invalid-----
+    # invalid data will be dropped and the custom rules will be disabled
+    def validate_iptables_custom_rules(self):
+        iptables_custom_rules = self.conf_data_loaded.get('IPtablesCustomRules', None)
+        if not iptables_custom_rules:
+            return
+        if not isinstance(iptables_custom_rules, dict):
+            return
+
+        iptables_custom_rules_enable = iptables_custom_rules.get('Enable', 'False')
+        if iptables_custom_rules_enable.upper()=='TRUE':
+            self.ConfigData['IPtablesCustomRules']['Enable'] = True
+        else:
+            return
+
+        iptables_custom_rules_dports = iptables_custom_rules.get('DestinationPorts', None)
+        if not iptables_custom_rules_dports:
+            # no destination ports, disable the custom rules
+            self.ConfigData['IPtablesCustomRules']['Enable'] = False
+            return
+
+        # protect the SSH port
+        unsafe_ports = [22]
+        # must be a list of port numbers
+        unverified_ports = iptables_custom_rules_dports.split(',')
+        # list of approved ports
+        approved_ports = []
+        # drop any ports that are not valid or on the unsafe list
+        for port in unverified_ports:
+            if not port:
+                continue
+            if not port.isdigit():
+                print(f'IPtablesCustomRules skipping invalid port number {port}')
+                continue
+            if len(port)>5:
+                continue
+            port_num = int(port)
+            if port_num in unsafe_ports:
+                print(f'IPtablesCustomRules skipping unsafe port number {port}')
+                continue
+            # passed tests, add to the approved list
+            approved_ports.append(port_num)
+        if approved_ports:
+            # remove duplicates and sort the list
+            unique_ports = list(dict.fromkeys(approved_ports))
+            self.ConfigData['IPtablesCustomRules']['DestinationPorts'] = sorted(unique_ports)
+
     #TODO: finish adding tests here
     #      apply default values rather than erroring on bad data?
     #      accumulate all errors and print them all at once, only if a print_err param is True
@@ -1225,6 +1279,9 @@ space_allocated={space_allocated}
         DiskSpace = self.conf_data_loaded.get('DiskSpace', None)
         if DiskSpace and isinstance(DiskSpace, dict):
             validated_all_keys = self.validate_diskspace(DiskSpace)
+
+        # IPtablesCustomRules - optional (DestinationPorts, Enable)
+        self.validate_iptables_custom_rules()
 
         # LogParserRowLimit
         LogParserRowLimit = str(self.conf_data_loaded['LogParserRowLimit'])

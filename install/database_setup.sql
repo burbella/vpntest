@@ -160,7 +160,9 @@ create table settings(
     squid_hide_domains text,
     hide_ips text,
     allow_ips text,
-    last_updated integer not null
+    ip_log_raw_data_view text,
+    last_updated integer not null,
+    raw_data_view_last_updated integer
 );
 
 

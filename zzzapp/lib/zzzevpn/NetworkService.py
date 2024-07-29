@@ -256,6 +256,8 @@ class NetworkService:
             return self.make_webpage(environ, 'Whois', data)
         elif self.action == 'nslookup':
             return self.make_webpage(environ, 'nslookup', data)
+        elif self.action =='reverse_dns':
+            return self.make_webpage(environ, 'reverse_dns', data)
         elif self.action=='ips_by_country':
             return self.show_ips_by_country(environ)
 
@@ -728,7 +730,7 @@ class NetworkService:
         #TEST
         self.print_test_results([f'make_webpage() - action={self.action} - data:', data])
 
-        if self.action in ['network_service', 'whois', 'nslookup']:
+        if self.action in ['network_service', 'whois', 'nslookup', 'reverse_dns']:
             output = self.webpage.make_webpage(environ, self.make_NetworkServicePage_NEW(environ, pagetitle, data))
             return output
 
@@ -754,7 +756,7 @@ class NetworkService:
 
         if self.from_post:
             self.NetworkServiceHTML['show_header'] = "false"
-        if self.action in ['whois', 'nslookup']:
+        if self.action in ['whois', 'nslookup', 'reverse_dns']:
             host = data.get('host', '')
             if not host:
                 host = data.get('ip', '')
@@ -1214,6 +1216,7 @@ class NetworkService:
         
         body = '''
 <h2>Whois for {title}</h2>
+{maxmind_location}
 <table>
 <tr><th>Field</th><th>Data</th></tr>
 {table_data}
@@ -1252,7 +1255,15 @@ class NetworkService:
         table_data += f'''<tr><td class="top_align">json</td><td class="td_expanded_wide">{pprint.pformat(json_str)}</td></tr>'''
 
         ip = whois_data.get('ip', '')
+        maxmind_location = ''
+        if self.ConfigData['EnableMaxMind']:
+            country_code = self.util.lookup_ip_country(ip)
+            if not country_code:
+                country_code = 'UNKNOWN'
+            maxmind_location = f'<p>Maxmind Location: {country_code}</p>'
+
         IPWhoisHTML = {
+            'maxmind_location': maxmind_location,
             'title': ip,
             'table_data': table_data,
         }

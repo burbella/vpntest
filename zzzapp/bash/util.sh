@@ -35,7 +35,7 @@ SQUID_INSTALLER_STATUS_FILE="/opt/zzz/install_squid_status"
 # github issue:
 #   https://github.com/pypa/pip/issues/12357
 # set the version to just "pip" to get the latest
-ZZZ_PIP_VERSION="pip==24.0"
+ZZZ_PIP_VERSION="pip==24.1.2"
 # ZZZ_PIP_VERSION="pip"
 
 # github tag

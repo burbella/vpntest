@@ -262,6 +262,12 @@ function do_nslookup(host)
     window.open('https://' + app_domain + '/z/network_service?action=nslookup&host=' + host);
 }
 
+function reverse_dns_popup(host)
+{
+    // window.open('https://' + app_domain + '/z/nslookup?host=' + host);
+    window.open('https://' + app_domain + '/z/network_service?action=reverse_dns&host=' + host);
+}
+
 function search_ipinfo(ip) {
     window.open('https://ipinfo.io/' + ip);
 }
@@ -437,6 +443,10 @@ function apply_onclick_events() {
     // (R)
     $(".reverse_dns").click(function() {
         reverse_dns($(this).attr("data-onclick"));
+    });
+    // (R) - with popup
+    $(".reverse_dns_popup").click(function() {
+        reverse_dns_popup($(this).attr("data-onclick"));
     });
     $(".reverse_dns_load_batch").click(function() {
         reverse_dns_load_batch();

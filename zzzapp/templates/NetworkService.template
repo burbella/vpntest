@@ -27,8 +27,9 @@
 
     <table class="no_border">
         <tr class="height_30">
-            <td class="no_border width_200"><a id="lookup_whois" class="clickable">Whois Lookup</a></td>
-            <td class="no_border width_200"><a id="do_nslookup" class="clickable">nslookup</a></td>
+            <td class="no_border">Internal Lookups:</td>
+            <td class="no_border width_100"><a id="lookup_whois" class="clickable">Whois</a></td>
+            <td class="no_border width_120"><a id="do_nslookup" class="clickable">nslookup</a></td>
             <td class="no_border"><a id="do_reverse_dns" class="clickable">Reverse DNS</a></td>
         </tr>
         <!--
@@ -37,7 +38,8 @@
         </tr>
         -->
         <tr>
-            <td class="no_border"><a id="do_external_whois" class="clickable">Run External Whois Lookup</a></td>
+            <td class="no_border">External Lookups:</td>
+            <td class="no_border"><a id="do_external_whois" class="clickable">Whois(ext)</a></td>
             <td class="no_border"><a id="do_search_ipinfo" class="clickable">IP Location</a></td>
             <td class="no_border"><a id="do_search_ip_rep" class="clickable">IP Reputation</a></td>
         </tr>

@@ -156,6 +156,10 @@ class DataValidation:
         #     'PARAM': 'DATATYPE',
         #     'PARAM2': 'DATATYPE',
         # },
+
+        '/db_view': {
+            'table': 'word',
+        },
         '/edit_dns': {
             'handle_invalid_domains': 'word',
         },
@@ -167,11 +171,27 @@ class DataValidation:
             'test': 'int',
         },
         '/ip_log_raw_data': {
-            'hide_internal_connections': 'boolean',
             'src_ip': 'ip-list',
             'dst_ip': 'ip-list',
             'src_ports': 'int-list',
             'dst_ports': 'int-list',
+            'flag_bps_above_value': 'int',
+            'flag_pps_above_value': 'int',
+            ####################
+            'auto_update_file_list': 'boolean',
+            'flags_any': 'boolean',
+            'flags_none': 'boolean',
+            'hide_internal_connections': 'boolean',
+            'include_accepted_packets': 'boolean',
+            'include_blocked_packets': 'boolean',
+            'prec_tos_zero': 'boolean',
+            'prec_tos_nonzero': 'boolean',
+            'protocol_icmp': 'boolean',
+            'protocol_other': 'boolean',
+            'protocol_tcp': 'boolean',
+            'protocol_udp': 'boolean',
+            'show_max_bps_columns': 'boolean',
+            'sort_by': 'word',
         },
         '/iptables_log': {
             'highlight_ips': 'boolean',

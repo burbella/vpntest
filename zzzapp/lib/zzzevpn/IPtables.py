@@ -19,6 +19,9 @@ class IPtables:
     filter_table_list = ['INPUT', 'FORWARD', 'OUTPUT']
     log_packets_per_minute = 1000
 
+    # set to True to write to a test directory instead of the real directory
+    test_mode = False
+
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None, settings: zzzevpn.Settings=None):
         if ConfigData is None:
             config = zzzevpn.Config(skip_autoload=True)
@@ -104,6 +107,24 @@ class IPtables:
         header += f'-A LOGACCEPT -m limit --limit {self.log_packets_per_minute}/min -j LOG --log-prefix "zzz accepted " --log-level 7\n'
         header += '-A LOGACCEPT -j ACCEPT\n'
 
+        #-----new chain to apply custom rules-----
+        # -m multiport --dports 6672,61455,61457,61456,61458
+        # port 6672, all 10.* VPN IP's, TOS=0x00, accept
+        if self.ConfigData['IPtablesCustomRules']['Enable']:
+            dports = self.ConfigData['IPtablesCustomRules']['DestinationPorts']
+            if len(dports) > 15:
+                # limit of 15 ports for now, from the ConfigData
+                # more than 15 ports will require multiple rules, due to iptables limitations
+                dports = dports[:15]
+            dports_csv = ','.join(str(dport) for dport in dports)
+            header += ':CUSTOMRULES -\n'
+            # first, accept incoming matched dports with TOS=0x00
+            header += f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']} -m tos --tos 0x00 -j LOGACCEPT\n'''
+            # next, reject incoming matched dports with all other TOS values
+            header += f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']} -j LOGREJECT\n'''
+            # finally, accept everything else
+            header += '-A CUSTOMRULES -j LOGACCEPT\n'
+
         return header
 
     #-----iptables config file header-----
@@ -118,9 +139,20 @@ class IPtables:
     def make_iptables_footer(self):
         footer = 'COMMIT\n'
         return footer
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    #-----drop unacceptable packets with LOGDROP-----
+    # ports 137-139 NetBIOS - tends to cause ICMP rejection replies
+    def make_logdrop_entries(self) -> str:
+        logdrop_entries = []
+        for filter_table in self.filter_table_list:
+            for protocol in ['tcp', 'udp']:
+                logdrop_entries.append(f'-A {filter_table} -p {protocol} -m multiport --dports 137:139 -j LOGDROP\n')
+        return ''.join(logdrop_entries)
+
+    #--------------------------------------------------------------------------------
+
     ##################################################
     # combine iptables FILTER entries into a single config file to import
     #   header
@@ -190,6 +222,9 @@ class IPtables:
     #      reduce useless logging where practical
     #      may need a static ipset with a list of internal IP's
     def make_iptables_logaccept_entry(self, filter_table):
+        # apply custom rules if enabled
+        if self.ConfigData['IPtablesCustomRules']['Enable']:
+            return f'-A {filter_table} -j CUSTOMRULES\n'
         return f'-A {filter_table} -m limit --limit {self.log_packets_per_minute}/min -j LOG --log-prefix "zzz accepted " --log-level 7\n'
     
     #--------------------------------------------------------------------------------
@@ -220,13 +255,23 @@ class IPtables:
     
     #-----format the iptables denylist config file-----
     # make_iptables_config
-    def make_iptables_denylist(self):
+    def make_iptables_denylist(self, new_settings=None):
         #-----only the daemon can use this function, not apache-----
         #if not self.util.running_as_root():
             #TODO - log an error here
             #return
+
+        #-----option to pass in settings so we don't have to look them up-----
+        if new_settings is None:
+            self.settings.get_settings()
+        else:
+            self.settings = new_settings
+
         src_cidr = self.ConfigData['AppInfo']['BlockedIPRange']
+        if self.settings.is_setting_enabled('block_custom_ip_always'):
+            src_cidr = self.ConfigData['AppInfo']['VpnIPRange']
         # src_cidr_dns_icap = self.ConfigData['AppInfo']['BlockedIPRangeICAP']
+
         host_ip = socket.gethostbyname(self.ConfigData['AppInfo']['Hostname'])
         file_data = ''
         for filter_table in self.filter_table_list:
@@ -304,7 +349,7 @@ class IPtables:
         
         #-----this is the first file in the list of appended files, so put a header at the top-----
         # install_iptables_config() calls the script that combines the files
-        data_to_write = self.make_iptables_header()
+        data_to_write = self.make_iptables_header() + self.make_logdrop_entries()
         
         for filter_table in self.filter_table_list:
             data_to_write += self.make_iptables_allowlist_entry(filter_table, host_ip)

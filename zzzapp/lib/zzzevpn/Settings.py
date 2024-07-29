@@ -24,6 +24,14 @@ class Settings:
     HideIPs = [] # don't show these IP's in the IP log report
     AllowIPs = [] # overrides denylist IP's in iptables
     SettingsData = {}
+
+    # keep separate from SettingsData so it can be loaded/saved separately
+    # this allows the IP log raw data view page to save its own data without the risk of old data being saved when the Save button is pressed on the main Settings page
+    IPLogRawDataView = {}
+    SettingTypeMain = 'main'
+    SettingTypeIPLogRawDataView = 'ip_log_raw_data_view'
+    setting_types = [SettingTypeMain, SettingTypeIPLogRawDataView]
+
     print_log: bool = True
     settings_last_loaded = 0
     
@@ -34,7 +42,7 @@ class Settings:
     TLDs = {} # TLD
     BlockedTLDs = {} # TLD: 1
     SettingsHTML = {}
-    checkboxes_available = ['autoplay', 'social', 'telemetry', 'duplicate_domain', 'links_by_function', 'icap_condensed', 'block_country_tld', 'block_country_tld_always', 'block_country_ip_always', 'block_tld_always', 'dark_mode', 'check_zzz_update', 'auto_install_zzz_update', 'show_dev_tools', 'restart_openvpn_weekly', 'test_server_dns_block', 'test_server_squid']
+    checkboxes_available = ['autoplay', 'social', 'telemetry', 'duplicate_domain', 'links_by_function', 'icap_condensed', 'block_country_tld', 'block_country_tld_always', 'block_country_ip_always', 'block_custom_ip_always', 'block_tld_always', 'dark_mode', 'check_zzz_update', 'auto_install_zzz_update', 'show_dev_tools', 'restart_openvpn_weekly', 'test_server_dns_block', 'test_server_squid']
     
     #TEST
     TESTDATA = ''
@@ -70,6 +78,7 @@ class Settings:
         self.HideIPs = []
         self.AllowIPs = []
         self.SettingsData = {}
+        self.IPLogRawDataView = {}
         
         self.load_country_names()
         self.load_tld_names()
@@ -92,6 +101,7 @@ class Settings:
             'block_country_tld': '',
             'block_country_tld_always': '',
             'block_country_ip_always': '',
+            'block_custom_ip_always': '',
             
             'block_tld_always': '',
             
@@ -122,7 +132,7 @@ class Settings:
             
             'TESTDATA': '',
         }
-    
+
     #--------------------------------------------------------------------------------
     
     def should_print_log(self, value=None):
@@ -168,7 +178,51 @@ class Settings:
         return False
     
     #--------------------------------------------------------------------------------
-    
+
+    def load_raw_data_view_into_dict(self, ip_log_raw_data_view: str):
+        # default data
+        self.IPLogRawDataView_default = {
+            'auto_update_file_list': 'true',
+            'hide_internal_connections': 'true',
+            'src_ip': '',
+            'dst_ip': '',
+            'src_ports': '',
+            'dst_ports': '',
+            'sort_by': 'ip',
+            # flags
+            'flags_any': 'true',
+            'flags_none': 'true',
+            # highlights
+            'flag_bps_above_value': 10000,
+            'flag_pps_above_value': 8,
+            # status
+            'include_accepted_packets': 'true',
+            'include_blocked_packets': 'true',
+            # prec/tos
+            'prec_tos_zero': 'true',
+            'prec_tos_nonzero': 'true',
+            # protocol
+            'protocol_tcp': 'true',
+            'protocol_udp': 'true',
+            'protocol_icmp': 'true',
+            'protocol_other': 'true',
+            # bps display
+            'show_max_bps_columns': 'true',
+        }
+
+        if ip_log_raw_data_view:
+            try:
+                self.IPLogRawDataView = json.loads(ip_log_raw_data_view)
+            except:
+                # can't load settings? just start over
+                if self.should_print_log():
+                    print('get_settings(): json.loads(ip_log_raw_data_view) failed, using default settings', flush=True)
+
+        # in case new keys were added, load default values from above
+        for key in self.IPLogRawDataView_default.keys():
+            if key not in self.IPLogRawDataView:
+                self.IPLogRawDataView[key] = self.IPLogRawDataView_default[key]
+
     # most apps do not need the SettingsHTML data, so do not populate it by default
     # currently only the SettingsPage module needs it
     def get_settings(self, ok_to_use_existing=False, need_html=False):
@@ -182,7 +236,7 @@ class Settings:
         
         self.init_vars()
         
-        sql = 'select json, squid_nobumpsites, squid_hide_domains, hide_ips, allow_ips from settings';
+        sql = 'select json, squid_nobumpsites, squid_hide_domains, hide_ips, allow_ips, ip_log_raw_data_view from settings'
         params = ()
         (colnames, rows, rows_with_colnames) = self.db.select_all(sql, params, skip_array=True)
         row = None
@@ -195,7 +249,11 @@ class Settings:
             except:
                 # can't load settings? just start over
                 if self.should_print_log():
-                    print('get_settings(): json.loads() failed, using default settings', flush=True)
+                    print('get_settings(): json.loads(json) failed, using default settings', flush=True)
+
+        # separate json data for the IP log raw data view
+        self.load_raw_data_view_into_dict(row['ip_log_raw_data_view'])
+
         if row['squid_nobumpsites']:
             self.SquidNoBumpSites = row['squid_nobumpsites'].split('\n')
             self.SettingsHTML['SquidNoBumpSites'] = row['squid_nobumpsites']
@@ -223,7 +281,7 @@ class Settings:
         else:
             self.AllowIPs = []
             self.SettingsHTML['AllowIPs'] = ''
-        
+
         self.settings_last_loaded = self.util.current_timestamp()
         
         for checkbox in self.checkboxes_available:
@@ -249,7 +307,7 @@ class Settings:
             if self.ConfigData['ProtectedCountries']:
                 for country_code in self.ConfigData['ProtectedCountries']:
                     ProtectedCountries_names.append('(' + country_code + ')' + self.ConfigData['OfficialCountries'][country_code])
-            self.SettingsHTML['ProtectedCountries'] = ', '.join(ProtectedCountries_names);
+            self.SettingsHTML['ProtectedCountries'] = ', '.join(ProtectedCountries_names)
             #-----entries in country menus-----
             for country_row in country_list:
                 (country_code, country_name) = country_row
@@ -268,7 +326,7 @@ class Settings:
                 if check_blocked != None:
                     self.SettingsHTML['BlockedCountryMenu'] += option
             #-----ProtectedTLDs-----
-            self.SettingsHTML['ProtectedTLDs'] = ', '.join(self.ConfigData['ProtectedTLDs']);
+            self.SettingsHTML['ProtectedTLDs'] = ', '.join(self.ConfigData['ProtectedTLDs'])
             for tld in self.ConfigData['TLDs']:
                 option_class = ''
                 if tld in self.ConfigData['ProtectedTLDs']:
@@ -285,15 +343,22 @@ class Settings:
     #--------------------------------------------------------------------------------
     
     #-----looks up Settings checkbox values-----
-    # if self.SettingsData['show_dev_tools'] == 'true'
-    def is_setting_enabled(self, setting_name: str) -> bool:
+    # example of the type of test performed:
+    #   if self.SettingsData['show_dev_tools'] == 'true'
+    def is_setting_enabled(self, setting_name: str, setting_type: str=None) -> bool:
         if not setting_name:
             return False
+        if not setting_type in self.setting_types:
+            # default to main settings
+            setting_type = self.SettingTypeMain
         if not self.SettingsData:
             if self.should_print_log():
                 print('is_setting_enabled() - ERROR: no SettingsData loaded', flush=True)
             return False
-        setting_value = self.SettingsData.get(setting_name, None)
+        if setting_type == self.SettingTypeMain:
+            setting_value = self.SettingsData.get(setting_name, None)
+        else:
+            setting_value = self.IPLogRawDataView.get(setting_name, None)
         if setting_value is None:
             #-----probably called with a non-existent key-----
             return False
@@ -411,7 +476,7 @@ class Settings:
     
     def save_settings(self):
         #-----save to settings table-----
-        sql = "update settings set json=?, squid_nobumpsites=?, squid_hide_domains=?, hide_ips=?, allow_ips=?, last_updated=datetime('now')";
+        sql = "update settings set json=?, squid_nobumpsites=?, squid_hide_domains=?, hide_ips=?, allow_ips=?, last_updated=datetime('now')"
         params = (json.dumps(self.SettingsData), '\n'.join(self.SquidNoBumpSites), '\n'.join(self.SquidHideDomains), '\n'.join(self.HideIPs), '\n'.join(self.AllowIPs))
         self.db.query_exec(sql, params)
         
@@ -434,9 +499,20 @@ class Settings:
         sql_tlds = "','".join(self.SettingsData['blocked_tld'])
         sql = "update tlds set blocked=1 where tld in ('" + sql_tlds + "')"
         self.db.query_exec(sql, params)
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    # separate function to save just the ip_log_raw_data_view column
+    def save_ip_log_view_settings(self):
+        if not self.IPLogRawDataView:
+            return
+        #-----save to settings table-----
+        sql = "update settings set ip_log_raw_data_view=?, raw_data_view_last_updated=datetime('now')"
+        params = (json.dumps(self.IPLogRawDataView),)
+        self.db.query_exec(sql, params)
+
+    #--------------------------------------------------------------------------------
+
     #-----make sure invalid Settings don't get saved-----
     # Returns a list of ProtectedCountries not blocked
     # SettingsData JSON Example:
@@ -500,6 +576,7 @@ class Settings:
             'block_country_tld': 'false',
             'block_country_tld_always': 'false',
             'block_country_ip_always': 'false',
+            'block_custom_ip_always': 'false',
             'block_tld_always': 'false',
             'dark_mode': 'true', # dark mode on by default
             'check_zzz_update': 'true',

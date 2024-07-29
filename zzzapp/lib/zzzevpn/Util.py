@@ -137,12 +137,15 @@ class Util:
         return time.time()
     
     #-----printable datetime string-----
-    def current_datetime(self, timestamp=None):
+    def current_datetime(self, timestamp=None, localize_timezone=True):
         datetime_now = None
+        timezone_info = None
+        if localize_timezone:
+            timezone_info = pytz.timezone(self.ConfigData['TimeZoneDisplay'])
         if timestamp is None:
-            datetime_now = datetime.datetime.now(pytz.timezone(self.ConfigData['TimeZoneDisplay']))
+            datetime_now = datetime.datetime.now(timezone_info)
         else:
-            datetime_now = datetime.datetime.fromtimestamp(timestamp, pytz.timezone(self.ConfigData['TimeZoneDisplay']))
+            datetime_now = datetime.datetime.fromtimestamp(timestamp, timezone_info)
         date_format = '%Y-%m-%d %H:%M:%S %Z'
         return datetime_now.strftime(date_format)
     

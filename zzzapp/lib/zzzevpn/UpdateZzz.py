@@ -140,9 +140,11 @@ class UpdateZzz:
             self.data_validation = zzzevpn.DataValidation(self.ConfigData)
         data = {
             'action': action,
-            'branch': branch,
-            'dev_version': dev_version,
         }
+        if action not in ['db_view', 'db_view_table_info']:
+            # db_view and db_view_table_info do not require branch or dev_version
+            data['branch'] = branch
+            data['dev_version'] = dev_version
         if not self.data_validation.validate(environ, data):
             return self.webpage.error_log(environ, 'ERROR: data validation failed')
 
@@ -526,6 +528,11 @@ class UpdateZzz:
         return table_html
 
     def db_view_lookup(self, environ, raw_data):
+        #TODO: validate data in multiple places
+        #-----validate data separately for DB view-----
+        # if not self.data_validation.validate(environ, data):
+        #     return self.webpage.error_log(environ, 'ERROR: data validation failed')
+
         default_format = 'html'
         row_limit_max = 10000
         row_limit_default = 100
@@ -539,6 +546,7 @@ class UpdateZzz:
             table = table[0]
         else:
             return self.webpage.error_log(environ, 'ERROR: no table selected')
+        data = { 'table': table }
         if table == 'schema':
             subprocess_commands = [self.ConfigData['Subprocess']['sqlite-utils'], 'schema', db_filepath]
             output = ''

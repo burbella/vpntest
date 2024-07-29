@@ -19,14 +19,26 @@ exit_if_not_running_as_root
 
 show_usage() {
     echo
-    echo "Usage: $(basename $0) [-a] [-c] [-f] [-h] [-s] [-t] [-v]"
+    echo "Usage: $(basename $0) [-a] [-c] [-f] [-h] [-r package_name] [-s] [-t] [-v]"
     echo "  -a install PIP to alternate venv"
     echo "  -c check all package dependencies"
     echo "  -f force re-install of all packages"
     echo "  -h help (show this message)"
+    echo "  -r remove the specified package from the specified venv (use with -a, -t, -v)"
     echo "  -s skip app restarts after install"
     echo "  -t install PIP to test venv"
     echo "  -v install PIP to main venv"
+    echo
+    echo "PIP version is stored in the ZZZ_PIP_VERSION var in /zzzapp/bash/util.sh"
+    echo "All other versions are stored in the requirements*.txt files in the /install directory."
+    echo
+    echo "Usually requirements need to be upgraded for all 3 VENVs."
+    echo "  Test VENV first:"
+    echo "      sudo /opt/zzz/upgrade/upgrade-pip.sh -t"
+    echo "  Then the alternate VENV:"
+    echo "      sudo /opt/zzz/upgrade/upgrade-pip.sh -a"
+    echo "  Finally the main VENV: (this will restart the apps that use the main VENV)"
+    echo "      sudo /opt/zzz/upgrade/upgrade-pip.sh -v"
 }
 
 #--------------------------------------------------------------------------------
@@ -39,7 +51,9 @@ ZZZ_SKIP_RESTART=False
 ZZZ_ALT_VENV=False
 ZZZ_MAIN_VENV=False
 ZZZ_TEST_VENV=False
-while getopts ":hacfstv" opt; do
+ZZZ_REMOVE_PACKAGE=False
+ZZZ_PACKAGE_NAME=""
+while getopts ":hacfr:stv" opt; do
     ZZZ_OPTS_PROVIDED=True
     case ${opt} in
         a )
@@ -56,6 +70,11 @@ while getopts ":hacfstv" opt; do
             ;;
         h )
             show_usage
+            ;;
+        r )
+            # remove the specified package from the specified venv
+            ZZZ_REMOVE_PACKAGE=True
+            ZZZ_PACKAGE_NAME=${OPTARG}
             ;;
         s )
             echo "skipping app restarts after install"
@@ -97,12 +116,27 @@ echo
 
 #--------------------------------------------------------------------------------
 
+if [[ "$ZZZ_REMOVE_PACKAGE" == "True" ]]; then
+    if [[ "$ZZZ_TEST_VENV" == "True" ]]; then
+        echo "removing package from test venv"
+        sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip uninstall $ZZZ_PACKAGE_NAME
+    fi
+    if [[ "$ZZZ_ALT_VENV" == "True" ]]; then
+        echo "removing package from alternate venv"
+        sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip uninstall $ZZZ_PACKAGE_NAME
+    fi
+    if [[ "$ZZZ_MAIN_VENV" == "True" ]]; then
+        echo "removing package from main venv"
+        sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip uninstall $ZZZ_PACKAGE_NAME
+    fi
+    exit
+fi
+
 #-----check if packages have all their dependencies-----
 #
 # /opt/zzz/venv/bin/python3 -m pip check
 # --force-reinstall
 # /opt/zzz/venv/bin/pipdeptree
-
 if [[ "$ZZZ_CHECK_DEP" == "True" ]]; then
     echo "main venv:"
     /opt/zzz/venv/bin/python3 -m pip check

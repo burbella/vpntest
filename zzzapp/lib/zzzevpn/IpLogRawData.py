@@ -23,8 +23,9 @@ class IpLogRawData:
     filepath_list = []
     no_match_lines = []
 
-    #TODO: make this a config var
-    flag_bps_above_value = 20000
+    #TODO: make these config vars
+    flag_bps_above_value = 10000
+    flag_pps_above_value = 8
 
     # data is processed in increments of 5 seconds
     bps_increment_size = 5
@@ -35,6 +36,25 @@ class IpLogRawData:
     # IPs/CIDRs that are exempt from the bps_above_value check
     # private IPs and the VPN server IP are exempt, or get might higher limits
     exempted_ips = set()
+
+    #-----constants-----
+    field_names = { 'DPT', 'ID', 'LEN', 'PREC', 'PROTO', 'RES', 'SPT', 'TOS', 'TTL', 'URGP', 'WINDOW', }
+    # leaving out WINDOW and URGP because they are optional
+    int_fields = { 'DPT', 'ID', 'LEN', 'SPT', 'TTL', }
+    # common_values = {
+    #     'PREC': '0x00',
+    #     'TOS': '0x00',
+    #     'RES': '0x00',
+    #     'URGP': '0',
+    # }
+    common_field_values = {
+        'PREC': '0x00',
+        'TOS': '0x00',
+        'RES': '0x00',
+        'URGP': '0',
+    }
+
+    #--------------------------------------------------------------------------------
 
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None, settings: zzzevpn.Settings=None):
         #-----get Config-----
@@ -70,8 +90,15 @@ class IpLogRawData:
         self.exempted_ips = set(self.ConfigData['ProtectedIPs'])
 
         #-----assemble IP log regex-----
+        # typical UDP entry: (internal DNS query)
         # 2020-02-16T00:16:01.844723 [93216.767428] zzz accepted IN=eth0 OUT= MAC=01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e SRC=172.30.0.2 DST=172.30.0.164 LEN=174 TOS=0x00 PREC=0x00 TTL=255 ID=10659 PROTO=UDP SPT=53 DPT=35500 LEN=154
         regex_date = r'(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}\.\d{6})' # 2020-02-16T00:16:01.844723
+        #
+        # typical UDP entry: (external data xfer)
+        #
+        #
+        # typical ICMP entry: (UDP packet went to a server, ICMP response came from a firewall/IDS/etc and included the original packet metadata)
+        # ipv4.log-1720116841:2024-07-04T18:12:52.920513 [223862.264352] zzz accepted IN=ens5 OUT=tun3 MAC=01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e SRC=1.2.3.4 DST=10.8.0.3 LEN=96 TOS=0x00 PREC=0x00 TTL=237 ID=55225 PROTO=ICMP TYPE=3 CODE=13 [SRC=10.8.0.3 DST=1.2.0.0 LEN=78 TOS=0x00 PREC=0x00 TTL=114 ID=26260 PROTO=UDP SPT=137 DPT=137 LEN=58 ] 
 
         #TODO: rename this to PID?
         regex_timestamp = r'\[(\s*\d+\.\d+)\]' # [ 3216.767428]
@@ -140,13 +167,14 @@ class IpLogRawData:
         
         #-----regex groups-----
         # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
+        # 2: process ID?
+        # 3: type - accepted/blocked
+        # 4: IN
+        # 5: OUT
+        # 6: MAC
+        # 7: SRC
+        # 8: DST
+        # 9: rest of msg
         entry = {
             'datetime': match.group(1),
             'pid': match.group(2),
@@ -171,41 +199,43 @@ class IpLogRawData:
     #--------------------------------------------------------------------------------
 
     def parse_msg(self, entry:dict) -> dict:
-        msg = ''
-        unparsed_msgs = []
-        field_names = { 'DPT', 'ID', 'LEN', 'PREC', 'PROTO', 'RES', 'SPT', 'TOS', 'TTL', 'URGP', 'WINDOW', }
-
-        # leaving out WINDOW and URGP because they are optional
-        int_fields = { 'DPT', 'ID', 'LEN', 'SPT', 'TTL', }
-
-        common_values = {
-            'PREC': '0x00',
-            'TOS': '0x00',
-            'RES': '0x00',
-            'URGP': '0',
-        }
-
         # make sure all fields are present, even if they need to be blank
-        for field in field_names:
+        for field in self.field_names:
+            # field names are uppercase, while the keys in the entry dict are lowercase
             entry[field] = ''
 
         if not entry['msg']:
             # no further processing if msg is empty
             return entry
 
-        msg_fields = entry['msg'].strip().split(' ')
-        for field in msg_fields:
+        #-----trim trailing spaces-----
+        #-----split on '[', which may be optional and only used with ICMP packets-----
+        msg_parts = entry['msg'].strip().split('[')
+
+        #-----now split on spaces-----
+        main_packet_metadata = msg_parts[0].strip().split(' ')
+
+        icmp_response = ''
+        if len(msg_parts) > 1:
+            #-----get the ICMP response-----
+            icmp_response = 'ICMP: ' + msg_parts[1].strip().split(']')[0].strip()
+            #TODO: parse the ICMP response?
+            # entry = self.parse_icmp_response(entry, icmp_response)
+
+        unparsed_msgs = []
+        for field in main_packet_metadata:
             if not field:
                 continue
             param = field.split('=')
-            if param[0] in field_names:
-                if param[0] in int_fields:
+            if param[0] in self.field_names:
+                if param[0] in self.int_fields:
                     # cast string to int for number fields
                     entry[param[0]] = self.util.get_int_safe(param[1])
                 else:
                     entry[param[0]] = param[1]
             else:
                 unparsed_msgs.append(field)
+        unparsed_msgs.append(icmp_response)
 
         #-----dump the unparsed fields into the msg field-----
         entry['msg'] = ' '.join(unparsed_msgs)
@@ -297,7 +327,15 @@ class IpLogRawData:
             return {
                 'analysis_by_src_ip': {},
                 'analysis_by_dst_ip': {},
+                'incremental_bps': {},
                 'unique_ips': set(),
+
+                'start_timestamp': '',
+                'end_timestamp': '',
+
+                'datetime_start': '',
+                'datetime_end': '',
+                'duration': 0,
             }
 
         analysis_by_src_ip = {}
@@ -366,6 +404,11 @@ class IpLogRawData:
         datetime_obj = datetime.datetime.strptime(timestamp, self.util.date_format_hi_res)
         return datetime_obj.timestamp()
 
+    def adjust_bps_columns(self, max_segments: int=12, increment_size: int=5):
+        self.max_segments = max_segments
+        self.bps_increment_size = increment_size
+        self.bps_time_limit = self.bps_increment_size * self.max_segments
+
     #--------------------------------------------------------------------------------
 
     # src or dst entries only
@@ -403,20 +446,28 @@ class IpLogRawData:
                 break
 
             # too many segments will make the html table too wide, so exit early
-            if end_segment_id > (self.max_segments * self.bps_increment_size):
+            if end_segment_id > (self.bps_time_limit):
                 break
 
+            # calculate bytes/sec and packets/sec
             if analysis[direction_key][ip].get('bps_by_segment', None) is None:
                 analysis[direction_key][ip]['bps_by_segment'] = {}
             # label the entry with the timestamp of the increment it belongs to
             # add the length of the packet to the bps for the current increment
             segment_info = analysis[direction_key][ip]['bps_by_segment'].get(end_segment_id, None)
+            bps = entry['LEN'] / self.bps_increment_size
+            pps = 1 / self.bps_increment_size
             if segment_info:
                 # flags will be checked/updated elsewhere
-                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['bps'] += entry['LEN'] / self.bps_increment_size
+                # calculate bps
+                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['bps'] += bps
+                # calculate packets/sec
+                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['pps'] += pps
             else:
+                # init a new segment
                 analysis[direction_key][ip]['bps_by_segment'][end_segment_id] = {
-                    'bps': entry['LEN'] / self.bps_increment_size,
+                    'bps': bps,
+                    'pps': pps,
                     'flags': 0,
                 }
 
@@ -462,7 +513,9 @@ class IpLogRawData:
                 if not bps_by_segment:
                     continue
                 for end_segment_id, segment_info in bps_by_segment.items():
-                    if segment_info['bps'] > self.flag_bps_above_value:
+                    if segment_info['bps'] > self.settings.IPLogRawDataView['flag_bps_above_value']:
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
+                    if segment_info['pps'] > self.settings.IPLogRawDataView['flag_pps_above_value']:
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
 
         return analysis

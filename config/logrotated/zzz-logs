@@ -30,6 +30,24 @@
     create 0644 root root
 }
 
+#-----BIND logs-----
+/var/log/named/named.log {
+    rotate 10
+    size 1M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 bind bind
+    su bind bind
+    postrotate
+        /usr/sbin/rndc reconfig > /dev/null 2>/dev/null || true
+    endscript
+}
+
 #-----disk check logs-----
 /var/log/zzz/cron/disk-check.log {
     rotate 10

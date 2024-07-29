@@ -506,6 +506,8 @@ class ServiceRequest:
         # initialized on install with /opt/zzz/python/bin/init-iptables.py
         self.iptables.make_router_config()
         self.iptables.make_iptables_countries(self.settings)
+        # custom IP's applied to all VPN's: make_iptables_denylist
+        self.iptables.make_iptables_denylist(self.settings)
         self.iptables.install_iptables_config()
 
         #TODO: ListManager will handle this list

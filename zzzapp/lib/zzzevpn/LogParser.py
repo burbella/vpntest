@@ -94,7 +94,7 @@ class LogParser:
     #TODO: highlighting is too slow, so it's off by default for now
     #      implement binary search trees for util.is_ip_blocked(), util.is_protected_ip()
     @lru_cache(maxsize=300)
-    def make_ip_analysis_links(self, ip, highlight_ips=True, include_blocking_links=True):
+    def make_ip_analysis_links(self, ip, highlight_ips=True, include_blocking_links=True, rdns_popup=False):
         ip_analysis_links = ''
         highlight_class = 'cursor_copy'
         if self.util.ip_util.is_public_ip(ip):
@@ -105,12 +105,16 @@ class LogParser:
             ip_blocking_links = ''
             if include_blocking_links:
                 ip_blocking_links = self.get_ip_blocking_links(ip, is_blocked=is_blocked)
+            rdns_class = 'reverse_dns'
+            if rdns_popup:
+                rdns_class = 'reverse_dns_popup'
             analysis_links_data = {
                 'base64_ip': self.util.encode_base64(ip),
                 'ip': ip,
                 'ip_blocking_links': ip_blocking_links,
+                'rdns_class': rdns_class,
             }
-            ip_analysis_links = '''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable reverse_dns" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
+            ip_analysis_links = '''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable {rdns_class}" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
             '''.format(**analysis_links_data)
             
             #TODO: needs a binary search tree
