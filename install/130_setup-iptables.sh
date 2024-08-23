@@ -82,6 +82,7 @@ chmod 755 $NETFILTER_PERSISTENT_PLUGINS/14-zzz-ipset
 $NETFILTER_PERSISTENT_PLUGINS/14-zzz-ipset start
 
 #-----create and install iptables rules-----
+# this also generates /etc/logrotate.d/zzz-iptables from a template
 /opt/zzz/python/bin/init-iptables.py
 
 #-----generate ipset configs for each country, so they are ready to install when selected-----

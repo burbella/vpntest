@@ -46,7 +46,47 @@ class IPtables:
         self.log_packets_per_minute = self.ConfigData['LogPacketsPerMinute']
 
     #--------------------------------------------------------------------------------
-    
+
+    # logfiles rotated once per minute, only if they exceed 1MB in size
+    # assume 225 bytes per log entry
+    # config vars:
+    #   DiskSpace.IPtablesLogFiles=2048
+    #   LogPacketsPerMinute=10000
+    # bytes per minute: 225 * 10000 = 2.25MB
+    # calculate max logfiles: 2048 / 2.25 = 910 files
+    def make_iptables_logrotate_config(self):
+        read_filepath = self.ConfigData['UpdateFile']['iptables']['logrotate_template']
+        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
+        lines_per_file = self.ConfigData['LogPacketsPerMinute']
+        max_diskspace = self.ConfigData['DiskSpace']['IPtablesLogFiles'] * self.util.standalone.MEGABYTE
+        numfiles = int(max_diskspace / (bytes_per_line * lines_per_file))
+
+        # keep it in the range of 100-10000
+        if numfiles<20:
+            numfiles = 20
+            print(f'The IPtablesLogFiles and LogPacketsPerMinute settings only allow for {numfiles} log files. The number of log files has been set to the minimum value of 20.')
+        if numfiles>10000:
+            numfiles = 10000
+            print(f'The IPtablesLogFiles and LogPacketsPerMinute settings allow for {numfiles} log files. The number of log files has been set to the maximum value of 10000.')
+        template_data = {
+            'numfiles': numfiles,
+        }
+
+        print(f'''numfiles final: {numfiles}
+bytes_per_line: {bytes_per_line}
+lines_per_file: {lines_per_file}
+max_diskspace: {max_diskspace}
+        ''')
+
+        zzz_template = zzzevpn.ZzzTemplate(self.ConfigData, self.db, self.util)
+        data_to_write = zzz_template.load_template(filepath=read_filepath, data=template_data)
+        
+        write_filepath = self.ConfigData['UpdateFile']['iptables']['logrotate_dst']
+        with open(write_filepath, 'w') as write_file:
+            write_file.write(data_to_write)
+
+    #--------------------------------------------------------------------------------
+
     #-----routes traffic thru the physical network interface(s)-----
     def make_router_config(self):
         # this comments-out the iptables-zzz.conf line to disable the iptables squid redirect for the open-squid VPN
@@ -118,10 +158,17 @@ class IPtables:
                 dports = dports[:15]
             dports_csv = ','.join(str(dport) for dport in dports)
             header += ':CUSTOMRULES -\n'
-            # first, accept incoming matched dports with TOS=0x00
-            header += f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']} -m tos --tos 0x00 -j LOGACCEPT\n'''
-            # next, reject incoming matched dports with all other TOS values
-            header += f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']} -j LOGREJECT\n'''
+            # ports and IP ranges are the same for all custom rules
+            header_prefix = f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']}'''
+            # drop packets with TTL under 70
+            header += f'''{header_prefix} -m ttl --ttl-lt 70 -j LOGDROP\n'''
+            # TOS: first, accept incoming matched dports with TOS=0x00
+            header += f'''{header_prefix} -m tos --tos 0x00 -j LOGACCEPT\n'''
+            # TOS: next, drop incoming matched dports with all other TOS values
+            header += f'''{header_prefix} -j LOGDROP\n'''
+            #
+            # fake command? iptables -A INPUT -p tcp -m ip --frag 0x4000/0x4000 -j DROP
+            #
             # finally, accept everything else
             header += '-A CUSTOMRULES -j LOGACCEPT\n'
 

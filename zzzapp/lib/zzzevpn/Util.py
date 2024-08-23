@@ -37,6 +37,7 @@ class Util:
     db_ip_country: zzzevpn.DB = None
     ip_util: zzzevpn.IPutil = None
     maxmind_reader: maxminddb.Reader = None
+    standalone: zzzevpn.Standalone = None
     tldextract_obj: tldextract.TLDExtract = None
     zzz_redis: zzzevpn.ZzzRedis = None
     
@@ -85,8 +86,11 @@ class Util:
     
     host_url_regex_pattern = r'^http(|s)\:\/\/(.+?)\/'
     host_url_regex = re.compile(host_url_regex_pattern, re.DOTALL | re.IGNORECASE)
-    
+
+    date_format_filename = '%Y-%m-%d-%H-%M-%S'
     date_format_hi_res = '%Y-%m-%dT%H:%M:%S.%f'
+    date_format_seconds = '%Y-%m-%d %H:%M:%S'
+    date_format_seconds_timezone = '%Y-%m-%d %H:%M:%S %Z'
 
     display_script_error_output = True
     script_output = ''
@@ -96,6 +100,7 @@ class Util:
     decode_error_msg = ''
     
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, should_use_db: bool=True) -> None:
+        self.standalone = zzzevpn.Standalone
         if ConfigData is None:
             config = zzzevpn.Config(skip_autoload=True)
             self.ConfigData = config.get_config_data()
@@ -130,8 +135,7 @@ class Util:
     #-----creates a datetime string that can be appended to a filename-----
     def filename_datetime(self) -> str:
         datetime_now = datetime.datetime.now()
-        date_format = '%Y-%m-%d-%H-%M-%S'
-        return datetime_now.strftime(date_format)
+        return datetime_now.strftime(self.date_format_filename)
     
     def current_timestamp(self):
         return time.time()
@@ -146,8 +150,7 @@ class Util:
             datetime_now = datetime.datetime.now(timezone_info)
         else:
             datetime_now = datetime.datetime.fromtimestamp(timestamp, timezone_info)
-        date_format = '%Y-%m-%d %H:%M:%S %Z'
-        return datetime_now.strftime(date_format)
+        return datetime_now.strftime(self.date_format_seconds_timezone)
     
     #-----ANSI terminal color codes look like a mess in a webpage, remove them-----
     def remove_ansi_codes(self, data):
@@ -197,7 +200,7 @@ class Util:
     #-----convert the unix timestamp to something readable-----
     # similar to format_time() from LogParser.py, but this one takes a DB string
     def format_time_from_str(self, date_str, use_hires=False):
-        date_format = '%Y-%m-%d %H:%M:%S'
+        date_format = self.date_format_seconds
         if use_hires:
             date_format = self.date_format_hi_res
         datetime_obj = datetime.datetime.strptime(date_str, date_format)
@@ -290,7 +293,6 @@ class Util:
     #-----remove junk from a submitted string-----
     def cleanup_str(self, data):
         # \n, \r, \t, space, comma
-        # return data.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '').replace(',', '')
         return data.strip('\n\r\t ')
 
     def str_to_int_or_str(self, data_str):
@@ -888,9 +890,16 @@ class Util:
         row_id = str(row_id)
         wrapped_html = f'''<div class='expandable_container'><div class='content_collapsed {width}' id='{id_attr_name}{row_id}'>{html_str}</div><div class='expandable_spacer'></div><span>&nbsp;</span></div>'''
         return wrapped_html
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    def swap_rowcolor(self, current_color: str, color_options: list=['', 'gray-bg']) -> str:
+        if current_color==color_options[0]:
+            return color_options[1]
+        return color_options[0]
+
+    #--------------------------------------------------------------------------------
+
     def file_is_accessible(self, filepath):
         if not os.path.exists(filepath):
             return False
@@ -903,9 +912,40 @@ class Util:
             return 0
         statinfo = os.stat(filepath)
         return statinfo.st_size
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    def get_directory_list(self, dir: str, options: dict) -> list:
+        if not self.file_is_accessible(dir):
+            return {}
+        if not os.path.isdir(dir):
+            return {}
+
+        previous_file = ''
+        if (options['find_previous_file']):
+            current_file = options['find_previous_file']
+            all_files = {}
+            for entry in os.scandir(dir):
+                try:
+                    file_stats = entry.stat()
+                    #-----skip empty files-----
+                    if (not entry.is_file()) or (file_stats.st_size==0):
+                        continue
+                except:
+                    continue
+            all_files[file_stats.st_mtime] = entry.name
+            if all_files:
+                sorted_files = sorted(all_files.items(), key=lambda x: x[0], reverse=True)
+                for file in sorted_files:
+                    if file[1]==current_file:
+                        break
+                    previous_file = file[1]
+            return previous_file
+
+        return os.listdir(dir)
+
+    #--------------------------------------------------------------------------------
+
     def get_filedata_binary(self, filepath):
         if not self.file_is_accessible(filepath):
             #TODO: log an error? let it crash? force try-except at each function call?
@@ -1014,8 +1054,13 @@ class Util:
             return self.ip_util.is_public_ip(ip)
     
     #-----check if an IP is in a CIDR-----
-    def ip_cidr_check(self, ip, cidr):
-        net = ipaddress.ip_network(cidr, strict=False)
+    # ip_network_obj should be the output from is_cidr()
+    def ip_cidr_check(self, ip: str, cidr: str='', ip_network_obj=None):
+        if ip_network_obj:
+            return ipaddress.ip_address(ip) in ip_network_obj
+        net = self.is_cidr(cidr)
+        if not net:
+            return False
         return ipaddress.ip_address(ip) in net
     
     #-----check if a CIDR entry overlaps a private network-----
@@ -1063,7 +1108,19 @@ class Util:
     #TODO: change references to this in code to use IPutil instead
     def is_cidr(self, cidr):
         return self.ip_util.is_cidr(cidr)
-    
+
+    def valid_port(self, port: str) -> bool:
+        if not port:
+            return False
+        if not port.isdigit():
+            return False
+        if len(port)>5:
+            return False
+        port_num = int(port)
+        if not (0<port_num<65536):
+            return False
+        return True
+
     #--------------------------------------------------------------------------------
     
     #-----check if a given IP is on the protected list-----

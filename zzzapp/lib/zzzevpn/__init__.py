@@ -18,6 +18,8 @@
 #-----import modules in order by dependencies-----
 # this is required for type hints to not crash
 # EX: DB must be imported before BIND, because it is needed by BIND
+
+from .Standalone import Standalone
 from .IPutil import IPutil
 from .DNSservice import DNSservice
 from .Config import Config

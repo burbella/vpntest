@@ -242,10 +242,18 @@ class UpdateZzz:
         # <script nonce="" type="text/javascript" src="coverage_html.js" defer></script>
         if not self.new_favicon:
             self.new_favicon = self.webpage.make_all_favicons()
-        output = output.replace('<link rel="icon" sizes="32x32" href="favicon_32.png">', self.new_favicon)
-        output = output.replace('src="keybd_closed.png"', 'src="/coverage/keybd_closed.png"')
-        output = output.replace('href="style.css"', 'href="/coverage/style.css"')
-        output = output.replace('src="coverage_html.js"', 'src="/coverage/coverage_html.js"')
+        output = re.sub(r'<link rel="icon" sizes="32x32" href="favicon_32[\w]+\.png">', self.new_favicon, output, 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+        patterns = {
+            r'src="(keybd_closed[\w]+\.png)': 'src="/coverage/',
+            r'src="(coverage_html[\w]+\.js)': 'src="/coverage/',
+            r'href="(style[\w]+\.css)': 'href="/coverage/',
+        }
+        for pattern in patterns:
+            match = re.search(pattern, output, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+            if match:
+                filename = match.group(1)
+                new_html = f'{patterns[pattern]}{filename}'
+                output = re.sub(pattern, new_html, output, 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         
         #-----replace style with class-----
         # <div style="display: none;">
@@ -945,6 +953,8 @@ class UpdateZzz:
                 continue
 
             #-----check for notices (usually about a pip upgrade available)-----
+            # [notice] A new release of pip is available: 24.1.2 -> 24.2
+            # [notice] To update, run: python3 -m pip install --upgrade pip
             line = self.util.remove_ansi_codes(line)
             if line.startswith('[notice] '):
                 notices.append(line)
@@ -986,7 +996,7 @@ class UpdateZzz:
                 found_highlight_package = self.highlight_package_row.get(package_name, None)
                 if found_highlight_package:
                     highlight_row = 'gray-bg'
-                html_table_data.append(f'<tr class="{highlight_row}"><td class="{highlight_name}">{package_name}</td><td>{version}</td><td>{latest}</td><td>{pipdeptree_button}</td><td>{linked_url}</td></tr>\n')
+                html_table_data.append(f'<tr class="{highlight_row}"><td class="{highlight_name}">{package_name}</td><td>{version}</td><td><span class="cursor_copy">{latest}</span></td><td>{pipdeptree_button}</td><td>{linked_url}</td></tr>\n')
                 continue
 
             if line=='Loading package versions...':

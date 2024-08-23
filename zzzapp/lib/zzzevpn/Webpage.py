@@ -1,3 +1,4 @@
+import copy
 import os
 import pprint
 import urllib.parse
@@ -227,7 +228,7 @@ class Webpage:
         favicon_custom = ''
         if self.ConfigData['Favicon']['use_custom']:
             favicon_custom = 'custom/'
-        image_sizes = self.ConfigData['Favicon']['sizes']['android']
+        image_sizes = copy.deepcopy(self.ConfigData['Favicon']['sizes']['android'])
         image_sizes.extend(self.ConfigData['Favicon']['sizes']['browser'])
         image_sizes.extend(self.ConfigData['Favicon']['sizes']['high_density'])
         favicons = []

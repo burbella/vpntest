@@ -44,7 +44,7 @@ $python_dir = "$($env:LOCALAPPDATA)\Programs\Python\Python310"
 $python_filepath = "$python_dir\python.exe"
 
 # set the version to just "pip" to get the latest
-$pip_version = "pip==24.0"
+$pip_version = "pip==24.2"
 # $pip_version = "pip"
 
 #--------------------------------------------------------------------------------

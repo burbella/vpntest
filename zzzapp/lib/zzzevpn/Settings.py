@@ -183,12 +183,18 @@ class Settings:
         # default data
         self.IPLogRawDataView_default = {
             'auto_update_file_list': 'true',
-            'hide_internal_connections': 'true',
+            'extra_analysis': 'false',
+            # IPs/ports
             'src_ip': '',
             'dst_ip': '',
             'src_ports': '',
             'dst_ports': '',
+            'search_length': '',
+            'ttl': '',
             'sort_by': 'ip',
+            # connection type
+            'connection_external': 'true',
+            'connection_internal': 'false',
             # flags
             'flags_any': 'true',
             'flags_none': 'true',
@@ -198,6 +204,8 @@ class Settings:
             # status
             'include_accepted_packets': 'true',
             'include_blocked_packets': 'true',
+            # packet limits
+            'min_displayed_packets': 1,
             # prec/tos
             'prec_tos_zero': 'true',
             'prec_tos_nonzero': 'true',

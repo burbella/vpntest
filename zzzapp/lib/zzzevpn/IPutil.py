@@ -8,6 +8,8 @@ import ipaddress
 #-----import modules from the lib directory-----
 # This module cannot import the full zzzevpn because it would cause import loops
 # 6/12/2022: It should not import anything under zzzevpn
+# 8/17/2024: Standalone is now an import option
+import zzzevpn
 
 class IPutil:
     'IP utilities'

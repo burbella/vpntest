@@ -499,4 +499,12 @@ function click_color_change(args) {
 
 //--------------------------------------------------------------------------------
 
+//-----estimate the size of an object in memory-----
+function estimate_memory_size(obj) {
+    let json_str = JSON.stringify(obj);
+    return json_str.length;
+}
+
+//--------------------------------------------------------------------------------
+
 console.log("services.js - LOADED");

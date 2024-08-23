@@ -27,14 +27,26 @@ class IpLogRawDataPage:
     sort_by = 'ip' # ip, packets, bytes
     allowed_sort_by = ['ip', 'packets', 'bytes']
 
+    # store ipaddress objects here
+    net_objects = {
+        'src_ip': {},
+        'dst_ip': {},
+    }
+    # store data from the POST in these fields
     limit_fields = {
         'auto_update_file_list': False,
-        'hide_internal_connections': False,
+        'extra_analysis': False,
+        'min_displayed_packets': 1,
         # text boxes
         'src_ip': set(),
         'dst_ip': set(),
         'src_ports': set(),
         'dst_ports': set(),
+        'search_length': set(),
+        'ttl': set(),
+        # connection type
+        'connection_external': False,
+        'connection_internal': False,
         # flags
         'flags_any': False,
         'flags_none': False,
@@ -53,8 +65,8 @@ class IpLogRawDataPage:
         'show_max_bps_columns': False,
     }
 
-    checkbox_fields = ['auto_update_file_list', 'flags_any', 'flags_none', 'hide_internal_connections', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns']
-    allowed_post_params = ['action', 'auto_update_file_list', 'dst_ip', 'dst_ports', 'filename', 'flag_bps_above_value', 'flag_pps_above_value', 'flags_any', 'flags_none', 'hide_internal_connections', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_icmp', 'protocol_other', 'protocol_tcp', 'protocol_udp', 'show_max_bps_columns', 'sort_by', 'src_ip', 'src_ports']
+    checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_internal', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns']
+    allowed_post_params = ['action', 'auto_update_file_list', 'connection_external', 'connection_internal', 'dst_ip', 'dst_ports', 'extra_analysis', 'filename', 'flag_bps_above_value', 'flag_pps_above_value', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'min_displayed_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_icmp', 'protocol_other', 'protocol_tcp', 'protocol_udp', 'search_length', 'show_max_bps_columns', 'sort_by', 'src_ip', 'src_ports', 'ttl']
 
     # used to make sure only IPs in the displayed raw data are also displayed in the bps analysis tables
     displayed_raw_data_src_ips = set()
@@ -62,6 +74,8 @@ class IpLogRawDataPage:
 
     displayed_raw_data_src_ports = set()
     displayed_raw_data_dst_ports = set()
+    displayed_packet_lengths = set()
+    displayed_packet_ttls = set()
 
     count_test_prints = 0
 
@@ -105,6 +119,8 @@ class IpLogRawDataPage:
             'dst_ip': set(),
             'src_ports': set(),
             'dst_ports': set(),
+            'search_length': set(),
+            'ttl': set(),
         }
         for checkbox_field in self.checkbox_fields:
             self.limit_fields[checkbox_field] = False
@@ -113,12 +129,17 @@ class IpLogRawDataPage:
         self.displayed_raw_data_dst_ips = set()
         self.displayed_raw_data_src_ports = set()
         self.displayed_raw_data_dst_ports = set()
+        self.displayed_packet_lengths = set()
+        self.displayed_packet_ttls = set()
 
         #-----prep the HTML values-----
         self.IpLogRawDataHTML = {
             # 'logdata': '',
             'logfile_menu': '',
             'show_rowcount': '',
+            'flag_bps_default': self.settings.IPLogRawDataView_default['flag_bps_above_value'],
+            'flag_pps_default': self.settings.IPLogRawDataView_default['flag_pps_above_value'],
+            'min_displayed_packets_default': self.settings.IPLogRawDataView_default['min_displayed_packets'],
         }
 
     #--------------------------------------------------------------------------------
@@ -151,27 +172,23 @@ class IpLogRawDataPage:
             # filename only applies to view_log
             return self.webpage.error_log(environ, 'ERROR: missing filename')
 
+        for range_param in ['dst_ports', 'src_ports', 'search_length', 'ttl']:
+            if data[range_param]:
+                self.limit_fields[range_param] = self.translate_ranges_to_set(data[range_param])
+
         if data['dst_ip']:
-            self.limit_fields['dst_ip'] = set(data['dst_ip'].split(','))
-        if data['dst_ports']:
-            self.limit_fields['dst_ports'] = set(data['dst_ports'].split(','))
+            self.limit_fields['dst_ip'], self.net_objects['dst_ip'] = self.parse_cidr_list(data['dst_ip'])
         if data['sort_by'] and data['sort_by'] in self.allowed_sort_by:
             self.sort_by = data['sort_by']
         else:
             self.sort_by = 'ip'
         if data['src_ip']:
-            self.limit_fields['src_ip'] = set(data['src_ip'].split(','))
-        if data['src_ports']:
-            self.limit_fields['src_ports'] = set(data['src_ports'].split(','))
-        self.load_js_checkbox_data(data)
+            self.limit_fields['src_ip'], self.net_objects['src_ip'] = self.parse_cidr_list(data['src_ip'])
 
-        #TEST
-        # print('-'*40)
-        # print('data:')
-        # pprint.pprint(data)
-        # print('limit_fields:')
-        # pprint.pprint(self.limit_fields)
-        # print('-'*40)
+        if data['min_displayed_packets']:
+            self.limit_fields['min_displayed_packets'] = self.util.get_int_safe(data['min_displayed_packets'])
+
+        self.load_js_checkbox_data(data)
 
         if data['action']=='view_log':
             # save the latest settings
@@ -195,22 +212,85 @@ class IpLogRawDataPage:
         # allow zero here
         self.settings.IPLogRawDataView['flag_bps_above_value'] = self.util.get_int_safe(data['flag_bps_above_value'])
         self.settings.IPLogRawDataView['flag_pps_above_value'] = self.util.get_int_safe(data['flag_pps_above_value'])
+        self.settings.IPLogRawDataView['min_displayed_packets'] = self.util.get_int_safe(data['min_displayed_packets'])
 
-        if data['dst_ip']:
-            self.settings.IPLogRawDataView['dst_ip'] = data['dst_ip']
-        if data['dst_ports']:
-            self.settings.IPLogRawDataView['dst_ports'] = data['dst_ports']
+        for textbox in ['dst_ip', 'dst_ports', 'search_length', 'src_ip', 'src_ports', 'ttl']:
+            if data[textbox] is None:
+                self.settings.IPLogRawDataView[textbox] = ''
+            else:
+                # store the raw data in the settings, even with mistypes
+                self.settings.IPLogRawDataView[textbox] = data[textbox]
+
         if data['sort_by'] in self.allowed_sort_by:
             self.settings.IPLogRawDataView['sort_by'] = data['sort_by']
         else:
             self.settings.IPLogRawDataView['sort_by'] = 'ip'
-        if data['src_ip']:
-            self.settings.IPLogRawDataView['src_ip'] = data['src_ip']
-        if data['src_ports']:
-            self.settings.IPLogRawDataView['src_ports'] = data['src_ports']
 
         for checkbox_field in self.checkbox_fields:
             self.settings.IPLogRawDataView[checkbox_field] = data[checkbox_field]
+
+    #--------------------------------------------------------------------------------
+
+    def whitespace_to_commas(self, data: str) -> str:
+        return data.replace(' ', ',').replace('\n', ',').replace('\r', ',').replace('\t', ',')
+
+    # list items can be either IP's or CIDR: 1.2.3.0/24,2.3.4.5
+    def parse_cidr_list(self, cidr_list: str):
+        if not cidr_list:
+            return set()
+
+        cidr_list = self.whitespace_to_commas(cidr_list)
+        net_objects = {}
+        raw_data_set = set()
+        for item in cidr_list.split(','):
+            #-----verify that the item is a valid IP or CIDR before adding to the set-----
+            if '/' in item:
+                #-----CIDR-----
+                cidr = self.util.ip_util.is_cidr(item)
+                if cidr:
+                    # add the string
+                    raw_data_set.add(item)
+                    # add the IPNetwork object since it will be needed later for many calculations
+                    net_objects[item] = cidr
+            else:
+                #-----IP-----
+                ip = self.util.ip_util.is_ip(item)
+                if ip:
+                    # add the string
+                    raw_data_set.add(item)
+
+        return raw_data_set, net_objects
+
+    #--------------------------------------------------------------------------------
+
+    # 1-5,22,32-35 --> {1,2,3,4,5,22,32,33,34,35}
+    def translate_ranges_to_set(self, ranges_list: str) -> set:
+        if not ranges_list:
+            return set()
+
+        ranges_list = self.whitespace_to_commas(ranges_list)
+        numbers = set()
+        for range_str in ranges_list.split(','):
+            if '-' in range_str:
+                start, end = range_str.split('-')
+                if not (self.util.valid_port(start) or self.util.valid_port(end)):
+                    print(f'ERROR: invalid range: {range_str}')
+                    continue
+                start = int(start)
+                end = int(end)
+                if start>=end:
+                    print(f'ERROR: range start must be less than end: {range_str}')
+                    continue
+                for num in range(start, end+1):
+                    # comparisons are done as strings, so convert to string
+                    numbers.add(str(num))
+            else:
+                if not self.util.valid_port(range_str):
+                    print(f'ERROR: invalid port: {range_str}')
+                    continue
+                # comparisons are done as strings, so convert to string
+                numbers.add(str(range_str))
+        return numbers
 
     #--------------------------------------------------------------------------------
 
@@ -247,15 +327,19 @@ class IpLogRawDataPage:
     # settings from the settings.IPLogRawDataView need to be put in self.IpLogRawDataHTML
     def load_settings_into_html(self):
         # settings = self.settings.get_settings()
-        # self.IpLogRawDataHTML['hide_internal_connections'] = self.settings.is_setting_enabled('hide_internal_connections', self.settings.SettingTypeIPLogRawDataView)
+        # self.IpLogRawDataHTML['CHECKBOX_ID'] = self.settings.is_setting_enabled('CHECKBOX_ID', self.settings.SettingTypeIPLogRawDataView)
 
+        # load the raw data in the HTML, even with mistypes
         self.IpLogRawDataHTML['dst_ip'] = self.settings.IPLogRawDataView['dst_ip']
         self.IpLogRawDataHTML['dst_ports'] = self.settings.IPLogRawDataView['dst_ports']
         self.IpLogRawDataHTML['flag_bps_above_value'] = self.settings.IPLogRawDataView['flag_bps_above_value']
         self.IpLogRawDataHTML['flag_pps_above_value'] = self.settings.IPLogRawDataView['flag_pps_above_value']
+        self.IpLogRawDataHTML['min_displayed_packets'] = self.settings.IPLogRawDataView['min_displayed_packets']
+        self.IpLogRawDataHTML['search_length'] = self.settings.IPLogRawDataView['search_length']
         self.IpLogRawDataHTML['sort_by'] = self.settings.IPLogRawDataView['sort_by']
         self.IpLogRawDataHTML['src_ip'] = self.settings.IPLogRawDataView['src_ip']
         self.IpLogRawDataHTML['src_ports'] = self.settings.IPLogRawDataView['src_ports']
+        self.IpLogRawDataHTML['ttl'] = self.settings.IPLogRawDataView['ttl']
 
         for checkbox in self.checkbox_fields:
             self.IpLogRawDataHTML[checkbox] = self.limit_fields[checkbox]
@@ -266,6 +350,13 @@ class IpLogRawDataPage:
             else:
                 #-----newly-added checkboxes may not be in the DB yet, so set the default value in settings.IPLogRawDataView-----
                 self.settings.IPLogRawDataView[checkbox] = default_value
+
+    #--------------------------------------------------------------------------------
+
+    def numbers_to_printable_str(self, numbers: list) -> str:
+        if not numbers:
+            return ''
+        return '\n'.join(str(number) for number in sorted(numbers))
 
     #--------------------------------------------------------------------------------
 
@@ -288,7 +379,7 @@ class IpLogRawDataPage:
         #-----send a JSON back to the AJAX function-----
         logdata_rows, entries = self.make_logdata_rows(filename)
         rowcount = len(logdata_rows)
-        analysis = self.ip_log_raw_data.analyze_log_data(entries)
+        analysis = self.ip_log_raw_data.analyze_log_data(entries, extra_analysis=self.limit_fields['extra_analysis'])
         all_analysis_rows = self.make_all_analysis_rows(analysis)
 
         #TEST
@@ -313,28 +404,31 @@ class IpLogRawDataPage:
         if analysis['duration'] > self.ip_log_raw_data.bps_time_limit:
             bps_limit_displayed = f'({self.ip_log_raw_data.bps_increment_size}-second bps columns shown, up to {self.ip_log_raw_data.bps_time_limit} seconds)'
 
-        displayed_src_ports = ''
-        if self.displayed_raw_data_src_ports:
-            displayed_src_ports = '\n'.join(str(port) for port in sorted(self.displayed_raw_data_src_ports))
-        displayed_dst_ports = ''
-        if self.displayed_raw_data_dst_ports:
-            displayed_dst_ports = '\n'.join(str(port) for port in sorted(self.displayed_raw_data_dst_ports))
-
         data_to_send = {
             'status': 'success',
             'error_msg': '',
 
             'logdata': '\n'.join(logdata_rows),
+
             'src_ip_analysis': '\n'.join(all_analysis_rows['src_analysis_rows']),
             'dst_ip_analysis': '\n'.join(all_analysis_rows['dst_analysis_rows']),
+
+            'src_length_analysis': '\n'.join(all_analysis_rows['src_length_analysis_rows']),
+            'dst_length_analysis': '\n'.join(all_analysis_rows['dst_length_analysis_rows']),
+            'summary_src_length_analysis': '\n'.join(all_analysis_rows['summary_src_length_analysis_rows']),
+
             'rowcount': rowcount,
-            'start_timestamp': analysis['start_timestamp'],
-            'end_timestamp': analysis['end_timestamp'],
+            'start_timestamp': analysis['datetime_start'].strftime(self.util.date_format_seconds),
+            'end_timestamp': analysis['datetime_end'].strftime(self.util.date_format_seconds),
             'duration': analysis['duration'],
             'bps_limit_displayed': bps_limit_displayed,
 
-            'displayed_src_ports': displayed_src_ports,
-            'displayed_dst_ports': displayed_dst_ports,
+            'displayed_src_ports': self.numbers_to_printable_str(self.displayed_raw_data_src_ports),
+            'displayed_dst_ports': self.numbers_to_printable_str(self.displayed_raw_data_dst_ports),
+            'displayed_packet_lengths': self.numbers_to_printable_str(self.displayed_packet_lengths),
+            'displayed_packet_ttls': self.numbers_to_printable_str(self.displayed_packet_ttls),
+
+            'calculation_time': analysis['calculation_time'],
 
             'TESTDATA': TESTDATA,
         }
@@ -364,7 +458,7 @@ class IpLogRawDataPage:
             return round(num, 1)
         return round(num)
 
-    def make_analysis_ip_segment(self, analysis: dict, key, ip, bps_max_seconds: int) -> str:
+    def make_analysis_ip_segment(self, analysis: dict, key, ip, bps_max_seconds: int, rowcolor: str='') -> str:
         bps_by_segment = analysis[key][ip].get('bps_by_segment', None)
         bps_cols_list = []
         if not bps_by_segment:
@@ -381,8 +475,20 @@ class IpLogRawDataPage:
                 pps = self.round_large_or_small(segment_info['pps'])
                 flags = segment_info['flags']
             highlight_class = ''
-            if flags:
-                highlight_class = 'warning_text'
+            if flags>4:
+                # major flags value
+                highlight_class = 'warning_text_red_dark'
+                # if rowcolor=='':
+                #     highlight_class = 'warning_text_red_dark'
+                # else:
+                #     highlight_class = 'warning_text_red'
+            elif flags>0:
+                # minor flags value
+                highlight_class = 'warning_text_dark'
+                # if rowcolor=='':
+                #     highlight_class = 'warning_text_dark'
+                # else:
+                #     highlight_class = 'warning_text'
             bps_cols_list.append(f'<td class="{highlight_class} right_align">{bps}<br>{pps}</td>')
 
         return ''.join(bps_cols_list)
@@ -416,10 +522,11 @@ class IpLogRawDataPage:
 
         #TODO: apply the sort_by menu to sort the rows by IPs, packets, or bytes
         # sort packets/bytes descending, IPs ascending
-        # analysis_dict[ip]
-        # analysis_dict[packets-ip]
-        # analysis_dict[bytes-ip]
-        analysis_dict = {}
+        # analysis_sortable[ip]
+        # analysis_sortable[packets-ip]
+        # analysis_sortable[bytes-ip]
+        analysis_sortable = {}
+        rowcolor = ''
         for ip in sorted(analysis[key].keys()):
             if ip in self.ConfigData['HideIPs']:
                 # for running demos without exposing the real client IPs or other things that should be hidden
@@ -432,7 +539,7 @@ class IpLogRawDataPage:
                 continue
 
             if view_has_limits:
-                if not self.check_all_limits(key, ip):
+                if not self.check_all_limits(key, ip, analysis[key][ip]['packets']):
                     continue
 
             ip_data = self.logparser.make_ip_analysis_links(ip, highlight_ips=False, include_blocking_links=False, rdns_popup=True)
@@ -443,8 +550,8 @@ class IpLogRawDataPage:
             if analysis['duration']:
                 bytes_per_sec = int(total_bytes / analysis['duration'])
                 packets_per_sec = int(total_packets / analysis['duration'])
-            bps_cols = self.make_analysis_ip_segment(analysis, key, ip, bps_max_seconds)
-            row = f'''<tr>
+            bps_cols = self.make_analysis_ip_segment(analysis, key, ip, bps_max_seconds, rowcolor)
+            row = f'''<tr class="{rowcolor}">
 <td><span class="cursor_copy">{ip}</span>&nbsp;{ip_data['ip_analysis_links']}</td>
 <td class="right_align">{total_packets}</td>
 <td class="right_align">{packets_per_sec}</td>
@@ -452,8 +559,7 @@ class IpLogRawDataPage:
 <td class="right_align">{bytes_per_sec}</td>
 {bps_cols}
 </tr>'''
-            #OLD:
-            # analysis_rows.append(row)
+            rowcolor = self.util.swap_rowcolor(rowcolor)
 
             sort_by_key = ip
             if self.sort_by=='packets':
@@ -464,29 +570,136 @@ class IpLogRawDataPage:
                 # multiple entries may have the same bytes count, so sort by IP if bytes are equal
                 # pad with a lot of zeros to help sorting
                 sort_by_key = f'{total_bytes:012}-{ip}'
-            analysis_dict[sort_by_key] = row
+            analysis_sortable[sort_by_key] = row
 
         # sort the rows as needed
-        for sort_by_key in sorted(analysis_dict.keys(), reverse=True):
-            analysis_rows.append(analysis_dict[sort_by_key])
+        for sort_by_key in sorted(analysis_sortable.keys(), reverse=True):
+            analysis_rows.append(analysis_sortable[sort_by_key])
 
         return analysis_rows
 
     #--------------------------------------------------------------------------------
 
+    #TODO: some IPs may only be in the dst_ip analysis, so they won't show up in the src_ip analysis
+    #
+    # length_analysis_rows['src_ip']['summary'] = []
+    def make_length_summary_rows(self, analysis: dict, length_analysis_rows: dict):
+        # don't let the html table get too big
+        max_rows = 5000
+        row_count = 0
+        length_keys = analysis['length_analysis']['src_ip']['summary'].keys()
+        for length in sorted(length_keys):
+            row_count += 1
+            if row_count > max_rows:
+                break
+            info_by_length = analysis['length_analysis']['src_ip']['summary'][length]
+            packets = info_by_length['packets']
+            percent = info_by_length['percent']
+            if packets<self.settings.IPLogRawDataView['min_displayed_packets']:
+                # only show rows with at least 10 packets
+                continue
+            row = f'''<tr>
+            <td class="right_align">{length}</td>
+            <td class="right_align">{packets}</td>
+            <td class="right_align">{percent}</td>
+            </tr>'''
+            length_analysis_rows['src_ip']['summary'].append(row)
+
+    def make_length_details_rows(self, analysis: dict, src_or_dst: str, length_analysis_rows: dict):
+        # don't let the html table get too big
+        max_rows = 5000
+        row_count = 0
+        view_has_limits = self.has_limits()
+        ip_keys = analysis['length_analysis'][src_or_dst]['details'].keys()
+        for ip in sorted(ip_keys):
+            length_keys = analysis['length_analysis'][src_or_dst]['details'][ip].keys()
+            # make all keys str() so they sort correctly
+            length_keys = [str(key) for key in length_keys]
+            for length_str in sorted(length_keys):
+                # if length_str=='total':
+                #     # don't show the total row
+                #     continue
+                if (not ip in self.displayed_raw_data_src_ips) and (not ip in self.displayed_raw_data_dst_ips):
+                    # apply the same IP limits to the length analysis
+                    continue
+                if view_has_limits:
+                    if not self.check_limit_field(src_or_dst, ip):
+                        continue
+
+                # back to int
+                length = int(length_str)
+
+                row_count += 1
+                if row_count > max_rows:
+                    break
+                packets = analysis['length_analysis'][src_or_dst]['details'][ip][length]['packets']
+                if packets<self.settings.IPLogRawDataView['min_displayed_packets']:
+                    # only show rows with at least 10 packets
+                    continue
+                show_ip = ip
+                if ip in self.ConfigData['HideIPs']:
+                    # for running demos without exposing the real client IPs or other things that should be hidden
+                    show_ip = 'hidden'
+                percent = analysis['length_analysis'][src_or_dst]['details'][ip][length]['percent']
+                row = f'''<tr>
+                <td>{show_ip}</td>
+                <td class="right_align">{length}</td>
+                <td class="right_align">{packets}</td>
+                <td class="right_align">{percent}</td>
+                </tr>'''
+                length_analysis_rows[src_or_dst]['details'].append(row)
+
+    # make HTML table rows to show extra analysis: packet length distribution
+    # analysis['length_analysis']['src_ip']['summary'][length] = packets
+    # analysis['length_analysis']['src_ip']['details'][ip][length] = packets
+    # analysis['length_analysis']['dst_ip']['details'][ip][length] = packets
+    def make_extra_analysis_rows(self, analysis: dict) -> dict:
+        # html table header rows
+        length_analysis_rows = {
+            'src_ip': {
+                'summary': [
+                    '''<tr><th>Length</th><th>Packets</th><th>Percent</th></tr>'''
+                ],
+                'details': [
+                    '''<tr><th>Source IP</th><th>Length</th><th>Packets</th><th>Percent</th></tr>'''
+                ],
+            },
+            'dst_ip': {
+                'details': [
+                    '''<tr><th>Destination IP</th><th>Length</th><th>Packets</th><th>Percent</th></tr>'''
+                ],
+            },
+        }
+        if (not analysis['length_analysis']) or (not self.limit_fields['extra_analysis']):
+            return length_analysis_rows
+
+        self.make_length_summary_rows(analysis, length_analysis_rows)
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            self.make_length_details_rows(analysis, src_or_dst, length_analysis_rows)
+
+        return length_analysis_rows
+
+    #--------------------------------------------------------------------------------
+
     #-----make the analysis rows from the output of ip_log_raw_data.analyze_log_data()-----
-    def make_all_analysis_rows(self, analysis: dict) -> list:
+    def make_all_analysis_rows(self, analysis: dict) -> dict:
         if not analysis['analysis_by_src_ip'] and not analysis['analysis_by_dst_ip']:
             return {
                 'src_analysis_rows': [''],
                 'dst_analysis_rows': [''],
+                'src_length_analysis_rows': [''],
+                'dst_length_analysis_rows': [''],
             }
         src_analysis_rows = self.make_analysis_rows(analysis, 'analysis_by_src_ip', 'Source IP')
         dst_analysis_rows = self.make_analysis_rows(analysis, 'analysis_by_dst_ip', 'Destination IP')
+        length_analysis_rows = self.make_extra_analysis_rows(analysis)
 
         all_analysis_rows = {
             'src_analysis_rows': src_analysis_rows,
             'dst_analysis_rows': dst_analysis_rows,
+            'src_length_analysis_rows': length_analysis_rows['src_ip']['details'],
+            'dst_length_analysis_rows': length_analysis_rows['dst_ip']['details'],
+            'summary_src_length_analysis_rows': length_analysis_rows['src_ip']['summary'],
         }
         return all_analysis_rows
 
@@ -511,7 +724,7 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
-    def highlight_uncommon_values(self, name, value) -> str:
+    def highlight_uncommon_values(self, name, value, rowcolor: str='') -> str:
         '''returns the HTML for the logfile menu'''
         found_value = self.ip_log_raw_data.common_field_values.get(name, None)
         if found_value is None:
@@ -520,7 +733,10 @@ class IpLogRawDataPage:
         if found_value==value:
             # this value is common, do not highlight it
             return value
-        return f'<span class="warning_text">{value}</span>'
+        warning_class = 'warning_text_dark'
+        if rowcolor:
+            warning_class = 'warning_text'
+        return f'<span class="{warning_class}">{value}</span>'
 
     #--------------------------------------------------------------------------------
 
@@ -550,8 +766,6 @@ class IpLogRawDataPage:
     #--------------------------------------------------------------------------------
 
     def has_limits(self) -> bool:
-        # if self.limit_fields['hide_internal_connections'] or self.limit_fields['src_ip'] or self.limit_fields['dst_ip'] or self.limit_fields['src_ports'] or self.limit_fields['dst_ports']:
-        #     return True
         for limit_field in self.limit_fields.keys():
             if self.limit_fields[limit_field]:
                 return True
@@ -569,38 +783,59 @@ class IpLogRawDataPage:
         # assume the value is being tested against a set
         if value in self.limit_fields[field]:
             return True
+
+        # src_ip and dst_ip may contain cidr, so run extra tests to calculate if the value is in any CIDR's in the set
+        if not field in ['src_ip', 'dst_ip']:
+            return False
+        for limit_item in self.limit_fields[field]:
+            # limit_item is an IP or CIDR string, only CIDR strings will get a match
+            ip_network_obj = self.net_objects[field].get(limit_item, None)
+            if ip_network_obj:
+                if self.util.ip_cidr_check(value, ip_network_obj=ip_network_obj):
+                    return True
+
         return False
 
     #--------------------------------------------------------------------------------
 
     # return value of False means that key failed a test, so the row should be skipped
-    def check_all_limits(self, key, ip) -> bool:
+    def check_all_limits(self, key: str, ip: str, packets: int) -> bool:
         if key=='analysis_by_src_ip' and not self.check_limit_field('src_ip', ip):
             return False
         elif key=='analysis_by_dst_ip' and not self.check_limit_field('dst_ip', ip):
+            return False
+        if self.limit_fields['min_displayed_packets'] > packets:
             return False
         return True
 
     #--------------------------------------------------------------------------------
 
-    def make_row(self, entry: dict):
-        if self.limit_fields['hide_internal_connections'] and (not entry['in'] or not entry['out']):
-            #-----skip internal connections-----
-            return None
+    def is_connection_internal(self, entry_in: str, entry_out: str) -> bool:
+        if (not entry_in) or (not entry_out):
+            return True
+        return False
 
-        #TEST
-        # if self.count_test_prints < 3:
-        #     self.count_test_prints += 1
-        #     print('ENTRY:')
-        #     pprint.pprint(entry)
+    #--------------------------------------------------------------------------------
+
+    def make_row(self, entry: dict, rowcolor: str='') -> str:
+        if self.is_connection_internal(entry['in'], entry['out']):
+            #-----skip internal connections-----
+            if not self.limit_fields['connection_internal']:
+                return None
+        else:
+            if not self.limit_fields['connection_external']:
+                #-----skip external connections-----
+                return None
 
         #-----skip rows not matching limit field text boxes-----
-        if self.limit_fields['src_ip'] or self.limit_fields['dst_ip'] or self.limit_fields['src_ports'] or self.limit_fields['dst_ports']:
+        if self.limit_fields['src_ip'] or self.limit_fields['dst_ip'] or self.limit_fields['src_ports'] or self.limit_fields['dst_ports'] or self.limit_fields['search_length'] or self.limit_fields['ttl']:
             #-----limit field text boxes have data, so check those limits-----
             ok_to_display_src_ip = self.check_limit_field('src_ip', entry['src'])
             ok_to_display_dst_ip = self.check_limit_field('dst_ip', entry['dst'])
             ok_to_display_src_ports = self.check_limit_field('src_ports', str(entry['SPT']))
             ok_to_display_dst_ports = self.check_limit_field('dst_ports', str(entry['DPT']))
+            ok_to_display_search_length = self.check_limit_field('search_length', str(entry['LEN']))
+            ok_to_display_ttl = self.check_limit_field('ttl', str(entry['TTL']))
             if not ((ok_to_display_src_ip and ok_to_display_src_ports ) or (ok_to_display_dst_ip and ok_to_display_dst_ports)):
                 #TEST: print the entry that was skipped
                 # self.count_test_prints += 1
@@ -608,10 +843,14 @@ class IpLogRawDataPage:
                 #     show_entry_info = f'''src={entry['src']}, dst={entry['dst']}, SPT={entry['SPT']} DPT={entry['DPT']}'''
                 #     print(f'''entry skipped: {show_entry_info}\ntest flags: ok_to_display_src_ip={ok_to_display_src_ip} ok_to_display_dst_ip={ok_to_display_dst_ip} ok_to_display_src_ports={ok_to_display_src_ports} ok_to_display_dst_ports={ok_to_display_dst_ports}''')
                 return None
+            if not ok_to_display_search_length:
+                return None
+            if not ok_to_display_ttl:
+                return None
 
         #-----apply the checkboxes-----
         # default to allowing the row to display
-        # 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other'
+        # 'connection_external', 'connection_internal', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other'
         ok_to_display = True
 
         # type: accepted, blocked
@@ -667,17 +906,23 @@ class IpLogRawDataPage:
             self.displayed_raw_data_src_ports.add(entry['SPT'])
         if entry['DPT']:
             self.displayed_raw_data_dst_ports.add(entry['DPT'])
+        # note the packet lengths that are displayed in the raw data
+        if entry['LEN']:
+            self.displayed_packet_lengths.add(entry['LEN'])
+        # note the packet TTLs that are displayed in the raw data
+        if entry['TTL']:
+            self.displayed_packet_ttls.add(entry['TTL'])
 
         # display_entry will look different than entry, so make a complete copy of the dictionary
         display_entry = copy.deepcopy(entry)
         for field in entry:
             if not entry[field]:
                 continue
-            display_entry[field] = self.highlight_uncommon_values(field, entry[field])
+            display_entry[field] = self.highlight_uncommon_values(field, entry[field], rowcolor)
 
         # currently not used: pid, mac
         logdata_row = f'''
-<tr>
+<tr class="{rowcolor}">
 <td>{display_entry['datetime']}</td>
 <td>{display_entry['type']}</td>
 <td>{display_entry['in']}</td>
@@ -686,7 +931,7 @@ class IpLogRawDataPage:
 <td>{display_entry['SPT']}</td>
 <td class="cursor_copy">{display_entry['dst']}</td>
 <td>{display_entry['DPT']}</td>
-<td>{display_entry['LEN']}</td>
+<td class="right_align">{display_entry['LEN']}</td>
 <td>{display_entry['TTL']}</td>
 <td>{display_entry['PROTO']}</td>
 <td>{display_entry['PREC']}</td>
@@ -703,10 +948,30 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
+    # when the given file is too small, get the previous file by modification date
+    def get_previous_file(self, filename:str):
+        filepath = f'{self.ConfigData["Directory"]["IPtablesLog"]}/{filename}'
+        if not os.path.isfile(filepath):
+            return None
+        file_size = os.path.getsize(filepath)
+        # about 220 bytes per line, so 2000 lines is enough data to analyze
+        if file_size > (220*2000):
+            # file is large enough
+            return None
+
+        # list files in the directory by modification date, choose the one before the given file
+        file_list = self.util.get_file_list(self.ConfigData['Directory']['IPtablesLog'])
+        previous_file = None
+        for file in file_list:
+            if file==filename:
+                break
+            previous_file = file
+
     #-----display table of raw packet metadata for each packet-----
     def make_logdata_rows(self, filename: str):
         '''returns the log data table rows'''
-        # table_cols = 12
+        # don't let the html table get too big
+        max_rows = 10000
         filepath = f'{self.ConfigData["Directory"]["IPtablesLog"]}/{filename}'
         if not os.path.isfile(filepath):
             logdata_rows = [f'<tr><td>ERROR: logfile not found "{filename}"<br>Try refreshing the page to get the latest list of logs<br>Check the box "Auto-update file list" to keep the list current</td></tr>']
@@ -715,14 +980,20 @@ class IpLogRawDataPage:
         logdata_rows = [self.make_logdata_header()]
         entries = self.ip_log_raw_data.parse_ip_log(filepath, extended_parsing=True)
         rowcount = 0
+        total_rows = 0
+        rowcolor = ''
         for entry in entries:
-            logdata_row = self.make_row(entry)
+            logdata_row = self.make_row(entry, rowcolor)
             if not logdata_row:
                 continue
             logdata_rows.append(logdata_row)
+            rowcolor = self.util.swap_rowcolor(rowcolor)
             rowcount += 1
             if rowcount > 25:
                 logdata_rows.append(self.make_logdata_header())
                 rowcount = 0
+            total_rows += 1
+            if total_rows > max_rows:
+                break
 
         return logdata_rows, entries

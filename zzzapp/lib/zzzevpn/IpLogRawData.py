@@ -3,6 +3,7 @@
 import datetime
 import os
 import re
+import time
 
 #-----package with all the Zzz modules-----
 import zzzevpn
@@ -24,8 +25,8 @@ class IpLogRawData:
     no_match_lines = []
 
     #TODO: make these config vars
-    flag_bps_above_value = 10000
-    flag_pps_above_value = 8
+    # flag_bps_above_value = 10000
+    # flag_pps_above_value = 8
 
     # data is processed in increments of 5 seconds
     bps_increment_size = 5
@@ -317,17 +318,100 @@ class IpLogRawData:
 
     #--------------------------------------------------------------------------------
 
-    #TODO: apply limits from UI fields: src_ports, dst_ports, hide_internal_connections
+    #TODO: additional detailed breakdowns
+    # breakdown entries data by ip, then port, then packet count
+    # breakdown entries data by ip, then port, then length
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: all IP counts appear under one length entry, fix this
+    #
+    # analysis['length_analysis']['total']['src_ip'][ip] = int
+    # analysis['length_analysis']['total']['dst_ip'][ip] = int
+    #
+    # analysis['length_analysis']['src_ip']['details'][ip][length]['packets'] = int
+    # analysis['length_analysis']['src_ip']['details'][ip][length]['percent'] = float
+    #
+    # analysis['length_analysis']['dst_ip']['details'][ip][length]['packets'] = int
+    # analysis['length_analysis']['dst_ip']['details'][ip][length]['percent'] = float
+    def length_analysis_details(self, src_or_dst: str, ip: str, length: int, length_analysis: dict):
+        length_analysis['total'][src_or_dst][ip] = length_analysis['total'][src_or_dst].get(ip, 0) + 1
+        current_ip_details = length_analysis[src_or_dst]['details'].get(ip, None)
+        if current_ip_details:
+            current_ip_length = current_ip_details.get(length, { 'packets': 0, 'percent': 0, })
+            current_ip_length['packets'] += 1
+            length_analysis[src_or_dst]['details'][ip][length] = current_ip_length
+        else:
+            # init new IP details
+            length_analysis[src_or_dst]['details'][ip] = {
+                length: { 'packets': 1, 'percent': 0, },
+            }
+
+    #-----extra analysis: packet length distribution-----
+    # analysis['length_analysis']['total']['summary'] = int
+    #
+    # (store packets by length, then calculate percentages later)
+    # analysis['length_analysis']['src_ip']['summary'][length]['packets'] = int
+    # analysis['length_analysis']['src_ip']['summary'][length]['percent'] = float
+    #
+    # analysis['length_analysis']['dst_ip']['summary'][length]['packets'] = int
+    # analysis['length_analysis']['dst_ip']['summary'][length]['percent'] = float
+    def do_extra_analysis(self, length_analysis: dict, length: int, src_ip: str, dst_ip: str):
+        # summary
+        length_analysis['total']['summary'] = length_analysis['total'].get('summary', 0) + 1
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            summary = length_analysis[src_or_dst]['summary']
+            summary_length = summary.get(length, { 'packets': 0, 'percent': 0, })
+            summary_length['packets'] += 1
+            length_analysis[src_or_dst]['summary'][length] = summary_length
+
+        # details
+        self.length_analysis_details('src_ip', src_ip, length, length_analysis)
+        self.length_analysis_details('dst_ip', dst_ip, length, length_analysis)
+
+    #--------------------------------------------------------------------------------
+
+    def calc_extra_percentages(self, length_analysis: dict):
+        # summary
+        # analysis['length_analysis']['total']['summary'] = int
+        # analysis['length_analysis']['src_ip']['summary'][length]['percent'] = float
+        # analysis['length_analysis']['dst_ip']['summary'][length]['percent'] = float
+        total_packets = length_analysis['total']['summary']
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            summary = length_analysis[src_or_dst]['summary']
+            for length in summary.keys():
+                packets = summary[length]['packets']
+                percent = round((packets / total_packets) * 100, 2)
+                length_analysis[src_or_dst]['summary'][length]['percent'] = percent
+
+        # details
+        # analysis['length_analysis']['total']['src_ip'][ip] = int
+        # analysis['length_analysis']['src_ip']['details'][ip][length]['percent'] = float
+        # analysis['length_analysis']['dst_ip']['details'][ip][length]['percent'] = float
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            details = length_analysis[src_or_dst]['details']
+            for ip in details.keys():
+                ip_total_packets = length_analysis['total'][src_or_dst].get(ip, 0)
+                for length in details[ip].keys():
+                    packets = details[ip][length]['packets']
+                    percent = 0
+                    if ip_total_packets>0:
+                        percent = round((packets / ip_total_packets) * 100, 2)
+                    length_analysis[src_or_dst]['details'][ip][length]['percent'] = percent
+
+    #--------------------------------------------------------------------------------
+
     # do various types of analysis on the raw log data
     # list unique IPs
     # count packets per IP (each row is one packet)
     # count amount of data per IP (sum the length field)
-    def analyze_log_data(self, entries: list) -> dict:
+    def analyze_log_data(self, entries: list, extra_analysis: bool=False) -> dict:
         if not entries:
             return {
                 'analysis_by_src_ip': {},
                 'analysis_by_dst_ip': {},
                 'incremental_bps': {},
+                'length_analysis': {},
                 'unique_ips': set(),
 
                 'start_timestamp': '',
@@ -336,20 +420,42 @@ class IpLogRawData:
                 'datetime_start': '',
                 'datetime_end': '',
                 'duration': 0,
+
+                'calculation_time': 0,
             }
 
         analysis_by_src_ip = {}
         analysis_by_dst_ip = {}
+        length_analysis = {
+            'total': {
+                'summary': 0,
+                'src_ip': {},
+                'dst_ip': {},
+            },
+            'src_ip': {
+                'details': {},
+                'summary': {},
+            },
+            'dst_ip': {
+                'details': {},
+                'summary': {},
+            },
+        }
         unique_ips = set()
         incremental_bps = {}
 
         #-----process each line-----
+        start_time = time.time()
         for entry in entries:
             length = entry.get('LEN', 0)
             # data by src_ip
             analysis_by_src_ip, unique_ips = self.sum_data_by_ip(analysis_by_src_ip, unique_ips, entry['src'], length)
             # data by dst_ip
             analysis_by_dst_ip, unique_ips = self.sum_data_by_ip(analysis_by_dst_ip, unique_ips, entry['dst'], length)
+            if extra_analysis:
+                self.do_extra_analysis(length_analysis, length, entry['src'], entry['dst'])
+        if extra_analysis:
+            self.calc_extra_percentages(length_analysis)
 
         #-----sort by amount of data-----
         # sorted_data_per_ip = sorted(data_per_ip.items(), key=lambda kv: kv[1], reverse=True)
@@ -370,6 +476,7 @@ class IpLogRawData:
             'analysis_by_src_ip': analysis_by_src_ip,
             'analysis_by_dst_ip': analysis_by_dst_ip,
             'incremental_bps': incremental_bps,
+            'length_analysis': length_analysis,
             'unique_ips': unique_ips,
 
             'start_timestamp': start_timestamp,
@@ -378,12 +485,16 @@ class IpLogRawData:
             'datetime_start': datetime_start,
             'datetime_end': datetime_end,
             'duration': duration,
+
+            'calculation_time': 0,
         }
 
         # incremental bps
         analysis = self.calc_incremental_bps(analysis, entries)
         # flag bad data
         analysis = self.flag_bad_data(analysis)
+
+        analysis['calculation_time'] = round(time.time() - start_time, 2)
 
         return analysis
 
@@ -498,8 +609,11 @@ class IpLogRawData:
     def flag_bad_data(self, analysis: dict) -> dict:
         if not analysis:
             return analysis
-        #TEST
-        # return analysis
+
+        # multiplier for major flag
+        major_flag_multiplier = 2
+        flag_bps_above_value = self.settings.IPLogRawDataView['flag_bps_above_value']
+        flag_pps_above_value = self.settings.IPLogRawDataView['flag_pps_above_value']
 
         # direction_key: 'analysis_by_src_ip' or 'analysis_by_dst_ip'
         # assume some sections of the dictionary may have no data
@@ -513,9 +627,17 @@ class IpLogRawData:
                 if not bps_by_segment:
                     continue
                 for end_segment_id, segment_info in bps_by_segment.items():
-                    if segment_info['bps'] > self.settings.IPLogRawDataView['flag_bps_above_value']:
+                    # BPS limit checks
+                    if segment_info['bps'] > (flag_bps_above_value * major_flag_multiplier):
+                        # major flags value for exceeding the bps limit by a lot
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 5
+                    elif segment_info['bps'] > flag_bps_above_value:
+                        # minor flags value for exceeding the bps limit
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
-                    if segment_info['pps'] > self.settings.IPLogRawDataView['flag_pps_above_value']:
+                    # PPS limit checks
+                    if segment_info['pps'] > (flag_pps_above_value * major_flag_multiplier):
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 5
+                    elif segment_info['pps'] > flag_pps_above_value:
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
 
         return analysis

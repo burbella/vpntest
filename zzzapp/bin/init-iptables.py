@@ -20,18 +20,10 @@ if sys.platform=='linux':
     site.addsitedir('/opt/zzz/python/lib')
 
 import zzzevpn
-# import zzzevpn.Config
-# import zzzevpn.IPtables
-
-#-----get Config-----
-config = zzzevpn.Config(skip_autoload=True)
-ConfigData = config.get_config_data()
-if not config.is_valid():
-    sys.exit('ERROR: invalid zzz config file')
 
 parser = argparse.ArgumentParser(description='init iptables')
-parser.add_argument('--custom_config', dest='custom_config', action='store_true', help='enable custom config')
-parser.add_argument('--test', dest='test_mode', action='store_true', help='test mode writes to test files instead of the live files')
+parser.add_argument('--custom_config', dest='custom_config', action='store_true', help='enable custom config(/home/ubuntu/test/iptables_config/zzz.conf)')
+parser.add_argument('--test', dest='test_mode', action='store_true', help='writes files to the test directory (/home/ubuntu/test/iptables_config)')
 args = parser.parse_args()
 
 #-----test mode - write files to the test directory-----
@@ -39,10 +31,20 @@ args = parser.parse_args()
 # last codebase installed: /opt/zzz/config/iptables
 # test directory: /home/ubuntu/test/iptables_config
 # test command: /opt/zzz/python/bin/init-iptables.py --test --custom_config
+config = None
+ConfigData = None
 if args.custom_config:
     # load from a custom config file
-    test_config = zzzevpn.Config(skip_autoload=True)
-    ConfigData = test_config.get_config_data(config_file='/home/ubuntu/test/iptables_config/zzz.conf')
+    config = zzzevpn.Config(skip_autoload=True, test_mode=True)
+    ConfigData = config.get_config_data(config_file='/home/ubuntu/test/iptables_config/zzz.conf', test_mode=True)
+else:
+    #-----get Config-----
+    config = zzzevpn.Config(skip_autoload=True)
+    ConfigData = config.get_config_data()
+
+if not config.is_valid():
+    sys.exit('ERROR: invalid zzz config file')
+
 if args.test_mode:
     test_dir = '/home/ubuntu/test/iptables_config'
     if not os.path.exists(test_dir):
@@ -55,6 +57,7 @@ if args.test_mode:
     ConfigData['UpdateFile']['iptables']['dst_countries_filepath'] = f'{test_dir}/ip-countries.conf'
     ConfigData['UpdateFile']['iptables']['dst_allowlist_filepath'] = f'{test_dir}/ip-allowlist.conf'
     ConfigData['UpdateFile']['iptables']['dst_log_accepted_filepath'] = f'{test_dir}/ip-log-accepted.conf'
+    ConfigData['UpdateFile']['iptables']['logrotate_dst'] = f'{test_dir}/logrotate-zzz-iptables'
     # print diffs for the user to review
     print('Diffs:')
     for entry in config_entries:
@@ -72,6 +75,7 @@ iptables.make_iptables_allowlist()
 iptables.make_iptables_denylist()
 iptables.make_iptables_countries()
 iptables.make_iptables_log_accept()
+iptables.make_iptables_logrotate_config()
 
 iptables.install_iptables_config()
 

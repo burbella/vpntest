@@ -319,7 +319,7 @@ class NetworkService:
             host = data['host']
             if not host:
                 host = ''
-            err = f'failed to lookup whois for host {host}'
+            err = f'failed to lookup whois for host {host}<br>{self.show_maxmind_location(host)}'
             return self.make_return_json('error', err, f'ERROR: {err}')
         elif self.action=='whois_cache':
             if data['do_delete']:
@@ -524,7 +524,19 @@ class NetworkService:
         return True
 
     #--------------------------------------------------------------------------------
-    
+
+    def show_maxmind_location(self, ip: str) -> str:
+        if not self.ConfigData['EnableMaxMind']:
+            return ''
+        if not self.util.ip_util.is_ip(ip):
+            return ''
+        country_code = self.util.lookup_ip_country(ip)
+        if not country_code:
+            country_code = 'UNKNOWN'
+        return f'<p>Maxmind Location: {country_code}</p>'
+
+    #--------------------------------------------------------------------------------
+
     #-----remove junk from a submitted string-----
     # \n, \r, \t, space, comma
     def cleanup_form_str(self, host):
@@ -1009,8 +1021,6 @@ class NetworkService:
         # samples to match:
         #   'Creation Date: 1997-09-15T07:00:00+0000'
         #   'Creation Date: 2018-07-23T12:26:02Z'
-        # date_format_with_tz = '%Y-%m-%d %H:%M:%S %Z'
-        date_format = '%Y-%m-%d %H:%M:%S'
         if value is None:
             return None
         value = str(value)
@@ -1023,8 +1033,7 @@ class NetworkService:
             # drop the timezone to prevent errors
             date_parts = value.split(' ')
             value = date_parts[0] + ' ' + date_parts[1]
-            # return datetime.datetime.strptime(value, date_format_with_tz)
-            return datetime.datetime.strptime(value, date_format)
+            return datetime.datetime.strptime(value, self.util.date_format_seconds)
         return None
     
     #TODO: catch errors
@@ -1255,15 +1264,9 @@ class NetworkService:
         table_data += f'''<tr><td class="top_align">json</td><td class="td_expanded_wide">{pprint.pformat(json_str)}</td></tr>'''
 
         ip = whois_data.get('ip', '')
-        maxmind_location = ''
-        if self.ConfigData['EnableMaxMind']:
-            country_code = self.util.lookup_ip_country(ip)
-            if not country_code:
-                country_code = 'UNKNOWN'
-            maxmind_location = f'<p>Maxmind Location: {country_code}</p>'
 
         IPWhoisHTML = {
-            'maxmind_location': maxmind_location,
+            'maxmind_location': self.show_maxmind_location(ip),
             'title': ip,
             'table_data': table_data,
         }

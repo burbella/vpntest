@@ -12,6 +12,7 @@ class DataValidation:
     'check POST data for problems'
     
     ConfigData: dict = None
+    standalone: zzzevpn.Standalone = None
 
     megabyte = 1024 * 1024
     max_get_size = 2048
@@ -20,11 +21,14 @@ class DataValidation:
 
     #-----regex patterns-----
     # these are just basic tests, modules should do more specific tests
+    comma_whitespace_pattern = r'[,\s]+'
+    #
     ip_regex_pattern = r'(\d{1,3}\.){3}\d{1,3}'
-    ip_list_regex_pattern = r'^({}[,\n]+)*{}$'.format(ip_regex_pattern, ip_regex_pattern) # commas or newlines as separators
+    # commas or newlines as separators in the list
+    ip_list_regex_pattern = r'^({}[,\n]+)*{}$'.format(ip_regex_pattern, ip_regex_pattern)
     cidr_subnet_regex_pattern = r'\/\d{1,2}'
     cidr_regex_pattern = r'{}(|{})'.format(ip_regex_pattern, cidr_subnet_regex_pattern)
-    cidr_list_regex_pattern = r'^({}[,\n]+)*{}$'.format(cidr_regex_pattern, cidr_regex_pattern) # commas or newlines as separators
+    cidr_list_regex_pattern = r'^({}{})*{}$'.format(cidr_regex_pattern, comma_whitespace_pattern, cidr_regex_pattern)
     
     # json_regex_pattern = r'^\{[\w\s.{}":,-]+\}$'
     json_regex_pattern = r'^\s*\{.+\}\s*$'
@@ -41,6 +45,8 @@ class DataValidation:
     regex_spaces = re.compile(r' ')
     regex_multi_spaces = re.compile(r' [ ]+')
     regex_tab_cr = re.compile(r'[\t\r]')
+
+    list_types = { 'cidr-list', 'int-list', 'int-range-list', 'ip-list', 'subdomain-list' }
     skip_auto_clean_datatypes = { 'blob', 'json', 'text-huge', 'text-large', 'text-small' }
 
     #-----list of DataTypes for use in the Rules below-----
@@ -66,8 +72,9 @@ class DataValidation:
         },
         'cidr-list': {
             'length': 5*megabyte,
-            #TODO: make code accept "\s*" as a separator, then update the regex to allow spaces
-            'regex_pattern': r'((\d{1,3}\.){3}\d{1,3}(|\/\d{1,2})(|\n))*',
+            #TODO: make code accept "\s*" and comma as separators, then update the regex to allow spaces
+            # 'regex_pattern': r'((\d{1,3}\.){3}\d{1,3}(|\/\d{1,2})(|\n))*',
+            'regex_pattern': cidr_list_regex_pattern,
         },
         'domain': {
             'length': 100,
@@ -82,8 +89,13 @@ class DataValidation:
             'regex_pattern': r'^[0-9]+$',
         },
         'int-list': {
-            'length': 200,
+            'length': 1000,
             'regex_pattern': r'^[0-9,]+$',
+        },
+        'int-range-list': {
+            # EX: 1-100,200-300,400,999
+            'length': 1000,
+            'regex_pattern': r'^[0-9,-]+$',
         },
         'ip': {
             'length': 15,
@@ -99,7 +111,7 @@ class DataValidation:
             'regex_pattern': json_regex_pattern,
         },
         'subdomain': {
-            'length': 128,
+            'length': 253,
             'regex_pattern': r'^{}$'.format(subdomain_regex_pattern),
         },
         'subdomain-list': {
@@ -171,27 +183,34 @@ class DataValidation:
             'test': 'int',
         },
         '/ip_log_raw_data': {
-            'src_ip': 'ip-list',
-            'dst_ip': 'ip-list',
-            'src_ports': 'int-list',
-            'dst_ports': 'int-list',
+            # 'src_ip': 'ip-list',
+            # 'dst_ip': 'ip-list',
+            'src_ip': 'cidr-list',
+            'dst_ip': 'cidr-list',
+            'src_ports': 'int-range-list',
+            'dst_ports': 'int-range-list',
+            'extra_analysis': 'boolean',
             'flag_bps_above_value': 'int',
             'flag_pps_above_value': 'int',
             ####################
             'auto_update_file_list': 'boolean',
+            'connection_external': 'boolean',
+            'connection_internal': 'boolean',
             'flags_any': 'boolean',
             'flags_none': 'boolean',
-            'hide_internal_connections': 'boolean',
             'include_accepted_packets': 'boolean',
             'include_blocked_packets': 'boolean',
+            'min_displayed_packets': 'int',
             'prec_tos_zero': 'boolean',
             'prec_tos_nonzero': 'boolean',
             'protocol_icmp': 'boolean',
             'protocol_other': 'boolean',
             'protocol_tcp': 'boolean',
             'protocol_udp': 'boolean',
+            'search_length': 'int-range-list',
             'show_max_bps_columns': 'boolean',
             'sort_by': 'word',
+            'ttl': 'int-range-list',
         },
         '/iptables_log': {
             'highlight_ips': 'boolean',
@@ -250,6 +269,7 @@ class DataValidation:
 
     #TODO: update all Rules so that self.enforce_rules is safe to default to True without breaking things
     def __init__(self, ConfigData: dict=None, allow_undeclared_params: bool=True, enforce_rules: bool=False, auto_clean: bool=False, print_errors: bool=True, print_test_results: bool=False):
+        self.standalone = zzzevpn.Standalone()
         if ConfigData is None:
             config = zzzevpn.Config(skip_autoload=True)
             self.ConfigData = config.get_config_data()
@@ -305,7 +325,7 @@ class DataValidation:
     #--------------------------------------------------------------------------------
 
     def is_list_type(self, data_type_name: str) -> bool:
-        if data_type_name in ['cidr-list', 'int-list', 'ip-list', 'subdomain-list']:
+        if data_type_name in self.list_types:
             return True
         return False
 
