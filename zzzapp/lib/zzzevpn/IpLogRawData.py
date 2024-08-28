@@ -22,6 +22,7 @@ class IpLogRawData:
     regex_filename_date = None
 
     filepath_list = []
+    saved_log_filepath_list = set()
     no_match_lines = []
 
     #TODO: make these config vars
@@ -50,8 +51,9 @@ class IpLogRawData:
     # }
     common_field_values = {
         'PREC': '0x00',
-        'TOS': '0x00',
         'RES': '0x00',
+        'TOS': '0x00',
+        'type': 'accepted',
         'URGP': '0',
     }
 
@@ -87,6 +89,7 @@ class IpLogRawData:
     #-----clear internal variables-----
     def init_vars(self):
         self.filepath_list = []
+        self.saved_log_filepath_list = set()
         self.no_match_lines = []
         self.exempted_ips = set(self.ConfigData['ProtectedIPs'])
 
@@ -299,6 +302,22 @@ class IpLogRawData:
         if current_log_entry and include_current_log:
             self.filepath_list.append(current_log_entry.path)
 
+    def get_saved_logfiles(self):
+        self.saved_log_filepath_list = set()
+
+        #-----saved logs directory-----
+        dir_to_scan_saved_logs = self.ConfigData['Directory']['IPtablesSavedLog']
+        for entry in os.scandir(dir_to_scan_saved_logs):
+            try:
+                #-----skip empty files-----
+                if (not entry.is_file()) or (entry.stat().st_size==0):
+                    continue
+                self.saved_log_filepath_list.add(entry.path)
+            except:
+                #-----skip files that cannot be read-----
+                # logrotate may be in the process of rotating the log
+                continue
+
     #--------------------------------------------------------------------------------
 
     # count packets and bytes per IP
@@ -417,8 +436,8 @@ class IpLogRawData:
                 'start_timestamp': '',
                 'end_timestamp': '',
 
-                'datetime_start': '',
-                'datetime_end': '',
+                'datetime_start': datetime.datetime.now(),
+                'datetime_end': datetime.datetime.now(),
                 'duration': 0,
 
                 'calculation_time': 0,

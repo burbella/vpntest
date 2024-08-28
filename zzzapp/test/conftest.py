@@ -101,6 +101,10 @@ def make_config(default_config, default_ConfigData):
 #--------------------------------------------------------------------------------
 
 @pytest.fixture(scope="session")
+def standalone():
+    return zzzevpn.Standalone()
+
+@pytest.fixture(scope="session")
 def zzz_config(make_config):
     pytest_ConfigFile = '/opt/zzz/python/test/pytest_zzz.conf'
     return make_config(pytest_ConfigFile)

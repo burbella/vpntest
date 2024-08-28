@@ -40,7 +40,9 @@ class ServiceRequest:
     allowed_actions = {
         'apache': [ 'reload', 'restart', ],
         'bind': [ 'add_domains', 'replace_domains', 'reload', 'restart', ],
-        'iptables': [ 'add_ips', 'replace_ips', 'delete_log_all', 'delete_log_old', 'parse_logs', ],
+        # iptables DB changes: add_ips, replace_ips, delete_log_all, delete_log_old
+        # iptables file system changes: delete_logfile, delete_all_logfiles, save_logfile
+        'iptables': [ 'add_ips', 'replace_ips', 'delete_log_all', 'delete_log_old', 'delete_logfile', 'delete_all_logfiles', 'parse_logs', 'save_logfile', ],
         'linux': [ 'list_os_updates', 'install_os_updates', 'restart', ],
         'list_manager': ['download_lists', 'rebuild_lists'],
         'openvpn': [ 'restart', ],
@@ -927,11 +929,18 @@ class ServiceRequest:
             self.replace_ips(request_id, service_name, action)
             return
         
-        ip_log_parser = zzzevpn.IPtablesLogParser(self.ConfigData)
+        # don't pass in settings, so it can get the latest settings
+        ip_log_parser = zzzevpn.IPtablesLogParser(self.ConfigData, self.db, self.util)
         if action=='delete_log_all':
             ip_log_parser.delete_ip_log_db(delete_all=True)
         elif action=='delete_log_old':
             ip_log_parser.delete_ip_log_db(entries_older_than=30)
+        elif action=='save_logfile':
+            ip_log_parser.save_ip_logfile(details)
+        elif action=='delete_logfile':
+            ip_log_parser.delete_ip_logfile(details)
+        elif action=='delete_all_logfiles':
+            ip_log_parser.delete_all_ip_logfiles()
         elif action=='parse_logs':
             #-----call the logrotate command-----
             # logs won't be parsed unless they are rotated first

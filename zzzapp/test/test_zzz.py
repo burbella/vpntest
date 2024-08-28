@@ -92,6 +92,9 @@ def test_dns_service(dns_service):
 def test_iputil(iputil):
     assert iputil is not None
 
+def test_standalone(standalone):
+    assert standalone is not None
+
 def test_util(util):
     assert util is not None
 

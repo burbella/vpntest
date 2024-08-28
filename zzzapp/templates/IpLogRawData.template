@@ -22,21 +22,44 @@ $(function() {{
         <td class="no_border width_100">
             <a id="view_log" class="clickable">View Log</a>
         </td>
-        <td class="no_border right_align">
-            <a id="reset_search" class="clickable">Reset Search Fields</a>
+        <td class="no_border" colspan="2">
+            <a id="save_log" class="clickable">Save Log</a>
+            (only the most recent {logrotate_numfiles} files are kept automatically)
+        </td>
+    </tr>
+    <tr id="saved_logs_section" class="hide_item">
+        <!-- un-hide if any logs are saved -->
+        <td class="no_border">
+            Saved Logs: <select id="saved_logfile_menu">{saved_logfile_menu}</select>
+        </td>
+        <td class="no_border width_100">
+            <a id="view_saved_log" class="clickable">View Saved Log</a>
+        </td>
+        <td class="no_border width_100">
+            <a id="delete_log" class="clickable">Delete Log</a>
+            <a id="cancel_delete_log" class="hide_item">CANCEL Delete Log</a>
+            <a id="confirm_delete_log" class="hide_item">Confirm Delete Log</a>
+        </td>
+        <td class="no_border">
+            <a id="delete_all_logs" class="clickable">Delete All Logs</a>
+            <a id="cancel_delete_all_logs" class="hide_item">CANCEL Delete All Logs</a>
+            <a id="confirm_delete_all_logs" class="hide_item">Confirm Delete All Logs</a>
         </td>
     </tr>
     <tr>
-        <td colspan="3" class="no_border">
+        <td class="no_border">
             <span id="loading_msg" class="hide_item warning_text"></span>
-            &nbsp;
         </td>
     </tr>
 </table>
 <span id="TESTDATA"></span>
 <table>
-    <tr><td colspan="2">
+    <tr>
+    <td colspan="2">
         <b>Limit Results By:</b>
+        <a id="reset_search" class="clickable">Reset Search Fields</a>
+        <a id="cancel_reset_search" class="hide_item">CANCEL Reset Search Fields</a>
+        <a id="confirm_reset_search" class="hide_item">Confirm Reset Search Fields</a>
         <br>
         IP fields accept IP and CIDR. Separate by commas or spaces. (1.2.3.4,5.6.7.0/24)
         <br>
@@ -77,7 +100,14 @@ $(function() {{
         PREC/TOS(a.k.a. DS): <input type="checkbox" id="prec_tos_zero" {prec_tos_zero}> zero - <input type="checkbox" id="prec_tos_nonzero" {prec_tos_nonzero}> nonzero
         <br>
         Flags: <input type="checkbox" id="flags_any" {flags_any}> any - <input type="checkbox" id="flags_none" {flags_none}> none
-    </td></tr>
+    </td>
+    <td rowspan="2" class="valign_top">
+        <b>Pending Updates - IP:</b> <a id="clear_ip_updates" class="clickable">Clear</a><br>
+        <textarea id="ip_updates" readonly="readonly" rows="14" cols="44"></textarea><br>
+        <a id="ip_commit_updates" class="clickable">Commit IP Updates</a>
+        <div id="status_ip_updates"></div>
+    </td>
+    </tr>
     <tr>
         <td>
             <table class="no_border">
@@ -128,9 +158,9 @@ $(function() {{
 <span id="show_all_data">
     <span id="logdata_misc_info" class="hide_item">
         <hr>
-        Raw Data Rows: <span id="show_rowcount"></span><br>
+        Raw Data Rows: <span id="show_rowcount"></span>, Duration: <span id="duration"></span> seconds <span id="bps_limit_displayed"></span><br>
         Time Range: <span id="start_timestamp"></span> &mdash; <span id="end_timestamp"></span><br>
-        Duration: <span id="duration"></span> seconds <span id="bps_limit_displayed"></span><br>
+        <span id="save_this_log"></span><br>
         <br>
         <table>
             <tr>
@@ -139,7 +169,9 @@ $(function() {{
                     <span class="clickable">(G)</span> - Google<br>
                     <span class="clickable">(L)</span> - IP Location<br>
                     <span class="clickable">(R)</span> - Reverse DNS<br>
-                    <span class="clickable">(W)</span> - Whois
+                    <span class="clickable">(W)</span> - Whois<br>
+                    <b>Blocking:</b><br>
+                    <span class="clickable_red">(I)</span> - Block IP (iptables)<br>
                 </td>
                 <td class="top_align">
                     Source<br>Ports:<br>

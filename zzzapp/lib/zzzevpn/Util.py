@@ -100,7 +100,7 @@ class Util:
     decode_error_msg = ''
     
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, should_use_db: bool=True) -> None:
-        self.standalone = zzzevpn.Standalone
+        self.standalone = zzzevpn.Standalone()
         if ConfigData is None:
             config = zzzevpn.Config(skip_autoload=True)
             self.ConfigData = config.get_config_data()

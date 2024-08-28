@@ -19,5 +19,7 @@ source $UPGRADE_UTILS_INSTALLED
 #-----give the zzz daemon a chance to shut down-----
 sleep 3
 
+mkdir -p /opt/zzz/iptables/log
+
 #-----do the upgrade process without a custom DB file, just a version number change in the DB-----
 simple_upgrade_custom_db $CURRENT_VERSION $NEW_VERSION

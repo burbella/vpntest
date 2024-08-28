@@ -1,16 +1,24 @@
 //-----IP Log Raw Data UI-----
 // this JS assumes that services.js has been loaded in the page already
 
+var test_mode_ip_log_raw_data = false;
+
 var ip_log_raw_data_logfile_timer = null;
+// 60 seconds between logfile menu updates
 var ip_log_raw_data_logfile_timer_interval = 60000;
 var last_menu_update_time = 0;
 var date_obj_ip_log_raw_data = new Date();
+
+var clear_status_save_log_timer = null;
 
 var ip_log_raw_data_checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_internal', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns'];
 
 //-----load the relevant jQuery code for the page-----
 function load_js_ip_log_raw_data()
 {
+    //-----events for the IP-block clear/submit buttons-----
+    load_js_ip_log_common();
+
     //-----select the option that was used last time-----
     set_sort_by();
 
@@ -47,13 +55,36 @@ function load_js_ip_log_raw_data()
     $('#view_log').click(function() {
         view_log();
     });
+    $('#view_saved_log').click(function() {
+        view_log(use_saved_log=true);
+    });
 
-    $('#reset_search').click(function() {
+    $('#save_log').click(function() {
+        save_log();
+    });
+
+    $('#confirm_delete_log').click(function() {
+        delete_log();
+    });
+
+    $('#confirm_delete_all_logs').click(function() {
+        delete_all_logs();
+    });
+
+    $('#confirm_reset_search').click(function() {
         reset_search();
     });
 
     start_clock();
     start_logfile_timer();
+    show_saved_logfile_menu();
+
+    //-----double-check if the user really wants to delete the selected save file-----
+    attach_click_events_start_cancel('delete_log', 'confirm_delete_log', 'cancel_delete_log');
+    //-----double-check if the user really wants to delete all saved files-----
+    attach_click_events_start_cancel('delete_all_logs', 'confirm_delete_all_logs', 'cancel_delete_all_logs');
+    //-----double-check if the user really wants to reset search fields-----
+    attach_click_events_start_cancel('reset_search', 'confirm_reset_search', 'cancel_reset_search');
 
     console.log("ip_log_raw_data Ready.");
 
@@ -61,6 +92,16 @@ function load_js_ip_log_raw_data()
 }
 
 //--------------------------------------------------------------------------------
+
+//-----only show the menu if it's not empty-----
+function show_saved_logfile_menu() {
+    let saved_logfile_menu = $('#saved_logfile_menu').html();
+    if (saved_logfile_menu == '') {
+        $('#saved_logs_section').hide();
+    } else {
+        $('#saved_logs_section').show();
+    }
+}
 
 function start_logfile_timer() {
     ip_log_raw_data_logfile_timer = setInterval(get_logfile_menu, ip_log_raw_data_logfile_timer_interval);
@@ -79,6 +120,7 @@ function hide_stuff_before_dom_update(filename='') {
     $('#status_post').html('');
     $('#show_all_data').hide();
     $('#view_log').hide();
+    $('#view_saved_log').hide();
     $('#logdata_misc_info').hide();
     $('#extra_analysis_output').hide();
 
@@ -116,10 +158,248 @@ function process_checkboxes() {
 
 //--------------------------------------------------------------------------------
 
+function hide_stuff_before_save_log(msg='') {
+    $('#status_post').html('');
+    $('#save_log').hide();
+    $('#save_this_log').hide();
+
+    $('#loading_msg').html(msg);
+    $('#loading_msg').show();
+}
+
+function clear_status_save_log() {
+    $('#status_post').html();
+    $('#save_log').show();
+    $('#save_this_log').show();
+    $('#loading_msg').hide();
+}
+
+//--------------------------------------------------------------------------------
+
+function save_log(filename_to_use='') {
+    clearTimeout(clear_status_save_log_timer);
+    let filename = $('#logfile>option:selected').val();
+    if (filename_to_use != '') {
+        filename = filename_to_use;
+    }
+
+    // not allowed to save the current log file for now
+    if (filename == 'ipv4.log') {
+        $('#status_post').html(`<span class="warning_text">ERROR: Not allowed to save the current log file</span>`);
+        //-----auto-clear the message after a short time-----
+        clear_status_save_log_timer = setTimeout(clear_status_save_log, 1000);
+        return;
+    }
+
+    setTimeout(hide_stuff_before_save_log, 1, `Saving ${filename}...`);
+
+    let save_start_time_ms = Date.now();
+    let status_field = $('#status_post');
+    let postdata = `action=save_logfile&filename=${filename}`;
+    $.post({
+        'url': url_ip_log_raw_data,
+        'data': postdata,
+        'success': null,
+        'dataType': 'json' // html, json, script, text, xml
+    })
+    .done(function(data){
+        if (data.status == 'error') {
+            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            return;
+        }
+        
+        // update the saved logfile menu and sort it
+        current_menu_html = $('#saved_logfile_menu').html();
+        $('#saved_logfile_menu').html(`${data.saved_logfile_menu_entry}\n${current_menu_html}`);
+
+        // highlight the saved log file in the logfile menu
+        $('#logfile>option:selected').addClass('text_green');
+
+        if (filename_to_use != '') {
+            $('#save_this_log').html('(Log is already saved)');
+            $('#save_this_log').show();
+        }
+    })
+    .fail(function(){
+        status_field.html('ERROR: AJAX failed');
+    })
+    .always(function(){
+        //-----auto-clear the message after a short time-----
+        // status_ip_log_parse_now_timer = setTimeout(clear_status_ip_log_parse_now, 3000);
+        // keep the saving message up for a short time
+        let save_runtime = Date.now() - save_start_time_ms;
+        let sleep_time = 1000 - save_runtime;
+        if (sleep_time <= 0) { sleep_time = 1; }
+        setTimeout(clear_status_save_log, sleep_time)
+        $('#saved_logs_section').show();
+    });
+}
+
+//--------------------------------------------------------------------------------
+
+function delete_log() {
+    if (clear_status_save_log_timer != null) {
+        clearTimeout(clear_status_save_log_timer);
+    }
+    let filename = $('#saved_logfile_menu>option:selected').val();
+
+    setTimeout(hide_stuff_before_save_log, 1, `Deleting ${filename}...`);
+
+    let status_field = $('#status_post');
+    let postdata = `action=delete_logfile&filename=${filename}`;
+    $.post({
+        'url': url_ip_log_raw_data,
+        'data': postdata,
+        'success': null,
+        'dataType': 'json' // html, json, script, text, xml
+    })
+    .done(function(data){
+        if (data.status == 'error') {
+            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            return;
+        }
+
+        // remove the file from the saved logfile menu
+        $('#saved_logfile_menu>option:selected').remove();
+
+        // find the filename in the logfile menu and remove the highlighting
+        $(`#logfile>option[value='${filename}']`).removeClass('text_green');
+
+        // hide the saved logfile menu if it's empty
+        if ($('#saved_logfile_menu').html() == '') {
+            $('#saved_logs_section').hide();
+        }
+    })
+    .fail(function(){
+        status_field.html('ERROR: AJAX failed');
+    })
+    .always(function(){
+        setTimeout(clear_status_save_log, 1000);
+        switch_confirm_to_start('delete_log', 'confirm_delete_log', 'cancel_delete_log');
+    });
+
+}
+
+//--------------------------------------------------------------------------------
+
+function delete_all_logs() {
+    setTimeout(hide_stuff_before_save_log, 1, `Deleting all saved logfiles...`);
+
+    let status_field = $('#status_post');
+    let postdata = `action=delete_all_logfiles`;
+    $.post({
+        'url': url_ip_log_raw_data,
+        'data': postdata,
+        'success': null,
+        'dataType': 'json' // html, json, script, text, xml
+    })
+    .done(function(data){
+        if (data.status == 'error') {
+            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            return;
+        }
+
+        // empty the saved logfile menu and hide it
+        $('#saved_logfile_menu').html('');
+        $('#saved_logs_section').hide();
+    })
+    .fail(function(){
+        status_field.html('ERROR: AJAX failed');
+    })
+    .always(function(){
+        setTimeout(clear_status_save_log, 1000);
+        switch_confirm_to_start('delete_all_logs', 'confirm_delete_all_logs', 'cancel_delete_all_logs');
+    });
+}
+
+//--------------------------------------------------------------------------------
+
+function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
+    let download_runtime = (Date.now() - download_start_time_ms)/1000;
+    print_console_in_test_mode(`download time: ${download_runtime.toFixed(3)} seconds`, test_mode_ip_log_raw_data);
+    let download_kb = estimate_memory_size(data) / 1024;
+    print_console_in_test_mode(`downloaded data: ${download_kb.toFixed(3)} KB`, test_mode_ip_log_raw_data);
+
+    if (data.status == 'error') {
+        $('#status_post').html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+        return;
+    }
+
+    print_console_in_test_mode(`calculation_time: ${data.calculation_time} seconds`, test_mode_ip_log_raw_data);
+    let start_time_ms = Date.now();
+
+    $('#status_post').html(''); // clear the status message
+    $('#logdata').html(data.logdata);
+
+    $('#src_ip_analysis').html(data.src_ip_analysis);
+    $('#dst_ip_analysis').html(data.dst_ip_analysis);
+
+    if ($('#extra_analysis').is(':checked')) {
+        $('#src_length_analysis').html(data.src_length_analysis);
+        $('#dst_length_analysis').html(data.dst_length_analysis);
+        $('#summary_src_length_analysis').html(data.summary_src_length_analysis);
+    } else {
+        $('#src_length_analysis').html('');
+        $('#dst_length_analysis').html('');
+        $('#summary_src_length_analysis').html('');
+    }
+
+    $('#show_rowcount').html(data.rowcount);
+    $('#start_timestamp').html(data.start_timestamp);
+    $('#end_timestamp').html(data.end_timestamp);
+    $('#duration').html(data.duration);
+    $('#bps_limit_displayed').html(data.bps_limit_displayed);
+
+    $('#displayed_src_ports').html(data.displayed_src_ports);
+    $('#displayed_dst_ports').html(data.displayed_dst_ports);
+    $('#displayed_packet_lengths').html(data.displayed_packet_lengths);
+    $('#displayed_packet_ttls').html(data.displayed_packet_ttls);
+
+    let loaded_from = 'loaded from unsaved log';
+    if (use_saved_log) {
+        loaded_from = 'loaded from saved log';
+    }
+    console.log(loaded_from);
+
+    if (data.is_logfile_saved) {
+        $('#save_this_log').html('(Log is already saved)');
+    } else if (data.filename != 'ipv4.log') {
+        // not allowed to save the current log file for now
+        //-----add an extra save_log anchor to the dom-----
+        let save_button = `<a id="save_this_log_button" class="clickable" data-filename="${data.filename}">Save this log</a>`;
+        $('#save_this_log').html(save_button);
+        $('#save_this_log_button').click(function() {
+            save_log(data.filename);
+        });
+    }
+
+    $('#logdata_misc_info').show();
+
+    //TEST
+    $('#TESTDATA').html(data.TESTDATA);
+
+    //-----make clickable items work-----
+    attach_copy_to_clipboard();
+    apply_onclick_events();
+
+    $('#show_all_data').show();
+    reset_show_hide();
+
+    let runtime = (Date.now() - start_time_ms)/1000;
+    print_console_in_test_mode(`browser page update time: ${runtime.toFixed(3)} seconds`, test_mode_ip_log_raw_data);
+}
+
+//--------------------------------------------------------------------------------
+
 //-----get the contents of a given log file-----
 // returns a promise
-function view_log(){
+function view_log(use_saved_log=false) {
     let filename = $('#logfile>option:selected').val();
+    let action = 'view_log';
+    if (use_saved_log) {
+        filename = $('#saved_logfile_menu>option:selected').val();
+        action = 'view_saved_log';
+    }
     setTimeout(hide_stuff_before_dom_update, 1, filename);
 
     let src_ip = $('#src_ip').val();
@@ -137,7 +417,7 @@ function view_log(){
     // let CHECKBOX_ID = String($('#CHECKBOX_ID').is(':checked'));
     let checkbox_url_params = process_checkboxes();
 
-    let postdata = `action=view_log&filename=${filename}&src_ip=${src_ip}&dst_ip=${dst_ip}&src_ports=${src_ports}&dst_ports=${dst_ports}&search_length=${search_length}&ttl=${ttl}&sort_by=${sort_by}&flag_bps_above_value=${flag_bps_above_value}&flag_pps_above_value=${flag_pps_above_value}&min_displayed_packets=${min_displayed_packets}${checkbox_url_params}`;
+    let postdata = `action=${action}&filename=${filename}&src_ip=${src_ip}&dst_ip=${dst_ip}&src_ports=${src_ports}&dst_ports=${dst_ports}&search_length=${search_length}&ttl=${ttl}&sort_by=${sort_by}&flag_bps_above_value=${flag_bps_above_value}&flag_pps_above_value=${flag_pps_above_value}&min_displayed_packets=${min_displayed_packets}${checkbox_url_params}`;
 
     let download_start_time_ms = Date.now();
     $.post({
@@ -147,62 +427,7 @@ function view_log(){
         'dataType': 'json' // html, json, script, text, xml
     })
     .done(function(data){
-        let download_runtime = (Date.now() - download_start_time_ms)/1000;
-        console.log(`download time: ${download_runtime.toFixed(3)} seconds`);
-        download_kb = estimate_memory_size(data) / 1024;
-        console.log(`downloaded data: ${download_kb.toFixed(3)} KB`);
-
-        if (data.status == 'error') {
-            $('#status_post').html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
-            return;
-        }
-
-        //TEST
-        console.log(`calculation_time: ${data.calculation_time} seconds`);
-        let start_time_ms = Date.now();
-
-        $('#status_post').html(''); // clear the status message
-        $('#logdata').html(data.logdata);
-
-        $('#src_ip_analysis').html(data.src_ip_analysis);
-        $('#dst_ip_analysis').html(data.dst_ip_analysis);
-
-        if ($('#extra_analysis').is(':checked')) {
-            $('#src_length_analysis').html(data.src_length_analysis);
-            $('#dst_length_analysis').html(data.dst_length_analysis);
-            $('#summary_src_length_analysis').html(data.summary_src_length_analysis);
-            // $('#extra_analysis_output').show();
-        } else {
-            $('#src_length_analysis').html('');
-            $('#dst_length_analysis').html('');
-            $('#summary_src_length_analysis').html('');
-        }
-
-        $('#show_rowcount').html(data.rowcount);
-        $('#start_timestamp').html(data.start_timestamp);
-        $('#end_timestamp').html(data.end_timestamp);
-        $('#duration').html(data.duration);
-        $('#bps_limit_displayed').html(data.bps_limit_displayed);
-
-        $('#displayed_src_ports').html(data.displayed_src_ports);
-        $('#displayed_dst_ports').html(data.displayed_dst_ports);
-        $('#displayed_packet_lengths').html(data.displayed_packet_lengths);
-        $('#displayed_packet_ttls').html(data.displayed_packet_ttls);
-
-        $('#logdata_misc_info').show();
-
-        //TEST
-        $('#TESTDATA').html(data.TESTDATA);
-
-        //-----make clickable items work-----
-        attach_copy_to_clipboard();
-        apply_onclick_events();
-
-        $('#show_all_data').show();
-        reset_show_hide();
-
-        let runtime = (Date.now() - start_time_ms)/1000;
-        console.log(`browser page update time: ${runtime.toFixed(3)} seconds`);
+        add_logdata_to_dom(data, download_start_time_ms, use_saved_log);
     })
     .fail(function(){
         // status_field.html('ERROR');
@@ -211,6 +436,7 @@ function view_log(){
         //-----auto-clear the message after a short time-----
         // status_ip_log_parse_now_timer = setTimeout(clear_status_ip_log_parse_now, 3000);
         $('#view_log').show();
+        $('#view_saved_log').show();
         $('#loading_msg').hide();
     });
 }
@@ -239,12 +465,24 @@ function get_logfile_menu() {
 
         //-----replace the contents of the logfile dropdown-----
         let current_menu = $('#logfile').html();
+        let current_saved_menu = $('#saved_logfile_menu').html();
         if (current_menu == data.logfile_menu) {
             console.log('logfile menu unchanged');
-            return;
+        } else {
+            $('#logfile').html(data.logfile_menu);
+        }
+        if (current_saved_menu == data.saved_logfile_menu) {
+            console.log('saved logfile menu unchanged');
+        } else {
+            $('#saved_logfile_menu').html(data.saved_logfile_menu);
+            // hide the saved menu if it's empty
+            if (data.saved_logfile_menu == '') {
+                $('#saved_logs_section').hide();
+            } else {
+                $('#saved_logs_section').show();
+            }
         }
 
-        $('#logfile').html(data.logfile_menu);
         console.log('logfile menu updated');
     })
     .fail(function(){
@@ -295,6 +533,8 @@ function reset_search() {
 
     let min_displayed_packets_default = $('#min_displayed_packets').attr('data-default');
     $('#min_displayed_packets').val(min_displayed_packets_default);
+
+    switch_confirm_to_start('reset_search', 'confirm_reset_search', 'cancel_reset_search');
 }
 
 //--------------------------------------------------------------------------------

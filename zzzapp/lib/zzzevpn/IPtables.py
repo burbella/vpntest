@@ -55,29 +55,13 @@ class IPtables:
     # bytes per minute: 225 * 10000 = 2.25MB
     # calculate max logfiles: 2048 / 2.25 = 910 files
     def make_iptables_logrotate_config(self):
+        if self.ConfigData['LogRotate']['NumFilesError']:
+            print(self.ConfigData['LogRotate']['NumFilesError'])
+
         read_filepath = self.ConfigData['UpdateFile']['iptables']['logrotate_template']
-        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
-        lines_per_file = self.ConfigData['LogPacketsPerMinute']
-        max_diskspace = self.ConfigData['DiskSpace']['IPtablesLogFiles'] * self.util.standalone.MEGABYTE
-        numfiles = int(max_diskspace / (bytes_per_line * lines_per_file))
-
-        # keep it in the range of 100-10000
-        if numfiles<20:
-            numfiles = 20
-            print(f'The IPtablesLogFiles and LogPacketsPerMinute settings only allow for {numfiles} log files. The number of log files has been set to the minimum value of 20.')
-        if numfiles>10000:
-            numfiles = 10000
-            print(f'The IPtablesLogFiles and LogPacketsPerMinute settings allow for {numfiles} log files. The number of log files has been set to the maximum value of 10000.')
         template_data = {
-            'numfiles': numfiles,
+            'numfiles': self.ConfigData['LogRotate']['NumFiles'],
         }
-
-        print(f'''numfiles final: {numfiles}
-bytes_per_line: {bytes_per_line}
-lines_per_file: {lines_per_file}
-max_diskspace: {max_diskspace}
-        ''')
-
         zzz_template = zzzevpn.ZzzTemplate(self.ConfigData, self.db, self.util)
         data_to_write = zzz_template.load_template(filepath=read_filepath, data=template_data)
         

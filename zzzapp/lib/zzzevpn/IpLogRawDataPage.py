@@ -23,7 +23,9 @@ class IpLogRawDataPage:
     IpLogRawDataHTML = {}
     service_name = 'iptables'
 
+    # default - return only the table rows, not the entire HTML page
     return_page_header = True
+
     sort_by = 'ip' # ip, packets, bytes
     allowed_sort_by = ['ip', 'packets', 'bytes']
 
@@ -136,6 +138,8 @@ class IpLogRawDataPage:
         self.IpLogRawDataHTML = {
             # 'logdata': '',
             'logfile_menu': '',
+            'logrotate_numfiles': self.ConfigData['LogRotate']['NumFiles'],
+            'saved_logfile_menu': '',
             'show_rowcount': '',
             'flag_bps_default': self.settings.IPLogRawDataView_default['flag_bps_above_value'],
             'flag_pps_default': self.settings.IPLogRawDataView_default['flag_pps_above_value'],
@@ -168,7 +172,7 @@ class IpLogRawDataPage:
         #-----return if missing data in required fields (action, filename)-----
         if data['action'] is None:
             return self.webpage.error_log(environ, 'ERROR: missing action')
-        if (data['action']=='view_log') and (data['filename'] is None):
+        if (data['action'] in ['view_log', 'view_saved_log']) and (data['filename'] is None):
             # filename only applies to view_log
             return self.webpage.error_log(environ, 'ERROR: missing filename')
 
@@ -190,20 +194,81 @@ class IpLogRawDataPage:
 
         self.load_js_checkbox_data(data)
 
-        if data['action']=='view_log':
+        if data['action'] in ['view_log', 'view_saved_log']:
             # save the latest settings
-            #TODO: make this save the current checkbox settings, not just the default values
-            #      make sure self.settings.IPLogRawDataView contains the current settings
             self.store_data_in_settings(data)
             self.settings.save_ip_log_view_settings()
-            # return only the table rows, not the entire HTML page
             self.return_page_header = False
-            return self.make_IpLogRawData(environ, data['filename'])
+            return self.make_IpLogRawData(environ, data['filename'], data['action'])
+        elif data['action']=='save_logfile':
+            return self.save_logfile(data['filename'])
+        elif data['action']=='delete_logfile':
+            return self.delete_logfile(data['filename'])
+        elif data['action']=='delete_all_logfiles':
+            return self.delete_all_logfiles()
         elif data['action']=='get_logfile_menu':
             return self.get_logfile_menu()
 
         #-----this should never happen-----
         return self.webpage.error_log(environ, 'ERROR: unexpected action')
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: limit the number of saves to avoid filling up the disk
+    def save_logfile(self, filename: str):
+        #-----save the logfile to the saved logs directory-----
+        if not filename:
+            return self.make_return_json_error('ERROR: missing filename')
+
+        #-----queue the request for the daemon to process-----
+        did_insert = self.db.insert_unique_service_request(self.service_name, 'save_logfile', filename)
+        if did_insert:
+            # signal the daemon that there is work to do
+            self.util.work_available(1)
+
+        filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+        data_to_send = {
+            'status': 'success',
+            'error_msg': '',
+            'saved_logfile_menu_entry': self.logfile_menu_entry(filepath),
+        }
+        json_data_to_send = json.dumps(data_to_send)
+        return json_data_to_send
+
+    #--------------------------------------------------------------------------------
+
+    def delete_logfile(self, filename: str):
+        #-----delete the logfile from the saved logs directory-----
+        if not filename:
+            return self.make_return_json_error('ERROR: missing filename')
+
+        #-----queue the request for the daemon to process-----
+        did_insert = self.db.insert_unique_service_request(self.service_name, 'delete_logfile', filename)
+        if did_insert:
+            # signal the daemon that there is work to do
+            self.util.work_available(1)
+
+        data_to_send = {
+            'status': 'success',
+            'error_msg': '',
+        }
+        json_data_to_send = json.dumps(data_to_send)
+        return json_data_to_send
+
+    def delete_all_logfiles(self):
+        #-----delete all logfiles from the saved logs directory-----
+        #-----queue the request for the daemon to process-----
+        did_insert = self.db.insert_unique_service_request(self.service_name, 'delete_all_logfiles', '')
+        if did_insert:
+            # signal the daemon that there is work to do
+            self.util.work_available(1)
+
+        data_to_send = {
+            'status': 'success',
+            'error_msg': '',
+        }
+        json_data_to_send = json.dumps(data_to_send)
+        return json_data_to_send
 
     #--------------------------------------------------------------------------------
 
@@ -295,11 +360,14 @@ class IpLogRawDataPage:
     #--------------------------------------------------------------------------------
 
     def get_logfile_menu(self):
+        # load the saved logfiles first, so the logfiles menu can be highlighted with matches
+        saved_logfile_menu = self.make_saved_logfile_menu()
         logfile_menu = self.make_logfile_menu()
         data_to_send = {
             'status': 'success',
             'error_msg': '',
             'logfile_menu': logfile_menu,
+            'saved_logfile_menu': saved_logfile_menu,
         }
         json_data_to_send = json.dumps(data_to_send)
         return json_data_to_send
@@ -329,7 +397,10 @@ class IpLogRawDataPage:
         # settings = self.settings.get_settings()
         # self.IpLogRawDataHTML['CHECKBOX_ID'] = self.settings.is_setting_enabled('CHECKBOX_ID', self.settings.SettingTypeIPLogRawDataView)
 
-        # load the raw data in the HTML, even with mistypes
+        self.IpLogRawDataHTML['saved_logfile_menu'] = self.make_saved_logfile_menu()
+        self.IpLogRawDataHTML['logfile_menu'] = self.make_logfile_menu()
+
+        # load the raw data in the HTML, even with saved user mistypes
         self.IpLogRawDataHTML['dst_ip'] = self.settings.IPLogRawDataView['dst_ip']
         self.IpLogRawDataHTML['dst_ports'] = self.settings.IPLogRawDataView['dst_ports']
         self.IpLogRawDataHTML['flag_bps_above_value'] = self.settings.IPLogRawDataView['flag_bps_above_value']
@@ -360,10 +431,15 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
-    def make_IpLogRawData(self, environ, filename=None):
+    def is_logfile_saved(self, filename: str) -> bool:
+        filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+        return os.path.exists(filepath)
+
+    #--------------------------------------------------------------------------------
+
+    def make_IpLogRawData(self, environ: dict, filename:str =None, action: str=None) -> str:
         #-----CSP nonce required for JS to run in browser-----
         self.IpLogRawDataHTML['CSP_NONCE'] = environ['CSP_NONCE']
-        self.IpLogRawDataHTML['logfile_menu'] = self.make_logfile_menu()
         self.load_settings_into_html()
 
         #-----initial page load, just return the page header-----
@@ -377,7 +453,7 @@ class IpLogRawDataPage:
             self.ip_log_raw_data.adjust_bps_columns(12, 5)
 
         #-----send a JSON back to the AJAX function-----
-        logdata_rows, entries = self.make_logdata_rows(filename)
+        logdata_rows, entries = self.make_logdata_rows(filename, action)
         rowcount = len(logdata_rows)
         analysis = self.ip_log_raw_data.analyze_log_data(entries, extra_analysis=self.limit_fields['extra_analysis'])
         all_analysis_rows = self.make_all_analysis_rows(analysis)
@@ -429,6 +505,8 @@ class IpLogRawDataPage:
             'displayed_packet_ttls': self.numbers_to_printable_str(self.displayed_packet_ttls),
 
             'calculation_time': analysis['calculation_time'],
+            'filename': filename,
+            'is_logfile_saved': self.is_logfile_saved(filename),
 
             'TESTDATA': TESTDATA,
         }
@@ -457,6 +535,8 @@ class IpLogRawDataPage:
             # give it one decimal place if it's a small number
             return round(num, 1)
         return round(num)
+
+    #--------------------------------------------------------------------------------
 
     def make_analysis_ip_segment(self, analysis: dict, key, ip, bps_max_seconds: int, rowcolor: str='') -> str:
         bps_by_segment = analysis[key][ip].get('bps_by_segment', None)
@@ -542,7 +622,7 @@ class IpLogRawDataPage:
                 if not self.check_all_limits(key, ip, analysis[key][ip]['packets']):
                     continue
 
-            ip_data = self.logparser.make_ip_analysis_links(ip, highlight_ips=False, include_blocking_links=False, rdns_popup=True)
+            ip_data = self.logparser.make_ip_analysis_links(ip, highlight_ips=False, include_blocking_links=True, rdns_popup=True)
             total_bytes = analysis[key][ip]['length']
             total_packets = analysis[key][ip]['packets']
             bytes_per_sec = 0
@@ -689,6 +769,7 @@ class IpLogRawDataPage:
                 'dst_analysis_rows': [''],
                 'src_length_analysis_rows': [''],
                 'dst_length_analysis_rows': [''],
+                'summary_src_length_analysis_rows': [''],
             }
         src_analysis_rows = self.make_analysis_rows(analysis, 'analysis_by_src_ip', 'Source IP')
         dst_analysis_rows = self.make_analysis_rows(analysis, 'analysis_by_dst_ip', 'Destination IP')
@@ -705,6 +786,16 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
+    def logfile_menu_entry(self, filepath: str, highlight_class: str='') -> str:
+        #-----get the timestamp from the filename-----
+        match = self.ip_log_raw_data.regex_filename_date.search(filepath)
+        if not match:
+            return ''
+        timestamp = int(match.group(1))
+        readable_timestamp = self.util.current_datetime(timestamp)
+        readable_timestamp_utc = self.util.current_datetime(timestamp, localize_timezone=False)
+        return f'<option value="ipv4.log-{timestamp}" class="{highlight_class}">{readable_timestamp} ({readable_timestamp_utc}UTC)</option>'
+
     def make_logfile_menu(self) -> str:
         '''returns the HTML for the logfile menu'''
         self.ip_log_raw_data.get_logfiles()
@@ -713,13 +804,27 @@ class IpLogRawDataPage:
 
         output = ['<option value="ipv4.log">latest</option>']
         for filepath in self.ip_log_raw_data.filepath_list:
-            #-----get the timestamp from the filename-----
-            match = self.ip_log_raw_data.regex_filename_date.search(filepath)
-            if match:
-                timestamp = int(match.group(1))
-                readable_timestamp = self.util.current_datetime(timestamp)
-                readable_timestamp_utc = self.util.current_datetime(timestamp, localize_timezone=False)
-                output.append(f'<option value="ipv4.log-{timestamp}">{readable_timestamp} ({readable_timestamp_utc}UTC)</option>')
+            # split on '/' to get the filename
+            filename = filepath.split('/')[-1]
+            saved_filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+            # highlight any logs that are already saved, assumes make_saved_logfile_menu() was called first
+            highlight_class = ''
+            if saved_filepath in self.ip_log_raw_data.saved_log_filepath_list:
+                highlight_class = 'text_green'
+            entry = self.logfile_menu_entry(filepath, highlight_class=highlight_class)
+            output.append(entry)
+
+        return '\n'.join(output)
+
+    def make_saved_logfile_menu(self) -> str:
+        self.ip_log_raw_data.get_saved_logfiles()
+        if not self.ip_log_raw_data.saved_log_filepath_list:
+            return ''
+        output = []
+        for filepath in sorted(self.ip_log_raw_data.saved_log_filepath_list, reverse=True):
+            entry = self.logfile_menu_entry(filepath)
+            output.append(entry)
+
         return '\n'.join(output)
 
     #--------------------------------------------------------------------------------
@@ -734,8 +839,8 @@ class IpLogRawDataPage:
             # this value is common, do not highlight it
             return value
         warning_class = 'warning_text_dark'
-        if rowcolor:
-            warning_class = 'warning_text'
+        # if rowcolor:
+        #     warning_class = 'warning_text'
         return f'<span class="{warning_class}">{value}</span>'
 
     #--------------------------------------------------------------------------------
@@ -968,11 +1073,13 @@ class IpLogRawDataPage:
             previous_file = file
 
     #-----display table of raw packet metadata for each packet-----
-    def make_logdata_rows(self, filename: str):
+    def make_logdata_rows(self, filename: str, action: str) -> tuple:
         '''returns the log data table rows'''
         # don't let the html table get too big
         max_rows = 10000
         filepath = f'{self.ConfigData["Directory"]["IPtablesLog"]}/{filename}'
+        if action=='view_saved_log':
+            filepath = f'{self.ConfigData["Directory"]["IPtablesSavedLog"]}/{filename}'
         if not os.path.isfile(filepath):
             logdata_rows = [f'<tr><td>ERROR: logfile not found "{filename}"<br>Try refreshing the page to get the latest list of logs<br>Check the box "Auto-update file list" to keep the list current</td></tr>']
             return logdata_rows, None

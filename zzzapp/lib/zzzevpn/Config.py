@@ -114,6 +114,7 @@ class Config:
             'EasyRSA': '/home/ubuntu/easyrsa3',
             'EasyRSAvars': '/home/ubuntu/easyrsa3/zzz_vars',
             'IPtablesLog': '/var/log/iptables',
+            'IPtablesSavedLog': '/opt/zzz/iptables/log',
             'LinuxUser': '/home/ubuntu',
             'OpenVPNclient': '/home/ubuntu/openvpn',
             'OpenVPNserver': '/etc/openvpn',
@@ -248,6 +249,11 @@ class Config:
 
         # too many HTML table rows makes the squid/IP log pages load too slowly or run out of memory
         'LogParserRowLimit': 10000,
+
+        'LogRotate': {
+            'NumFiles': 0, # calculate below
+            'NumFilesError': '',
+        },
 
         # prevent iptables from writing too much data too fast
         # 50,000 packets/min should be around 10.7MB/sec
@@ -702,6 +708,7 @@ class Config:
         self.load_ip_denylist()
         self.load_vpn_users()
         self.load_hide_ip_list()
+        self.calc_logrotate_numfiles()
 
         return True
     
@@ -867,6 +874,18 @@ class Config:
                 ip = ip.strip()
                 if self.ip_util.is_ip(ip):
                     self.ConfigData['HideIPs'].add(ip)
+
+    #--------------------------------------------------------------------------------
+
+    def calc_logrotate_numfiles(self) -> None:
+        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
+        lines_per_file = self.ConfigData['LogPacketsPerMinute']
+        max_diskspace = self.ConfigData['DiskSpace']['IPtablesLogFiles'] * self.standalone.MEGABYTE
+
+        result = self.standalone.calc_iptables_logrotate_numfiles(bytes_per_line, lines_per_file, max_diskspace)
+
+        self.ConfigData['LogRotate']['NumFiles'] = result['numfiles']
+        self.ConfigData['LogRotate']['NumFilesError'] = result['err']
 
     #--------------------------------------------------------------------------------
     

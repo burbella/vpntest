@@ -505,6 +505,12 @@ function estimate_memory_size(obj) {
     return json_str.length;
 }
 
+function print_console_in_test_mode(msg, test_mode=false) {
+    if (test_mode) {
+        console.log(msg);
+    }
+}
+
 //--------------------------------------------------------------------------------
 
 console.log("services.js - LOADED");
