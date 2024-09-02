@@ -19,8 +19,10 @@ $(function() {{
         <td class="no_border">
             Logfile: <select id="logfile">{logfile_menu}</select>
         </td>
-        <td class="no_border width_100">
+        <td class="no_border width_200">
+            <a id="view_previous_log" class="clickable">&lt;&lt;Newer</a>
             <a id="view_log" class="clickable">View Log</a>
+            <a id="view_next_log" class="clickable">Older&gt;&gt;</a>
         </td>
         <td class="no_border" colspan="2">
             <a id="save_log" class="clickable">Save Log</a>
@@ -48,7 +50,7 @@ $(function() {{
     </tr>
     <tr>
         <td class="no_border">
-            <span id="loading_msg" class="hide_item warning_text"></span>
+            &nbsp;<span id="loading_msg" class="warning_text"></span>
         </td>
     </tr>
 </table>
@@ -61,7 +63,7 @@ $(function() {{
         <a id="cancel_reset_search" class="hide_item">CANCEL Reset Search Fields</a>
         <a id="confirm_reset_search" class="hide_item">Confirm Reset Search Fields</a>
         <br>
-        IP fields accept IP and CIDR. Separate by commas or spaces. (1.2.3.4,5.6.7.0/24)
+        IP fields accept IP and CIDR. Separate by commas or spaces. (1.2.3.4, 5.6.7.0/24)
         <br>
         Ports/Length/TTL can accept ranges. Separate by commas or spaces. (80,443,1000-2000)
         <br>
@@ -152,8 +154,6 @@ $(function() {{
 <!-- TODO:
     <p>Includes data from the selected log and one previous log</p>
 -->
-
-<span id="status_post"></span>
 
 <span id="show_all_data">
     <span id="logdata_misc_info" class="hide_item">

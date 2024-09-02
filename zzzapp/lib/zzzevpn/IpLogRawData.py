@@ -132,37 +132,6 @@ class IpLogRawData:
 
     # returns an entry dict created from parsed line data
     # combines some fields into a single field since IPtablesLogParser.py does not need them separated
-    def parse_line_upsert(self, line: str) -> dict:
-        match = self.ip_log_regex.match(line)
-        if not match:
-            self.no_match_lines.append(line)
-            return None
-
-        #-----regex groups-----
-        # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
-        entry = {
-            'datetime': match.group(1),
-            # regex_timestamp group(2) is not used
-            'type': match.group(3),
-            'in': match.group(4),
-            'out': match.group(5),
-            'mac': match.group(6),
-            'src': match.group(7),
-            'dst': match.group(8),
-            'msg': match.group(9),
-        }
-        return entry
-
-    #--------------------------------------------------------------------------------
-
-    # returns an entry dict created from parsed line data
     def parse_line_complete(self, line: str, extended_parsing: bool=False) -> dict:
         match = self.ip_log_regex.match(line)
         if not match:
@@ -202,6 +171,7 @@ class IpLogRawData:
 
     #--------------------------------------------------------------------------------
 
+    #-----the end of the log line contains various optional items-----
     def parse_msg(self, entry:dict) -> dict:
         # make sure all fields are present, even if they need to be blank
         for field in self.field_names:
@@ -222,6 +192,7 @@ class IpLogRawData:
         icmp_response = ''
         if len(msg_parts) > 1:
             #-----get the ICMP response-----
+            # ICMP can be a response to a UDP packet, so the UDP packet metadata is included in the ICMP response
             icmp_response = 'ICMP: ' + msg_parts[1].strip().split(']')[0].strip()
             #TODO: parse the ICMP response?
             # entry = self.parse_icmp_response(entry, icmp_response)

@@ -52,11 +52,20 @@ function load_js_ip_log_raw_data()
         }
     });
 
-    $('#view_log').click(function() {
-        view_log();
+    $('#view_previous_log').click(function() {
+        view_log('previous_log');
     });
+
+    $('#view_log').click(function() {
+        view_log('current_log');
+    });
+
+    $('#view_next_log').click(function() {
+        view_log('next_log');
+    });
+
     $('#view_saved_log').click(function() {
-        view_log(use_saved_log=true);
+        view_log('saved_log');
     });
 
     $('#save_log').click(function() {
@@ -117,15 +126,17 @@ function time_since_last_menu_update() {
 }
 
 function hide_stuff_before_dom_update(filename='') {
-    $('#status_post').html('');
     $('#show_all_data').hide();
+
+    $('#view_previous_log').hide();
     $('#view_log').hide();
+    $('#view_next_log').hide();
     $('#view_saved_log').hide();
+
     $('#logdata_misc_info').hide();
     $('#extra_analysis_output').hide();
 
     $('#loading_msg').html(`Loading ${filename}...`);
-    $('#loading_msg').show();
 }
 
 function set_sort_by() {
@@ -159,25 +170,24 @@ function process_checkboxes() {
 //--------------------------------------------------------------------------------
 
 function hide_stuff_before_save_log(msg='') {
-    $('#status_post').html('');
     $('#save_log').hide();
     $('#save_this_log').hide();
 
     $('#loading_msg').html(msg);
-    $('#loading_msg').show();
 }
 
 function clear_status_save_log() {
-    $('#status_post').html();
     $('#save_log').show();
     $('#save_this_log').show();
-    $('#loading_msg').hide();
+    $('#loading_msg').html('');
 }
 
 //--------------------------------------------------------------------------------
 
 function save_log(filename_to_use='') {
     clearTimeout(clear_status_save_log_timer);
+
+    let status_field = $('#loading_msg');
     let filename = $('#logfile>option:selected').val();
     if (filename_to_use != '') {
         filename = filename_to_use;
@@ -185,7 +195,7 @@ function save_log(filename_to_use='') {
 
     // not allowed to save the current log file for now
     if (filename == 'ipv4.log') {
-        $('#status_post').html(`<span class="warning_text">ERROR: Not allowed to save the current log file</span>`);
+        status_field.html(`<span class="warning_text">ERROR: Not allowed to save the current log file</span>`);
         //-----auto-clear the message after a short time-----
         clear_status_save_log_timer = setTimeout(clear_status_save_log, 1000);
         return;
@@ -194,7 +204,6 @@ function save_log(filename_to_use='') {
     setTimeout(hide_stuff_before_save_log, 1, `Saving ${filename}...`);
 
     let save_start_time_ms = Date.now();
-    let status_field = $('#status_post');
     let postdata = `action=save_logfile&filename=${filename}`;
     $.post({
         'url': url_ip_log_raw_data,
@@ -204,7 +213,7 @@ function save_log(filename_to_use='') {
     })
     .done(function(data){
         if (data.status == 'error') {
-            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            status_field.html(`ERROR: ${data.error_msg}`);
             return;
         }
         
@@ -215,7 +224,7 @@ function save_log(filename_to_use='') {
         // highlight the saved log file in the logfile menu
         $('#logfile>option:selected').addClass('text_green');
 
-        if (filename_to_use != '') {
+        if (filename != '') {
             $('#save_this_log').html('(Log is already saved)');
             $('#save_this_log').show();
         }
@@ -245,7 +254,7 @@ function delete_log() {
 
     setTimeout(hide_stuff_before_save_log, 1, `Deleting ${filename}...`);
 
-    let status_field = $('#status_post');
+    let status_field = $('#loading_msg');
     let postdata = `action=delete_logfile&filename=${filename}`;
     $.post({
         'url': url_ip_log_raw_data,
@@ -255,7 +264,7 @@ function delete_log() {
     })
     .done(function(data){
         if (data.status == 'error') {
-            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            status_field.html(`ERROR: ${data.error_msg}`);
             return;
         }
 
@@ -285,7 +294,7 @@ function delete_log() {
 function delete_all_logs() {
     setTimeout(hide_stuff_before_save_log, 1, `Deleting all saved logfiles...`);
 
-    let status_field = $('#status_post');
+    let status_field = $('#loading_msg');
     let postdata = `action=delete_all_logfiles`;
     $.post({
         'url': url_ip_log_raw_data,
@@ -295,7 +304,7 @@ function delete_all_logs() {
     })
     .done(function(data){
         if (data.status == 'error') {
-            status_field.html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+            status_field.html(`ERROR: ${data.error_msg}`);
             return;
         }
 
@@ -321,14 +330,14 @@ function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
     print_console_in_test_mode(`downloaded data: ${download_kb.toFixed(3)} KB`, test_mode_ip_log_raw_data);
 
     if (data.status == 'error') {
-        $('#status_post').html(`<p class="warning_text">ERROR: ${data.error_msg}</p>`);
+        $('#loading_msg').html(`ERROR: ${data.error_msg}`);
         return;
     }
 
     print_console_in_test_mode(`calculation_time: ${data.calculation_time} seconds`, test_mode_ip_log_raw_data);
     let start_time_ms = Date.now();
 
-    $('#status_post').html(''); // clear the status message
+    $('#loading_msg').html(''); // clear the status message
     $('#logdata').html(data.logdata);
 
     $('#src_ip_analysis').html(data.src_ip_analysis);
@@ -371,8 +380,10 @@ function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
         $('#save_this_log_button').click(function() {
             save_log(data.filename);
         });
+    } else {
+        $('#save_this_log').html('');
     }
-
+    
     $('#logdata_misc_info').show();
 
     //TEST
@@ -391,15 +402,51 @@ function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
 
 //--------------------------------------------------------------------------------
 
+function lookup_filename(log_type='current_log', use_saved_log=false) {
+    let filename = '';
+    if (use_saved_log) {
+        return $('#saved_logfile_menu>option:selected').val();
+    }
+
+    if (log_type=='previous_log') {
+        let filename_option = $('#logfile>option:selected').prev();
+        if (filename_option.length == 0) {
+            // show error message
+            $('#loading_msg').html(`ERROR: No newer log file`);
+            return '';
+        }
+        // scroll the menu to the selected option
+        $('#logfile>option:selected').prop('selected', false);
+        filename_option.prop('selected', true);
+    } else if (log_type=='next_log') {
+        let filename_option = $('#logfile>option:selected').next();
+        if (filename_option.length == 0) {
+            // show error message
+            $('#loading_msg').html(`ERROR: No older log file`);
+            return '';
+        }
+        // scroll the menu to the selected option
+        $('#logfile>option:selected').prop('selected', false);
+        filename_option.prop('selected', true);
+    }
+
+    filename = $('#logfile>option:selected').val();
+    return filename;
+}
+
 //-----get the contents of a given log file-----
 // returns a promise
-function view_log(use_saved_log=false) {
-    let filename = $('#logfile>option:selected').val();
+// use_saved_log=false, previous_log=false, next_log=false
+function view_log(log_type='current_log') {
+    let use_saved_log=false;
+    if (log_type=='saved_log') { use_saved_log=true; }
+
+    let filename = lookup_filename(log_type, use_saved_log);
+    if (filename == '') { return; }
+
     let action = 'view_log';
-    if (use_saved_log) {
-        filename = $('#saved_logfile_menu>option:selected').val();
-        action = 'view_saved_log';
-    }
+    if (use_saved_log) { action = 'view_saved_log'; }
+
     setTimeout(hide_stuff_before_dom_update, 1, filename);
 
     let src_ip = $('#src_ip').val();
@@ -435,9 +482,13 @@ function view_log(use_saved_log=false) {
     .always(function(){
         //-----auto-clear the message after a short time-----
         // status_ip_log_parse_now_timer = setTimeout(clear_status_ip_log_parse_now, 3000);
+
+        $('#view_previous_log').show();
         $('#view_log').show();
+        $('#view_next_log').show();
         $('#view_saved_log').show();
-        $('#loading_msg').hide();
+
+        $('#loading_msg').html('');
     });
 }
 

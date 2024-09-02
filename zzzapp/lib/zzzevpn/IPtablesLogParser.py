@@ -944,37 +944,6 @@ class IPtablesLogParser:
         # return TEST_OUTPUT
         return True
 
-    #TODO: replace this with self.ip_log_raw_data.parse_line_upsert()
-    # returns an entry dict created from parsed line data
-    def parse_line_upsert(self, line: str) -> dict:
-        #TODO: replace this with self.ip_log_raw_data.ip_log_regex
-        match = self.ip_log_regex.match(line)
-        if not match:
-            #TODO: log no-match lines for debugging?
-            self.no_match_lines.append(line)
-            return None
-        
-        #-----regex groups-----
-        # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
-        entry = {
-            'datetime': match.group(1),
-            'type': match.group(2),
-            'in': match.group(3),
-            'out': match.group(4),
-            'mac': match.group(5),
-            'src': match.group(6),
-            'dst': match.group(7),
-            'msg': match.group(8),
-        }
-        return entry
-
     #--------------------------------------------------------------------------------
     
     #TODO: check a boolean var that indicates start/stop
@@ -1029,7 +998,6 @@ class IPtablesLogParser:
                 parsed_data = False
                 line = line.strip()
                 if do_upsert:
-                    # entry = self.parse_line_upsert(line)
                     entry = self.ip_log_raw_data.parse_line_complete(line)
                     if entry:
                         parsed_data = True

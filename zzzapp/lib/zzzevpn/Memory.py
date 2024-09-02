@@ -12,8 +12,6 @@ class Memory:
     db: zzzevpn.DB = None
     util: zzzevpn.Util = None
 
-    megabyte = 1024 * 1024
-
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None):
         #-----get Config-----
         if ConfigData is None:
@@ -37,10 +35,15 @@ class Memory:
     def check_system_memory(self):
         system_memory = psutil.virtual_memory()
 
-        mem_total = round(system_memory.total/self.megabyte)
-        mem_free = round(system_memory.free/self.megabyte)
-        mem_used = round(system_memory.used/self.megabyte)
-        mem_avail = round(system_memory.available/self.megabyte)
+        mem_total = round(system_memory.total/self.util.standalone.MEGABYTE)
+        mem_free = round(system_memory.free/self.util.standalone.MEGABYTE)
+        mem_used = round(system_memory.used/self.util.standalone.MEGABYTE)
+        mem_avail = round(system_memory.available/self.util.standalone.MEGABYTE)
+
+        # "buff/cache" probably needs at least 500MB at all times.
+        effective_avail = mem_total - mem_used - mem_free - 500
+        if effective_avail < 0:
+            effective_avail = 0
 
         mem_info = {
             'total': mem_total,
@@ -48,6 +51,7 @@ class Memory:
             'used': mem_used,
             'avail': mem_avail,
             'system_memory': system_memory,
+            'effective_avail': effective_avail,
         }
         return mem_info
 
@@ -63,9 +67,9 @@ class Memory:
         for p in psutil.process_iter(['username', 'name', 'memory_info']):
             # {'memory_info': pmem(rss=630161408, vms=1020604416, shared=4980736, text=319488, lib=0, data=687501312, dirty=0), 'name': 'named', 'username': 'bind'}
             if p.info['username']=='bind' and p.info['name']=='named':
-                all_memory_usage['bind'] = round(p.info['memory_info'].rss/self.megabyte)
+                all_memory_usage['bind'] = round(p.info['memory_info'].rss/self.util.standalone.MEGABYTE)
             elif p.info['username']=='proxy' and p.info['name']=='squid':
-                squid_memory_usage = round(p.info['memory_info'].rss/self.megabyte)
+                squid_memory_usage = round(p.info['memory_info'].rss/self.util.standalone.MEGABYTE)
                 if squid_memory_usage > all_memory_usage['squid']:
                     all_memory_usage['squid'] = squid_memory_usage
 

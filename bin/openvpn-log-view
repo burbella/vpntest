@@ -1,0 +1,11 @@
+#!/bin/bash
+#-----openvpn log view-----
+
+#-----remove junk from the log lines-----
+# original:
+# Aug 31 19:45:09 ip-172-30-1-2 openvpn[2517983]: server-name/1.2.3.4:62569 VERIFY KU OK
+# reduced:
+# Aug 31 19:45:09 server-name/1.2.3.4:62569 VERIFY KU OK
+
+sudo grep openvpn /var/log/syslog | head -n 100000 | sed --regexp-extended 's/^(.*? .*? .*?) .*? .*? (.*)/\1 \2/' | less
+
