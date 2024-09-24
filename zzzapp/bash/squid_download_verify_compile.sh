@@ -10,7 +10,8 @@ exit_if_not_running_as_root
 exit_if_configtest_invalid
 # vars set in util: RUN_AS_UBUNTU, SQUID_INSTALLER_STATUS_FILE, ZZZ_LINEFEED, ZZZ_SQUID_VERSION_INSTALL
 
-echo -n "OK" > $SQUID_INSTALLER_STATUS_FILE
+#-----init the status file-----
+echo -n "START" > $SQUID_INSTALLER_STATUS_FILE
 
 # input required: version number (EX: 5.7)
 NEW_VERSION=$ZZZ_SQUID_VERSION_INSTALL
@@ -160,6 +161,9 @@ zzz_squid_do_download_verify_compile() {
         echo "    ERROR: failed to unzip squid gz file to a directory" > $SQUID_INSTALLER_STATUS_FILE
         return
     fi
+
+    #-----passed all checks-----
+    echo -n "OK" > $SQUID_INSTALLER_STATUS_FILE
 }
 
 zzz_squid_do_download_verify_compile

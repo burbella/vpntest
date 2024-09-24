@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import pprint
 import urllib.parse
@@ -152,8 +153,8 @@ class Webpage:
     
     #-----return an error for lack of make_webpage handler in the object-----
     def missing_make_webpage(self, environ: dict) -> str:
-        self.error_log(environ, 'ERROR: missing missing_make_webpage()')
-        body = 'ERROR: missing missing_make_webpage()'
+        self.error_log(environ, 'ERROR: missing make_webpage()')
+        body = 'ERROR: missing make_webpage()'
         output = self.make_webpage(environ, body)
         return output
     
@@ -237,5 +238,20 @@ class Webpage:
         for image_size in self.ConfigData['Favicon']['sizes']['apple']:
             favicons.append(self.make_favicon_link('apple-touch-icon', favicon_custom, image_size))
         return '\n'.join(favicons)
+
+    #--------------------------------------------------------------------------------
+
+    #-----webpages often need to return a basic status report after upload-----
+    def make_return_json(self, status: str, error_msg: str='') -> str:
+        return_data = {
+            'status': status,
+            'error_msg': error_msg,
+        }
+        return_json = '{}'
+        try:
+            return_json = json.dumps(return_data)
+        except Exception as e:
+            return_json = json.dumps({'status': 'error', 'error_msg': f'JSON error: {e}'})
+        return return_json
 
     #--------------------------------------------------------------------------------

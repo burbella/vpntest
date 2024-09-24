@@ -235,6 +235,14 @@ def iptables_logparser(ConfigData, db, util, settings):
     return zzzevpn.IPtablesLogParser(ConfigData, db, util, settings)
 
 @pytest.fixture(scope="session")
+def iptables_rules(ConfigData, db, util, settings):
+    return zzzevpn.IPtablesRules(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
+def iptables_rules_page(ConfigData, db, util, settings):
+    return zzzevpn.IPtablesRulesPage(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
 def list_manager(ConfigData, db, util):
     return zzzevpn.ListManager(ConfigData, db, util)
 

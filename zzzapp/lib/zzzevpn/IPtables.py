@@ -17,6 +17,8 @@ class IPtables:
     settings: zzzevpn.Settings = None
 
     filter_table_list = ['INPUT', 'FORWARD', 'OUTPUT']
+    valid_chains = ['CUSTOMRULES', 'PREROUTING']
+    valid_protocols = ['tcp', 'udp']
     log_packets_per_minute = 1000
 
     # set to True to write to a test directory instead of the real directory
@@ -104,10 +106,198 @@ class IPtables:
             write_file.write(data_to_write)
     
     #--------------------------------------------------------------------------------
-    
+
+    def is_rule_enabled(self, setting_name: str) -> bool:
+        return self.settings.is_setting_enabled(setting_name, self.settings.SettingTypeIPtablesRules)
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: finish this or remove it
+    # iptables -t mangle --append PREROUTING --source  192.168.1.0/24 -j MARK --set-mark 1
+    # build-config.py should have built ipsets to always allow from self.ConfigData['IPtablesCustomRules']['ProtectedIPs']
+    def mangle_packets_config(self):
+        #-----mark traffic for tc to provide QoS-----
+        # if
+        # custom_rules += ':MARKACCEPT -\n'
+
+        mangle_chain = '*mangle\n'
+        mangle_chain += ':PREROUTING ACCEPT\n'
+        mangle_chain += ':INPUT ACCEPT\n'
+        mangle_chain += ':FORWARD ACCEPT\n'
+        mangle_chain += ':OUTPUT ACCEPT\n'
+        mangle_chain += ':POSTROUTING ACCEPT\n'
+
+        header_prefixes = self.make_custom_rules_prefix('PREROUTING')
+        bytes_per_sec = self.settings.IPtablesRules['bytes_per_sec']
+        packets_per_sec = self.settings.IPtablesRules['packets_per_sec']
+        # mangle_chain += f'{header_prefix} -m limit --limit {bps_limit}/sec -j MARK --set-mark 1\n'
+        # mangle_chain += f'{header_prefix} -m limit --limit {pps_limit}/sec -j MARK --set-mark 1\n'
+
+        mangle_chain += 'COMMIT\n\n'
+
+        return mangle_chain
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: translate dst_ports from a CSV to a list, break up ranges into individual ports
+    #   this should happen in Settings.py
+    def make_custom_rules_prefix(self, chain_name: str) -> list:
+        if chain_name not in self.valid_chains:
+            return []
+
+        dst_ports_ranges = self.util.standalone.whitespace_to_commas(self.settings.IPtablesRules['dst_ports'])
+        result = self.util.standalone.translate_ranges_to_set(dst_ports_ranges.split(','), 1, 65535)
+        dports = result['values']
+        if len(dports) > 15:
+            # limit of 15 ports for now, from the ConfigData
+            # more than 15 ports will require multiple rules, due to iptables limitations
+            dports = dports[:15]
+            print('WARNING: too many destination ports, only using the first 15')
+        dports_csv = ','.join(str(dport) for dport in sorted(dports))
+
+        #TODO: use self.settings.IPtablesRules['KEY']
+
+        bytes_per_sec = self.settings.IPtablesRules['bytes_per_sec']
+        packets_per_sec = self.settings.IPtablesRules['packets_per_sec']
+
+        protocols_to_use = []
+        if self.is_rule_enabled('block_tcp'):
+            protocols_to_use.append('tcp')
+        if self.is_rule_enabled('block_udp'):
+            protocols_to_use.append('udp')
+
+        #TODO: user-selected direction may reverse source and destination
+        vpn_ip_range = self.ConfigData['AppInfo']['VpnIPRange']
+        header_prefixes = []
+        for protocol in protocols_to_use:
+            header_prefix = f'''-A {chain_name} -p {protocol} -m multiport --dports {dports_csv} --destination {vpn_ip_range} ! --source {vpn_ip_range}'''
+            header_prefixes.append(header_prefix)
+        return header_prefixes
+
+    #--------------------------------------------------------------------------------
+
+    def make_rules_by_protocol(self, header_prefixes, rule_details):
+        rules = []
+        for header_prefix in header_prefixes:
+            rule = f'''{header_prefix} {rule_details}\n'''
+            rules.append(rule)
+        return rules
+
+    #--------------------------------------------------------------------------------
+
+    def make_rate_limit_rules(self, header_prefixes, rate_limit_name, hashlimit_above, hashlimit_burst):
+        rules = []
+
+        #-----expire the hashlimit after 3 hours-----
+        # entries_expire_ms = 3 * self.util.standalone.MILLISECONDS_PER_HOUR
+        entries_expire_minutes = self.util.get_int_safe(self.settings.IPtablesRules['throttle_expire'])
+        entries_expire_ms = entries_expire_minutes * self.util.standalone.MILLISECONDS_PER_MINUTE
+
+        #TODO: user-selected direction may change "srcip" to "dstip", also "srcmask" to "dstmask"
+        for header_prefix in header_prefixes:
+            rule = f'''{header_prefix} -m hashlimit --hashlimit-name {rate_limit_name} --hashlimit-mode srcip --hashlimit-srcmask 32 --hashlimit-above {hashlimit_above} --hashlimit-burst {hashlimit_burst} --hashlimit-htable-expire {entries_expire_ms} --hashlimit-rate-interval 1 -j LOGDROP\n'''
+            rules.append(rule)
+        return rules
+
+    def make_bytes_per_sec_rules(self, header_prefixes):
+        rules = []
+        bytes_per_sec = self.util.get_int_safe(self.settings.IPtablesRules['bytes_per_sec'])
+        if not bytes_per_sec:
+            # zero disables this rule
+            return rules
+
+        #TODO: make this a setting
+        hashlimit_burst = bytes_per_sec * 5
+
+        rules = self.make_rate_limit_rules(header_prefixes, 'BPSLIMIT', f'{bytes_per_sec}b/second', hashlimit_burst)
+        return rules
+
+    def make_packets_per_sec_rules(self, header_prefixes):
+        rules = []
+        packets_per_sec = self.util.get_int_safe(self.settings.IPtablesRules['packets_per_sec'])
+        if not packets_per_sec:
+            # zero disables this rule
+            return rules
+
+        packets_per_minute = packets_per_sec * 60
+        #TODO: make this a setting
+        hashlimit_burst = packets_per_sec * 5
+
+        rules = self.make_rate_limit_rules(header_prefixes, 'PPSLIMIT', f'{packets_per_minute}/minute', hashlimit_burst)
+        return rules
+
+    #--------------------------------------------------------------------------------
+
+    #-----build the custom rules-----
+    # iptables_rules flags: block_non_allowed_ips, block_nonzero_tos, block_tcp, block_udp, enable_auto_blocking
+    # iptables_rules strings/ints: allow_ips, block_low_ttl, bytes_per_sec, dst_ports, packets_per_sec, throttle_expire
+    # if TCP and UDP protocols are both selected, we need to make two rules, one for each protocol
+    def make_custom_rules_header(self):
+        block_low_ttl = self.settings.IPtablesRules['block_low_ttl']
+        block_nonzero_tos = self.is_rule_enabled('block_nonzero_tos')
+        vpn_ip_range = self.ConfigData['AppInfo']['VpnIPRange']
+
+        custom_rules = ':CUSTOMRULES -\n'
+        custom_rules_footer = '-A CUSTOMRULES -j LOGACCEPT\n'
+        # ports and IP ranges are the same for all custom rules
+        header_prefixes = self.make_custom_rules_prefix('CUSTOMRULES')
+
+        #TODO: just merge these in with the main allow list?
+        # accept_allowed_ips = f'--destination {vpn_ip_range} --match set --match-set custom-allow-ip src\n'
+
+        # drop all traffic not on the allowed list
+        block_non_allowed_ips = self.is_rule_enabled('block_non_allowed_ips')
+        rule_drop_non_allowed = ''
+        if block_non_allowed_ips:
+            for header_prefix in header_prefixes:
+                rule_drop_non_allowed += f'''{header_prefix} -j LOGDROP\n'''
+            custom_rules += rule_drop_non_allowed
+            #-----no need to continue if we're blocking all non-allowed IP's-----
+            # just add the footer and return
+            # custom_rules += custom_rules_footer
+            # return custom_rules
+
+        #-----drop packets with excessive traffic-----
+        rule_drop_excessive_pps = self.make_packets_per_sec_rules(header_prefixes)
+        if rule_drop_excessive_pps:
+            custom_rules += ''.join(rule_drop_excessive_pps)
+        rule_drop_excessive_bps = self.make_bytes_per_sec_rules(header_prefixes)
+        if rule_drop_excessive_bps:
+            custom_rules += ''.join(rule_drop_excessive_bps)
+
+        # drop packets with TTL under the specified value, unless it's zero
+        if block_low_ttl:
+            for header_prefix in header_prefixes:
+                custom_rules += f'''{header_prefix} -m ttl --ttl-lt {block_low_ttl} -j LOGDROP\n'''
+        # block TOS (Type of Service) packets with nonzero values
+        if block_nonzero_tos:
+            for header_prefix in header_prefixes:
+                # TOS: first, accept incoming matched dports with TOS=0x00
+                custom_rules += f'''{header_prefix} -m tos --tos 0x00 -j LOGACCEPT\n'''
+                # TOS: next, drop incoming matched dports with all other TOS values
+                custom_rules += f'''{header_prefix} -j LOGDROP\n'''
+
+        # fake command? iptables -A INPUT -p tcp -m ip --frag 0x4000/0x4000 -j DROP
+
+        # finally, accept everything else
+        custom_rules += custom_rules_footer
+
+        #-----mark traffic for tc to provide QoS-----
+        # if
+        # custom_rules += ':MARKACCEPT -\n'
+
+        return custom_rules
+
+    #--------------------------------------------------------------------------------
+
     #-----iptables config file header-----
     def make_iptables_header(self):
+        enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
         header = '#-----Zzz app auto-generated custom IP blocking rules-----\n\n'
+        if enable_auto_blocking:
+            # this goes first since the "*mangle" chains get configured separately from "*filter"
+            header += self.mangle_packets_config()
+
         header += '*filter\n'
         header += ':INPUT ACCEPT\n'
         header += ':FORWARD ACCEPT\n'
@@ -134,27 +324,8 @@ class IPtables:
         #-----new chain to apply custom rules-----
         # -m multiport --dports 6672,61455,61457,61456,61458
         # port 6672, all 10.* VPN IP's, TOS=0x00, accept
-        if self.ConfigData['IPtablesCustomRules']['Enable']:
-            dports = self.ConfigData['IPtablesCustomRules']['DestinationPorts']
-            if len(dports) > 15:
-                # limit of 15 ports for now, from the ConfigData
-                # more than 15 ports will require multiple rules, due to iptables limitations
-                dports = dports[:15]
-            dports_csv = ','.join(str(dport) for dport in dports)
-            header += ':CUSTOMRULES -\n'
-            # ports and IP ranges are the same for all custom rules
-            header_prefix = f'''-A CUSTOMRULES -p udp -m multiport --dports {dports_csv} -d {self.ConfigData['AppInfo']['VpnIPRange']}'''
-            # drop packets with TTL under 70
-            header += f'''{header_prefix} -m ttl --ttl-lt 70 -j LOGDROP\n'''
-            # TOS: first, accept incoming matched dports with TOS=0x00
-            header += f'''{header_prefix} -m tos --tos 0x00 -j LOGACCEPT\n'''
-            # TOS: next, drop incoming matched dports with all other TOS values
-            header += f'''{header_prefix} -j LOGDROP\n'''
-            #
-            # fake command? iptables -A INPUT -p tcp -m ip --frag 0x4000/0x4000 -j DROP
-            #
-            # finally, accept everything else
-            header += '-A CUSTOMRULES -j LOGACCEPT\n'
+        if enable_auto_blocking:
+            header += self.make_custom_rules_header()
 
         return header
 
@@ -253,8 +424,10 @@ class IPtables:
     #      reduce useless logging where practical
     #      may need a static ipset with a list of internal IP's
     def make_iptables_logaccept_entry(self, filter_table):
-        # apply custom rules if enabled
-        if self.ConfigData['IPtablesCustomRules']['Enable']:
+        enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
+        if enable_auto_blocking:
+            # apply custom rules if enabled
+            # CUSTOMRULES will jump to LOGACCEPT/LOGREJECT/LOGDROP as needed
             return f'-A {filter_table} -j CUSTOMRULES\n'
         return f'-A {filter_table} -m limit --limit {self.log_packets_per_minute}/min -j LOG --log-prefix "zzz accepted " --log-level 7\n'
     

@@ -184,7 +184,7 @@ class IPset:
         #   because "IPSET_NAME" is installed and running
         #   we build a new list separate from the installed list, then swap it in
         with open(blacklist_filepath, 'r') as blacklist_file, open(ipset_filepath, 'w') as write_file:
-            data_to_write = ['create blacklist2 hash:net family inet hashsize 1024 maxelem 500000 -quiet\n']
+            data_to_write = ['create blacklist2 hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n']
             for item in blacklist_file:
                 #TODO: validate IP's (even though they should have been validated on upload)
                 item = item.strip("\n")
@@ -204,26 +204,49 @@ class IPset:
         return self.util.run_script('/etc/iptables/ipset-update-blacklist.sh')
     
     #--------------------------------------------------------------------------------
-    
+
+    #TODO: create 2 versions
+    # 1) standard allowlist
+    # 2) allowlist with iptables rules AllowIPs?
     def update_allowlist(self):
         allowlist_filepath = self.ConfigData['UpdateFile']['iptables']['src_filepath_allow']
         ipset_filepath = self.ConfigData['UpdateFile']['ipset']['allowlist_filepath']
-        
+        iptables_rules_ip_result = set()
+        default_ip_result = set()
+
+        #-----extra allowlist IP's from IPtables Custom Rules-----
+        enable_auto_blocking = self.settings.is_setting_enabled('enable_auto_blocking', self.settings.SettingTypeIPtablesRules)
+        iptables_rules_allow_ips = self.settings.IPtablesRules['allow_ips']
+        if enable_auto_blocking and iptables_rules_allow_ips:
+            # whitespace to commas
+            iptables_rules_allow_ips = self.util.standalone.whitespace_to_commas(iptables_rules_allow_ips)
+            # validate and add to allowlist
+            ips = iptables_rules_allow_ips.split(',')
+            ips = [ip.strip() for ip in ips]
+            iptables_rules_ip_result = self.util.ip_util.validate_ips(ips)
+
+        default_allowlist = self.util.get_filedata(allowlist_filepath)
+        default_ip_result = self.util.ip_util.validate_ips(default_allowlist.split('\n'))
+        if not default_ip_result['valid']:
+            # ERROR - there should always be some default IPs
+            print('ERROR: no default IPs in allowlist')
+            return
+
         # Why always add entries to IPSET_NAME2 instead of IPSET_NAME?
         #   because "IPSET_NAME" is installed and running
         #   we build a new list separate from the installed list, then swap it in
-        with open(allowlist_filepath, 'r') as allowlist_file, open(ipset_filepath, 'w') as write_file:
-            data_to_write = ['create allow-ip2 hash:net family inet hashsize 1024 maxelem 500000 -quiet\n']
-            for item in allowlist_file:
-                #TODO: validate IP's (even though they should have been validated on upload)
-                item = item.strip("\n")
-                # data_to_write += 'add allow-ip2 {}\n'.format(item)
-                data_to_write.append(f'add allow-ip2 {item}\n')
+        combined_allow_ips = default_ip_result['valid'].union(iptables_rules_ip_result['valid'])
+        data_to_write = ['create allow-ip2 hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n']
+        for item in sorted(combined_allow_ips):
+            data_to_write.append(f'add allow-ip2 {item}\n')
+        with open(ipset_filepath, 'w') as write_file:
             write_file.write(''.join(data_to_write))
-    
+
+    #--------------------------------------------------------------------------------
+
     def install_allowlist(self):
         return self.util.run_script('/etc/iptables/ipset-update-allow-ip.sh')
-    
+
     #--------------------------------------------------------------------------------
     
     #-----only swap-in the countries blocked in Settings-----
@@ -234,7 +257,7 @@ class IPset:
         #-----merge all the changes into a single file and call the installer shell script-----
         ipset_merged_filepath = self.ConfigData['IPdeny']['ipv4']['conf_file']
         with open(ipset_merged_filepath, 'w') as write_file:
-            single_ipset_data_to_write = ['create countries-new hash:net family inet hashsize 1024 maxelem 250000 -quiet\n']
+            single_ipset_data_to_write = ['create countries-new hash:net family inet hashsize 1024 maxelem 500000 -exist -quiet\n']
             for country_code in self.settings.SettingsData['blocked_country']:
                 #-----using lowercase country codes when reading ipset files-----
                 # only ipdeny files have lowercase

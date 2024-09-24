@@ -232,3 +232,27 @@ class IPutil:
         return ipv6_64
     
     #--------------------------------------------------------------------------------
+
+    def validate_ips(self, ips_to_check: list) -> dict:
+        result = {
+            'valid': set(),
+            'invalid': set(),
+            'error_msg': [],
+        }
+        for ip in ips_to_check:
+            if not ip:
+                continue
+            ip_obj = self.is_cidr(ip)
+            if ip_obj:
+                result['valid'].add(ip)
+            else:
+                ip_obj = self.is_ip(ip)
+                if ip_obj:
+                    result['valid'].add(ip)
+                else:
+                    result['invalid'].add(ip)
+
+        result['error_msg'].append('Invalid IPs: ' + ', '.join(result['invalid']))
+        return result
+
+    #--------------------------------------------------------------------------------

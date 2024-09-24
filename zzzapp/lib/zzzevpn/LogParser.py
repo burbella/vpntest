@@ -108,14 +108,9 @@ class LogParser:
             rdns_class = 'reverse_dns'
             if rdns_popup:
                 rdns_class = 'reverse_dns_popup'
-            analysis_links_data = {
-                'base64_ip': self.util.encode_base64(ip),
-                'ip': ip,
-                'ip_blocking_links': ip_blocking_links,
-                'rdns_class': rdns_class,
-            }
-            ip_analysis_links = '''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable {rdns_class}" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
-            '''.format(**analysis_links_data)
+            base64_ip = self.util.encode_base64(ip)
+            ip_analysis_links = f'''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable {rdns_class}" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
+            '''
             
             #TODO: needs a binary search tree
             if highlight_ips:

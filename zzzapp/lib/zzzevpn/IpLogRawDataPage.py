@@ -15,6 +15,7 @@ class IpLogRawDataPage:
     data_validation: zzzevpn.DataValidation = None
     db: zzzevpn.DB = None
     ip_log_raw_data: zzzevpn.IpLogRawData = None
+    iptables_rules: zzzevpn.IPtablesRules = None
     logparser: zzzevpn.LogParser = None
     util: zzzevpn.Util = None
     settings: zzzevpn.Settings = None
@@ -48,7 +49,9 @@ class IpLogRawDataPage:
         'ttl': set(),
         # connection type
         'connection_external': False,
+        'connection_inbound': True,
         'connection_internal': False,
+        'connection_outbound': True,
         # flags
         'flags_any': False,
         'flags_none': False,
@@ -67,8 +70,11 @@ class IpLogRawDataPage:
         'show_max_bps_columns': False,
     }
 
-    checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_internal', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns']
-    allowed_post_params = ['action', 'auto_update_file_list', 'connection_external', 'connection_internal', 'dst_ip', 'dst_ports', 'extra_analysis', 'filename', 'flag_bps_above_value', 'flag_pps_above_value', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'min_displayed_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_icmp', 'protocol_other', 'protocol_tcp', 'protocol_udp', 'search_length', 'show_max_bps_columns', 'sort_by', 'src_ip', 'src_ports', 'ttl']
+    text_fields = ['dst_ip', 'dst_ports', 'search_length', 'src_ip', 'src_ports', 'ttl']
+    range_allowed_fields = ['dst_ports', 'src_ports', 'search_length', 'ttl']
+    checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_inbound', 'connection_internal', 'connection_outbound', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns']
+    allowed_post_params = ['action', 'auto_update_file_list', 'connection_external', 'connection_inbound', 'connection_internal', 'connection_outbound', 'dst_ip', 'dst_ports', 'extra_analysis', 'filename', 'flag_bps_above_value', 'flag_pps_above_value', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'min_displayed_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_icmp', 'protocol_other', 'protocol_tcp', 'protocol_udp', 'search_length', 'show_max_bps_columns', 'sort_by', 'src_ip', 'src_ports', 'ttl']
+    actions_requiring_filenames = {'delete_logfile', 'save_logfile', 'view_log', 'view_saved_log', 'view_raw_text', 'saved_view_raw_text'}
 
     # used to make sure only IPs in the displayed raw data are also displayed in the bps analysis tables
     displayed_raw_data_src_ips = set()
@@ -80,6 +86,7 @@ class IpLogRawDataPage:
     displayed_packet_ttls = set()
 
     count_test_prints = 0
+    errors = []
 
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None, settings: zzzevpn.Settings=None):
         #-----get Config-----
@@ -106,6 +113,7 @@ class IpLogRawDataPage:
             self.settings.get_settings()
         self.logparser = zzzevpn.LogParser(self.ConfigData, self.db, self.util, self.settings)
         self.ip_log_raw_data = zzzevpn.IpLogRawData(self.ConfigData, self.db, self.util, self.settings)
+        self.iptables_rules = zzzevpn.IPtablesRules(self.ConfigData, self.db, self.util, self.settings)
         self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, '', self.settings)
         self.init_vars()
 
@@ -114,6 +122,7 @@ class IpLogRawDataPage:
     #-----clear internal variables-----
     def init_vars(self):
         self.count_test_prints = 0
+        self.errors = []
         self.return_page_header = True
 
         self.limit_fields = {
@@ -136,14 +145,15 @@ class IpLogRawDataPage:
 
         #-----prep the HTML values-----
         self.IpLogRawDataHTML = {
-            # 'logdata': '',
-            'logfile_menu': '',
-            'logrotate_numfiles': self.ConfigData['LogRotate']['NumFiles'],
-            'saved_logfile_menu': '',
-            'show_rowcount': '',
             'flag_bps_default': self.settings.IPLogRawDataView_default['flag_bps_above_value'],
             'flag_pps_default': self.settings.IPLogRawDataView_default['flag_pps_above_value'],
+            'logfile_menu': '',
+            'logrotate_numfiles': self.ConfigData['LogRotate']['NumFiles'],
             'min_displayed_packets_default': self.settings.IPLogRawDataView_default['min_displayed_packets'],
+            'view_raw_text': '',
+            'saved_logfile_menu': '',
+            'saved_view_raw_text': '',
+            'show_rowcount': '',
         }
 
     #--------------------------------------------------------------------------------
@@ -172,13 +182,11 @@ class IpLogRawDataPage:
         #-----return if missing data in required fields (action, filename)-----
         if data['action'] is None:
             return self.webpage.error_log(environ, 'ERROR: missing action')
-        if (data['action'] in ['view_log', 'view_saved_log']) and (data['filename'] is None):
-            # filename only applies to view_log
+        if (data['action'] in self.actions_requiring_filenames) and (data['filename'] is None):
+            # filename only applies to view/save log actions
             return self.webpage.error_log(environ, 'ERROR: missing filename')
 
-        for range_param in ['dst_ports', 'src_ports', 'search_length', 'ttl']:
-            if data[range_param]:
-                self.limit_fields[range_param] = self.translate_ranges_to_set(data[range_param])
+        self.process_range_params(data)
 
         if data['dst_ip']:
             self.limit_fields['dst_ip'], self.net_objects['dst_ip'] = self.parse_cidr_list(data['dst_ip'])
@@ -190,11 +198,13 @@ class IpLogRawDataPage:
             self.limit_fields['src_ip'], self.net_objects['src_ip'] = self.parse_cidr_list(data['src_ip'])
 
         if data['min_displayed_packets']:
-            self.limit_fields['min_displayed_packets'] = self.util.get_int_safe(data['min_displayed_packets'])
+            self.limit_fields['min_displayed_packets'] = self.util.standalone.get_int_safe(data['min_displayed_packets'])
 
         self.load_js_checkbox_data(data)
 
-        if data['action'] in ['view_log', 'view_saved_log']:
+        if data['action']=='get_logfile_menu':
+            return self.get_logfile_menu()
+        elif data['action'] in {'view_log', 'view_saved_log'}:
             # save the latest settings
             self.store_data_in_settings(data)
             self.settings.save_ip_log_view_settings()
@@ -206,11 +216,33 @@ class IpLogRawDataPage:
             return self.delete_logfile(data['filename'])
         elif data['action']=='delete_all_logfiles':
             return self.delete_all_logfiles()
-        elif data['action']=='get_logfile_menu':
-            return self.get_logfile_menu()
+        elif data['action'] in ['view_raw_text', 'saved_view_raw_text']:
+            return self.view_raw_text(data['filename'], data['action'])
 
         #-----this should never happen-----
         return self.webpage.error_log(environ, 'ERROR: unexpected action')
+
+    #--------------------------------------------------------------------------------
+
+    def process_range_params(self, data: dict):
+        for range_param in self.range_allowed_fields:
+            if not data[range_param]:
+                continue
+
+            valid_max = 65535
+            if range_param=='ttl':
+                valid_max = 255
+
+            self.limit_fields[range_param] = set()
+            translation_result = self.iptables_rules.translate_ranges_str_to_set(data[range_param], valid_max, field_name=range_param)
+
+            if translation_result['error_msg']:
+                self.errors.extend(translation_result['error_msg'])
+
+            # return the valid numbers as strings for searching
+            if translation_result['numbers']:
+                for number in translation_result['numbers']:
+                    self.limit_fields[range_param].add(str(number))
 
     #--------------------------------------------------------------------------------
 
@@ -275,11 +307,11 @@ class IpLogRawDataPage:
     #-----store the data from the POST into the settings var IPLogRawDataView-----
     def store_data_in_settings(self, data: dict):
         # allow zero here
-        self.settings.IPLogRawDataView['flag_bps_above_value'] = self.util.get_int_safe(data['flag_bps_above_value'])
-        self.settings.IPLogRawDataView['flag_pps_above_value'] = self.util.get_int_safe(data['flag_pps_above_value'])
-        self.settings.IPLogRawDataView['min_displayed_packets'] = self.util.get_int_safe(data['min_displayed_packets'])
+        self.settings.IPLogRawDataView['flag_bps_above_value'] = self.util.standalone.get_int_safe(data['flag_bps_above_value'])
+        self.settings.IPLogRawDataView['flag_pps_above_value'] = self.util.standalone.get_int_safe(data['flag_pps_above_value'])
+        self.settings.IPLogRawDataView['min_displayed_packets'] = self.util.standalone.get_int_safe(data['min_displayed_packets'])
 
-        for textbox in ['dst_ip', 'dst_ports', 'search_length', 'src_ip', 'src_ports', 'ttl']:
+        for textbox in self.text_fields:
             if data[textbox] is None:
                 self.settings.IPLogRawDataView[textbox] = ''
             else:
@@ -296,15 +328,12 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
-    def whitespace_to_commas(self, data: str) -> str:
-        return data.replace(' ', ',').replace('\n', ',').replace('\r', ',').replace('\t', ',')
-
     # list items can be either IP's or CIDR: 1.2.3.0/24,2.3.4.5
     def parse_cidr_list(self, cidr_list: str):
         if not cidr_list:
             return set()
 
-        cidr_list = self.whitespace_to_commas(cidr_list)
+        cidr_list = self.util.standalone.whitespace_to_commas(cidr_list)
         net_objects = {}
         raw_data_set = set()
         for item in cidr_list.split(','):
@@ -325,37 +354,6 @@ class IpLogRawDataPage:
                     raw_data_set.add(item)
 
         return raw_data_set, net_objects
-
-    #--------------------------------------------------------------------------------
-
-    # 1-5,22,32-35 --> {1,2,3,4,5,22,32,33,34,35}
-    def translate_ranges_to_set(self, ranges_list: str) -> set:
-        if not ranges_list:
-            return set()
-
-        ranges_list = self.whitespace_to_commas(ranges_list)
-        numbers = set()
-        for range_str in ranges_list.split(','):
-            if '-' in range_str:
-                start, end = range_str.split('-')
-                if not (self.util.valid_port(start) or self.util.valid_port(end)):
-                    print(f'ERROR: invalid range: {range_str}')
-                    continue
-                start = int(start)
-                end = int(end)
-                if start>=end:
-                    print(f'ERROR: range start must be less than end: {range_str}')
-                    continue
-                for num in range(start, end+1):
-                    # comparisons are done as strings, so convert to string
-                    numbers.add(str(num))
-            else:
-                if not self.util.valid_port(range_str):
-                    print(f'ERROR: invalid port: {range_str}')
-                    continue
-                # comparisons are done as strings, so convert to string
-                numbers.add(str(range_str))
-        return numbers
 
     #--------------------------------------------------------------------------------
 
@@ -392,6 +390,23 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
+    def raw_text_buttons(self):
+        # only show the raw text buttons if the dev checkbox is checked
+        if not self.settings.is_setting_enabled('show_dev_tools'):
+            return
+        self.IpLogRawDataHTML['view_raw_text'] = '''
+        <td class="no_border width_65">
+        <a class="clickable" id="view_raw_text">Raw Text</a>
+        </td>
+        '''
+        self.IpLogRawDataHTML['saved_view_raw_text'] = '''
+        <td class="no_border width_65">
+        <a class="clickable" id="saved_view_raw_text">Raw Text</a>
+        </td>
+        '''
+
+    #--------------------------------------------------------------------------------
+
     # settings from the settings.IPLogRawDataView need to be put in self.IpLogRawDataHTML
     def load_settings_into_html(self):
         # settings = self.settings.get_settings()
@@ -412,9 +427,11 @@ class IpLogRawDataPage:
         self.IpLogRawDataHTML['src_ports'] = self.settings.IPLogRawDataView['src_ports']
         self.IpLogRawDataHTML['ttl'] = self.settings.IPLogRawDataView['ttl']
 
+        self.raw_text_buttons()
+
+        default_value = 'true'
         for checkbox in self.checkbox_fields:
             self.IpLogRawDataHTML[checkbox] = self.limit_fields[checkbox]
-            default_value = 'true'
             if self.settings.is_setting_enabled(checkbox, self.settings.SettingTypeIPLogRawDataView):
                 #-----the checked attribute ends up in the HTML <input> tag-----
                 self.IpLogRawDataHTML[checkbox] = 'checked'
@@ -434,6 +451,33 @@ class IpLogRawDataPage:
     def is_logfile_saved(self, filename: str) -> bool:
         filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
         return os.path.exists(filepath)
+
+    #--------------------------------------------------------------------------------
+
+    def view_logfile(self, filename: str, action: str=None) -> str:
+        return
+
+    #--------------------------------------------------------------------------------
+
+    def view_raw_text(self, filename: str, action: str=None) -> str:
+        filepath = f'''{self.ConfigData['Directory']['IPtablesLog']}/{filename}'''
+        if action=='saved_view_raw_text':
+            filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+
+        filedata = self.util.get_filedata(filepath)
+        if not filedata:
+            return self.make_return_json_error('logfile not found')
+        logdata_html = self.util.make_html_display_safe(filedata)
+        logdata_html = f'''<tr><td class="whitespace_pre no_border">{logdata_html}</td></tr>'''
+
+        data_to_send = {
+            'status': 'success',
+            'error_msg': '',
+            'logdata': logdata_html,
+        }
+        json_data_to_send = json.dumps(data_to_send)
+
+        return json_data_to_send
 
     #--------------------------------------------------------------------------------
 
@@ -458,32 +502,22 @@ class IpLogRawDataPage:
         analysis = self.ip_log_raw_data.analyze_log_data(entries, extra_analysis=self.limit_fields['extra_analysis'])
         all_analysis_rows = self.make_all_analysis_rows(analysis)
 
-        #TEST
-        TESTDATA = ''
-        # analysis_print = pprint.pformat(analysis)
-        # analysis_keys = ' '.join(analysis.keys())
-        #
-        # TESTDATA = f'''<p class="font-courier gray-bg">TESTDATA:<br>
-        # analysis keys: {analysis_keys}<br>
-        # analysis: {analysis_print}<br>
-        # </p>'''
-        #
-        #TEST: make sure checkboxes work
-        # testdata_rows = []
-        # testdata_rows.append(f'''<p class="font-courier gray-bg">TESTDATA:<br>''')
-        # for checkbox_field in self.checkbox_fields:
-        #     testdata_rows.append(f'''{checkbox_field}: {self.limit_fields[checkbox_field]}<br>''')
-        # testdata_rows.append('''</p>''')
-        # TESTDATA = '\n'.join(testdata_rows)
-
         bps_limit_displayed = ''
         if analysis['duration'] > self.ip_log_raw_data.bps_time_limit:
             bps_limit_displayed = f'({self.ip_log_raw_data.bps_increment_size}-second bps columns shown, up to {self.ip_log_raw_data.bps_time_limit} seconds)'
+
+        # note the source IPs that are not in the destination IPs
+        displayed_src_not_in_dst = self.displayed_raw_data_src_ips - self.displayed_raw_data_dst_ips
+        displayed_dst_not_in_src = self.displayed_raw_data_dst_ips - self.displayed_raw_data_src_ips
+        limit_field_errors = ''
+        if self.errors:
+            limit_field_errors = self.util.ascii_to_html_with_line_breaks('\n'.join(self.errors))
 
         data_to_send = {
             'status': 'success',
             'error_msg': '',
 
+            'limit_field_errors': limit_field_errors,
             'logdata': '\n'.join(logdata_rows),
 
             'src_ip_analysis': '\n'.join(all_analysis_rows['src_analysis_rows']),
@@ -503,12 +537,14 @@ class IpLogRawDataPage:
             'displayed_dst_ports': self.numbers_to_printable_str(self.displayed_raw_data_dst_ports),
             'displayed_packet_lengths': self.numbers_to_printable_str(self.displayed_packet_lengths),
             'displayed_packet_ttls': self.numbers_to_printable_str(self.displayed_packet_ttls),
+            'displayed_src_not_in_dst': '\n'.join(sorted(displayed_src_not_in_dst)),
+            'displayed_dst_not_in_src': '\n'.join(sorted(displayed_dst_not_in_src)),
 
             'calculation_time': analysis['calculation_time'],
             'filename': filename,
             'is_logfile_saved': self.is_logfile_saved(filename),
 
-            'TESTDATA': TESTDATA,
+            'TESTDATA': '',
         }
         json_data_to_send = json.dumps(data_to_send)
 
@@ -588,14 +624,15 @@ class IpLogRawDataPage:
             bps_max_seconds = self.ip_log_raw_data.bps_time_limit
         bps_header = ''
         for segment in range(0, bps_max_seconds-4, 5):
-            bps_header += f'<th>bps({segment}-{segment+5})<br>pps</th>'
+            bps_header += f'<th>{segment}-{segment+5}<br>bps<br>pps</th>'
 
         analysis_rows = [f'''<tr>
 <th>{colname}</th>
+<th>Country</th>
 <th>Packets</th>
-<th>pkts/sec</th>
-<th>Total Bytes</th>
-<th>bytes/sec</th>
+<th>pkts<br>/sec</th>
+<th>Total<br>Bytes</th>
+<th>bytes<br>/sec</th>
 {bps_header}
 </tr>''']
         view_has_limits = self.has_limits()
@@ -631,8 +668,11 @@ class IpLogRawDataPage:
                 bytes_per_sec = int(total_bytes / analysis['duration'])
                 packets_per_sec = int(total_packets / analysis['duration'])
             bps_cols = self.make_analysis_ip_segment(analysis, key, ip, bps_max_seconds, rowcolor)
+            country_code = self.util.lookup_ip_country(ip)
+            country = self.ConfigData['OfficialCountries'].get(country_code, 'UNKNOWN')
             row = f'''<tr class="{rowcolor}">
 <td><span class="cursor_copy">{ip}</span>&nbsp;{ip_data['ip_analysis_links']}</td>
+<td class="wrap_text">{country}</td>
 <td class="right_align">{total_packets}</td>
 <td class="right_align">{packets_per_sec}</td>
 <td class="right_align">{total_bytes}</td>
@@ -915,21 +955,25 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
-    def is_connection_internal(self, entry_in: str, entry_out: str) -> bool:
-        if (not entry_in) or (not entry_out):
-            return True
-        return False
-
-    #--------------------------------------------------------------------------------
-
     def make_row(self, entry: dict, rowcolor: str='') -> str:
-        if self.is_connection_internal(entry['in'], entry['out']):
+        #-----apply the connection checkboxes-----
+        # 'connection_external', 'connection_inbound', 'connection_internal', 'connection_outbound'
+        if entry['internal']:
             #-----skip internal connections-----
             if not self.limit_fields['connection_internal']:
                 return None
         else:
             if not self.limit_fields['connection_external']:
                 #-----skip external connections-----
+                return None
+
+        if entry['inbound']:
+            #-----skip inbound connections-----
+            if not self.limit_fields['connection_inbound']:
+                return None
+        else:
+            if not self.limit_fields['connection_outbound']:
+                #-----skip outbound connections-----
                 return None
 
         #-----skip rows not matching limit field text boxes-----
@@ -953,9 +997,9 @@ class IpLogRawDataPage:
             if not ok_to_display_ttl:
                 return None
 
-        #-----apply the checkboxes-----
+        #-----apply the remaining checkboxes-----
         # default to allowing the row to display
-        # 'connection_external', 'connection_internal', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other'
+        # 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other'
         ok_to_display = True
 
         # type: accepted, blocked
@@ -1104,3 +1148,5 @@ class IpLogRawDataPage:
                 break
 
         return logdata_rows, entries
+
+    #--------------------------------------------------------------------------------

@@ -154,7 +154,7 @@ create table work_available(
 
 
 -- no indexes because only one table row ever exists
--- JSON data fields: json, ip_log_raw_data_view, ip_auto_block, icap
+-- JSON data fields: json, ip_log_raw_data_view, iptables_rules, icap
 create table settings(
     json text not null,
     squid_nobumpsites text,
@@ -162,10 +162,12 @@ create table settings(
     hide_ips text,
     allow_ips text,
     ip_log_raw_data_view text,
-    ip_auto_block text,
+    iptables_rules text,
     icap text,
     last_updated integer not null,
-    raw_data_view_last_updated integer
+    raw_data_view_last_updated integer,
+    iptables_rules_last_updated integer,
+    icap_last_updated integer
 );
 
 

@@ -153,6 +153,12 @@ def test_iptables(iptables):
 def test_iptables_logparser(iptables_logparser):
     assert iptables_logparser is not None
 
+def test_iptables_rules(iptables_rules):
+    assert iptables_rules is not None
+
+def test_iptables_rules_page(iptables_rules_page):
+    assert iptables_rules_page is not None
+
 def test_list_manager(list_manager):
     assert list_manager is not None
 
@@ -270,6 +276,8 @@ def test_obj_no_params_supplied(ConfigData):
     make_obj_no_params(zzzevpn.IPset(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.IPtables(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.IPtablesLogParser(ConfigData), param_db_util_settings)
+    make_obj_no_params(zzzevpn.IPtablesRules(ConfigData), param_db_util_settings)
+    make_obj_no_params(zzzevpn.IPtablesRulesPage(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.ListManager(ConfigData), param_db_util)
     make_obj_no_params(zzzevpn.ListManagerPage(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.LogParser(ConfigData), param_db_util_settings)

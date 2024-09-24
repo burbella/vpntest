@@ -4,8 +4,6 @@ import pprint
 import re
 
 #-----import modules from the lib directory-----
-# This module cannot import the full zzzevpn because it would cause import loops
-# import zzzevpn.Config
 import zzzevpn
 
 class DataValidation:
@@ -31,7 +29,7 @@ class DataValidation:
     cidr_list_regex_pattern = r'^({}{})*{}$'.format(cidr_regex_pattern, comma_whitespace_pattern, cidr_regex_pattern)
     
     # json_regex_pattern = r'^\{[\w\s.{}":,-]+\}$'
-    json_regex_pattern = r'^\s*\{.+\}\s*$'
+    json_regex_pattern = r'^\s*\{.+?\}\s*$'
     
     subdomain_regex_pattern = r'[\w.-]{3,400}'
     subdomain_list_regex_pattern = r'^({}[,\n]+)*{}$'.format(subdomain_regex_pattern, subdomain_regex_pattern) # commas or newlines as separators
@@ -156,13 +154,22 @@ class DataValidation:
             'json_data': 'json',
             'service_name': 'word',
         },
-        
+
         # overrides the default max POST size on a per-URL basis
         # can only go lower, not higher
         'max_post_size': {
             '/whois': 1024,
         },
-        
+
+        # for validating a collection of data inside a dictionary
+        'json_data-iptables_rules': {
+            'dst_ports': 'int-range-list',
+            'notes': 'text-large',
+            'traffic_direction': 'word',
+        },
+
+        ##################################################
+        #-----URL path rules-----
         # EX: '/index'
         # '/URI/PATH': {
         #     'PARAM': 'DATATYPE',
@@ -210,7 +217,9 @@ class DataValidation:
             ####################
             'auto_update_file_list': 'boolean',
             'connection_external': 'boolean',
+            'connection_inbound': 'boolean',
             'connection_internal': 'boolean',
+            'connection_outbound': 'boolean',
             'flags_any': 'boolean',
             'flags_none': 'boolean',
             'include_accepted_packets': 'boolean',
@@ -243,19 +252,9 @@ class DataValidation:
             'nslookup_dns_blocked': 'boolean',
             'whois_server_only': 'boolean',
         },
-        # '/nslookup': {
-        #     'nslookup_dns_blocked': 'boolean',
-        #     'whois_server_only': 'boolean',
-        # },
-        # '/reverse_dns': {
-        #     'ip': 'ip-list',
-        #     'nslookup_dns_blocked': 'boolean',
-        #     'whois_server_only': 'boolean',
-        # },
         '/squid_log': {
             'lines_to_analyze': 'int',
         },
-        # update_zzz
         '/update_zzz': {
             'all_packages': 'boolean',
             'branch': 'text-small',
@@ -274,11 +273,6 @@ class DataValidation:
             'pip_local_only': 'boolean',
             'table': 'text-small',
         },
-        # '/whois': {
-        #     'do_delete': 'boolean',
-        #     'nslookup_dns_blocked': 'boolean',
-        #     'whois_server_only': 'boolean',
-        # },
     }
     
     command = None
@@ -553,26 +547,34 @@ class DataValidation:
 
     #--------------------------------------------------------------------------------
 
-    #TODO: auto-clean any data that fails validation
-    #-----run the Rules against given GET/POST params-----
-    def validate(self, environ: dict, data: dict) -> bool:
-        self.validation_status_msgs = []
-        if not data:
-            # empty data is always valid
-            return True
-
+    # /iptables_log
+    # json_data-iptables_rules
+    def _validate_by_ruleset(self, ruleset_name: str, data: dict):
         success = True
-        script_path = environ.get('SCRIPT_NAME', None)
-        path_info = environ.get('PATH_INFO', None)
         for name in data.keys():
             value = data[name]
-            if self.validate_item(path_info, name, value):
+            if self.validate_item(ruleset_name, name, value):
                 self.print_test_result(f'valid data for param "{name}"')
             else:
                 self.print_error(f'invalid data for param "{name}"')
                 if self.enforce_rules:
                     success = False
-
         return success
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: auto-clean any data that fails validation
+    #-----run the Rules against given GET/POST params-----
+    def validate(self, environ: dict, data: dict, validate_dict: str='') -> bool:
+        self.init_vars()
+        if not data:
+            # empty data is always valid
+            return True
+
+        if validate_dict:
+            return self._validate_by_ruleset(validate_dict, data)
+
+        path_info = environ.get('PATH_INFO', None)
+        return self._validate_by_ruleset(path_info, data)
 
     #--------------------------------------------------------------------------------

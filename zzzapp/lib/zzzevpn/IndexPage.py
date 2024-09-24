@@ -100,9 +100,11 @@ class IndexPage:
         if self.webpage is None:
             self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, pagetitle, self.settings)
 
+        OpenVPNUpdatesNeeded = self.util.get_filedata(self.ConfigData['VersionFiles']['openvpn'])
+
         self.IndexHTML['MOTD'] = self.get_motd()
         self.IndexHTML['TaskStatus'] = self.task_history.get_task_status(100)
-        self.IndexHTML['OpenVPNUpdatesNeeded'] = self.util.get_filedata(self.ConfigData['VersionFiles']['openvpn'])
+        self.IndexHTML['OpenVPNUpdatesNeeded'] = OpenVPNUpdatesNeeded
         self.IndexHTML['RunningProcesses'] = self.show_running_processes()
         self.IndexHTML['RebootNeededWarning'] = ''
         

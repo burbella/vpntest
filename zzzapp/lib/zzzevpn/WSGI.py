@@ -165,6 +165,8 @@ class WSGI:
             output = self.generic_process(iptables_log_parser, 'IP Log', 'iptables_log()')
         # elif self.path_info == '/ipwhois_cache':
         #     output = self.generic_process(zzzevpn.NetworkService.NetworkService(ConfigData, db), 'IP-Whois Cache', 'ipwhois_cache()')
+        elif self.path_info == '/iptables_rules':
+            output = self.generic_process(zzzevpn.IPtablesRulesPage(ConfigData, db), 'iptables Rules', 'iptables_rules()')
         elif self.path_info == '/list_manager':
             output = self.generic_process(zzzevpn.ListManagerPage(ConfigData, db), 'List Manager', 'list_manager()')
         elif self.path_info == '/network_service':

@@ -16,6 +16,7 @@ $(function() {{
 <br>
 <table class="no_border">
     <tr>
+        {view_raw_text}
         <td class="no_border">
             Logfile: <select id="logfile">{logfile_menu}</select>
         </td>
@@ -31,6 +32,7 @@ $(function() {{
     </tr>
     <tr id="saved_logs_section" class="hide_item">
         <!-- un-hide if any logs are saved -->
+        {saved_view_raw_text}
         <td class="no_border">
             Saved Logs: <select id="saved_logfile_menu">{saved_logfile_menu}</select>
         </td>
@@ -49,11 +51,12 @@ $(function() {{
         </td>
     </tr>
     <tr>
-        <td class="no_border">
+        <td class="no_border" colspan="4">
             &nbsp;<span id="loading_msg" class="warning_text"></span>
         </td>
     </tr>
 </table>
+<span id="limit_field_errors" class="font-courier warning_text"></span>
 <span id="TESTDATA"></span>
 <table>
     <tr>
@@ -93,15 +96,15 @@ $(function() {{
                 <td class="no_border"><input type="text" id="ttl" size="50" maxlength="1000" value="{ttl}"></td>
             </tr>
         </table>
-        Connection type: <input type="checkbox" id="connection_external" {connection_external}> external - <input type="checkbox" id="connection_internal" {connection_internal}> internal
+        Connection type: <input type="checkbox" id="connection_external" {connection_external}>external &#8226; <input type="checkbox" id="connection_internal" {connection_internal}>internal &#8226; <input type="checkbox" id="connection_inbound" {connection_inbound}>inbound &#8226; <input type="checkbox" id="connection_outbound" {connection_outbound}>outbound
         <br>
-        Status: <input type="checkbox" id="include_accepted_packets" {include_accepted_packets}> accepted - <input type="checkbox" id="include_blocked_packets" {include_blocked_packets}> blocked
+        Status: <input type="checkbox" id="include_accepted_packets" {include_accepted_packets}>accepted &#8226; <input type="checkbox" id="include_blocked_packets" {include_blocked_packets}>blocked
         <br>
-        Protocol: <input type="checkbox" id="protocol_tcp" {protocol_tcp}> TCP - <input type="checkbox" id="protocol_udp" {protocol_udp}> UDP - <input type="checkbox" id="protocol_icmp" {protocol_icmp}> ICMP - <input type="checkbox" id="protocol_other" {protocol_other}> Other
+        Protocol: <input type="checkbox" id="protocol_tcp" {protocol_tcp}>TCP &#8226; <input type="checkbox" id="protocol_udp" {protocol_udp}>UDP &#8226; <input type="checkbox" id="protocol_icmp" {protocol_icmp}>ICMP &#8226; <input type="checkbox" id="protocol_other" {protocol_other}>Other
         <br>
-        PREC/TOS(a.k.a. DS): <input type="checkbox" id="prec_tos_zero" {prec_tos_zero}> zero - <input type="checkbox" id="prec_tos_nonzero" {prec_tos_nonzero}> nonzero
+        PREC/TOS(a.k.a. DS): <input type="checkbox" id="prec_tos_zero" {prec_tos_zero}>zero &#8226; <input type="checkbox" id="prec_tos_nonzero" {prec_tos_nonzero}>nonzero
         <br>
-        Flags: <input type="checkbox" id="flags_any" {flags_any}> any - <input type="checkbox" id="flags_none" {flags_none}> none
+        Flags: <input type="checkbox" id="flags_any" {flags_any}>any &#8226; <input type="checkbox" id="flags_none" {flags_none}>none
     </td>
     <td rowspan="2" class="valign_top">
         <b>Pending Updates - IP:</b> <a id="clear_ip_updates" class="clickable">Clear</a><br>
@@ -171,7 +174,8 @@ $(function() {{
                     <span class="clickable">(R)</span> - Reverse DNS<br>
                     <span class="clickable">(W)</span> - Whois<br>
                     <b>Blocking:</b><br>
-                    <span class="clickable_red">(I)</span> - Block IP (iptables)<br>
+                    <span class="clickable_red">(I)</span> - Block IP<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(iptables)<br>
                 </td>
                 <td class="top_align">
                     Source<br>Ports:<br>
@@ -188,6 +192,16 @@ $(function() {{
                 <td class="top_align">
                     Packet<br>TTLs:<br>
                     <textarea id="displayed_packet_ttls" rows="5" cols="7" readonly></textarea>
+                </td>
+                <td class="top_align">
+                    Src IPs not in Dst:<br>
+                    (ignores min pkts)<br>
+                    <textarea id="displayed_src_not_in_dst" rows="5" cols="15" readonly></textarea>
+                </td>
+                <td class="top_align">
+                    Dst IPs not in Src:<br>
+                    (ignores min pkts)<br>
+                    <textarea id="displayed_dst_not_in_src" rows="5" cols="15" readonly></textarea>
                 </td>
                 <td class="top_align">
                     <table class="no_border">

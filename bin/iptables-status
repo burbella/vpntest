@@ -4,6 +4,10 @@ echo IPv4 NAT:
 sudo iptables -S -t nat
 
 echo ------------------------------------------------------------
+echo IPv4 MANGLE:
+sudo iptables -S -t mangle
+
+echo ------------------------------------------------------------
 echo IPv4 FILTER:
 sudo iptables -S -t filter
 

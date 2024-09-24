@@ -86,12 +86,20 @@
     vertical-align: top;
 }
 
+.whitespace_pre {
+    white-space: pre;
+}
+
 .width_30 {
     width: 30px;
 }
 
 .width_60 {
     width: 60px;
+}
+
+.width_65 {
+    width: 65px;
 }
 
 .width_100 {

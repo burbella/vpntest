@@ -1,16 +1,25 @@
 #!/bin/bash
 
+ZZZ_VERBOSE="-v"
+if [ "$1" == "-q" ]; then
+    ZZZ_VERBOSE=""
+fi
+
 echo IPv4 NAT:
-sudo iptables -L -t nat
+sudo iptables -L -t nat -n $ZZZ_VERBOSE
+
+echo ------------------------------------------------------------
+echo IPv4 MANGLE:
+sudo iptables -L -t mangle -n $ZZZ_VERBOSE
 
 echo ------------------------------------------------------------
 echo IPv4 FILTER:
-sudo iptables -L -t filter -n
+sudo iptables -L -t filter -n $ZZZ_VERBOSE
 
 echo ------------------------------------------------------------
 echo IPv6 NAT:
-sudo ip6tables -L -t nat
+sudo ip6tables -L -t nat -n $ZZZ_VERBOSE
 
 echo ------------------------------------------------------------
 echo IPv6 FILTER:
-sudo ip6tables -L -t filter -n
+sudo ip6tables -L -t filter -n $ZZZ_VERBOSE

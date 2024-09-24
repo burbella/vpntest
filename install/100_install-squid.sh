@@ -25,7 +25,7 @@ echo "$ZZZ_SCRIPTNAME - START"
 
 #-----import the shell utils-----
 source /opt/zzz/util/util.sh
-# vars set in util.sh: REPOS_DIR, RUN_AS_UBUNTU, SQUID_INSTALLER_STATUS_FILE, ZZZ_CONFIG_DIR, ZZZ_SQUID_VERSION_INSTALL
+# vars set in util.sh: REPOS_DIR, RUN_AS_UBUNTU, SQUID_INSTALLER_STATUS_FILE, ZZZ_CONFIG_DIR, ZZZ_SQUID_INSTALL_METHOD, ZZZ_SQUID_VALIDATION_KEY, ZZZ_SQUID_VERSION_INSTALL, ZZZ_SQUID_VERSION_TAG
 
 SRC_DIR=/home/ubuntu/src
 cd $SRC_DIR
@@ -33,8 +33,8 @@ cd $SRC_DIR
 #-----GPG setup (in case an upgrade from .tar.gz is done later)-----
 # 4.16 - fingerprint=B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E
 # 5.1 - fingerprint=B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E
-wget --output-document=/home/ubuntu/src/squid-pgp.asc http://www.squid-cache.org/pgp.asc
-$RUN_AS_UBUNTU gpg --homedir /home/ubuntu/.gnupg --import /home/ubuntu/src/squid-pgp.asc
+wget --output-document=$SRC_DIR/squid-pgp.asc http://www.squid-cache.org/pgp.asc
+$RUN_AS_UBUNTU gpg --homedir /home/ubuntu/.gnupg --import $SRC_DIR/squid-pgp.asc
 $RUN_AS_UBUNTU gpg --homedir /home/ubuntu/.gnupg --keyserver keyserver.ubuntu.com --recv-keys $ZZZ_SQUID_VALIDATION_KEY
 
 #-----get the latest production version of Squid-----
@@ -81,18 +81,24 @@ systemctl stop squid-icap
 echo "squid stopped"
 
 #-----tar.gz download/verify/install-----
-NEW_VERSION=$ZZZ_SQUID_VERSION_INSTALL
-echo "Squid version to install: $NEW_VERSION"
-/opt/zzz/util/squid_download_verify_compile.sh $NEW_VERSION
-ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE=`cat $SQUID_INSTALLER_STATUS_FILE`
-if [ "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE" != "OK" ]; then
-    echo "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE"
-    #TODO: move the stuff below into a function so we can do "return" here
-    #  "exit" would crash the calling script
-    #  if the squid install is skipped, the rest of the system should still work, so no need to give up on the remaining system install/setup
+if [ "$ZZZ_SQUID_INSTALL_METHOD" == "www" ]; then
+    NEW_VERSION=$ZZZ_SQUID_VERSION_INSTALL
+    echo "Squid version to install: $NEW_VERSION"
+    /opt/zzz/util/squid_download_verify_compile.sh $NEW_VERSION
+    ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE=`cat $SQUID_INSTALLER_STATUS_FILE`
+    if [ "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE" != "OK" ]; then
+        echo "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE"
+        #TODO: move the stuff below into a function so we can do "return" here
+        #  "exit" would crash the calling script
+        #  if the squid install is skipped, the rest of the system should still work, so no need to give up on the remaining system install/setup
+    fi
+
+    #-----only change the directory name if we're installing from www-----
+    #EX: /home/ubuntu/src/squid-6.10
+    SQUID_SRC=$SRC_DIR/squid-$NEW_VERSION
 fi
 
-SQUID_SRC=$SRC_DIR/squid-$NEW_VERSION
+#-----do another cd in case the directory name changed above-----
 cd $SQUID_SRC
 
 #-----compile and install-----

@@ -40,14 +40,18 @@ from .SquidLogParser import SquidLogParser
 from .ListManager import ListManager
 from .UpdateFile import UpdateFile
 
+from .IPset import IPset
+from .IPtables import IPtables
+from .IPtablesRules import IPtablesRules
+
 from .BIND import BIND
 from .CheckLatestVersion import CheckLatestVersion
 from .IndexPage import IndexPage
 from .IpLogRawData import IpLogRawData
 from .IpLogRawDataPage import IpLogRawDataPage
-from .IPset import IPset
-from .IPtables import IPtables
 from .IPtablesLogParser import IPtablesLogParser
+# IPtablesRulesPage --> IPtablesRules --> IPtables/IPset
+from .IPtablesRulesPage import IPtablesRulesPage
 from .ListManagerPage import ListManagerPage
 from .SettingsPage import SettingsPage
 from .SquidLogPage import SquidLogPage

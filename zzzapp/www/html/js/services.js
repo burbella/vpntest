@@ -10,6 +10,7 @@ var loading_timer = null;
 
 var loading_start_time = 0;
 var overlay_enabled = false;
+var copy_to_clipboard_in_progress = false;
 
 //-----global URL's-----
 // the zzz_https_url JS var is set in zzz_config.js, which is loaded into every page by header.template
@@ -21,6 +22,7 @@ var url_edit_dns = zzz_https_url + '/z/edit_dns';
 var url_edit_ip = zzz_https_url + '/z/edit_ip';
 var url_iptables_log = zzz_https_url + '/z/iptables_log';
 var url_ip_log_raw_data = zzz_https_url + '/z/ip_log_raw_data';
+var url_iptables_rules = zzz_https_url + '/z/iptables_rules';
 var url_list_manager = zzz_https_url + '/z/list_manager';
 var url_network_service = zzz_https_url + '/z/network_service';
 var url_settings = zzz_https_url + '/z/settings';
@@ -282,6 +284,7 @@ function clipboard_html_reset(item, original_text)
 {
     item.removeClass('warning_text');
     item.text(original_text);
+    copy_to_clipboard_in_progress = false;
 }
 
 // pass in jquery object - should be an HTML tag containing text
@@ -290,11 +293,17 @@ function clipboard_html_reset(item, original_text)
 // then run attach_copy_to_clipboard();
 function copy_to_clipboard(item)
 {
+    if (copy_to_clipboard_in_progress) {
+        // rapid double-click leaves the text as "Copied"
+        return;
+    }
+    copy_to_clipboard_in_progress = true;
+
     let original_text = item.text();
     navigator.clipboard.writeText(original_text);
     item.addClass('warning_text');
     item.text('Copied');
-    setTimeout(clipboard_html_reset, 1000, item, original_text);
+    setTimeout(clipboard_html_reset, 500, item, original_text);
 }
 
 //--------------------------------------------------------------------------------

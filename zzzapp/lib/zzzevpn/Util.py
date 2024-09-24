@@ -766,10 +766,7 @@ class Util:
         return False
 
     def get_int_safe(self, value: str) -> int:
-        try:
-            return int(value)
-        except:
-            return 0
+        return self.standalone.get_int_safe(value)
 
     #--------------------------------------------------------------------------------
 

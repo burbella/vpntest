@@ -42,7 +42,7 @@ class ServiceRequest:
         'bind': [ 'add_domains', 'replace_domains', 'reload', 'restart', ],
         # iptables DB changes: add_ips, replace_ips, delete_log_all, delete_log_old
         # iptables file system changes: delete_logfile, delete_all_logfiles, save_logfile
-        'iptables': [ 'add_ips', 'replace_ips', 'delete_log_all', 'delete_log_old', 'delete_logfile', 'delete_all_logfiles', 'parse_logs', 'save_logfile', ],
+        'iptables': [ 'add_ips', 'replace_ips', 'delete_log_all', 'delete_log_old', 'delete_logfile', 'delete_all_logfiles', 'parse_logs', 'save_logfile', 'update_iptables_rules' ],
         'linux': [ 'list_os_updates', 'install_os_updates', 'restart', ],
         'list_manager': ['download_lists', 'rebuild_lists'],
         'openvpn': [ 'restart', ],
@@ -919,10 +919,14 @@ class ServiceRequest:
     
     #-----ip log processing-----
     # action=add_ips
-    # action=replace_ips
+    # action=delete_all_logfiles
+    # action=delete_logfile
     # action=delete_log_all
     # action=delete_log_old
     # action=parse_logs
+    # action=replace_ips
+    # action=save_logfile
+    # action=update_iptables_rules
     def process_iptables(self, request_id, service_name, action, details, req_date):
         print(f'IPTABLES: {action} ReqID={request_id} - {req_date}', flush=True)
         if (action in ['add_ips', 'replace_ips']):
@@ -941,6 +945,10 @@ class ServiceRequest:
             ip_log_parser.delete_ip_logfile(details)
         elif action=='delete_all_logfiles':
             ip_log_parser.delete_all_ip_logfiles()
+        elif action=='update_iptables_rules':
+            self.get_settings()
+            iptables_rules = zzzevpn.IPtablesRules(self.ConfigData, self.db, self.util, self.settings)
+            iptables_rules.implement_iptables_rules()
         elif action=='parse_logs':
             #-----call the logrotate command-----
             # logs won't be parsed unless they are rotated first

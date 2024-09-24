@@ -185,13 +185,6 @@ class Config:
             },
         },
 
-        #TEST
-        #-----apply optional custom rules to the IPtables config-----
-        'IPtablesCustomRules': {
-            'DestinationPorts': [], # destination port(s)
-            'Enable': False, # custom rules are disabled by default
-        },
-
         'IPv4': {
             'Internal': '',
             'IPCountry': { # database SQL scripts to update the IP-country data
@@ -483,6 +476,11 @@ class Config:
                 'allowlist_filepath': '/etc/iptables/ipset-update-allow-ip.conf',
                 'blacklist_filepath': '/etc/iptables/ipset-update-blacklist.conf',
                 'country_filepath': '/etc/iptables/ipset-update-countries.conf',
+                # temporary custom network shut-offs
+                # "default" is to allow all traffic
+                # "limited" is to block all traffic except for custom protected IP's
+                'custom_allowed_default': '/etc/iptables/ipset-custom-allowed-default.conf',
+                'custom_allowed_limited': '/etc/iptables/ipset-custom-allowed-limited.conf',
             },
             'ipset_ipv6': {
                 'allowlist_filepath': '/etc/iptables/ipset-ipv6-update-allowlist.conf',
@@ -1020,7 +1018,7 @@ class Config:
     #   ICAP: 29999
     #   Squid: 29901, 29902, 29903, 29911, 29912, 29913
     #   SSH: 22
-    def validate_ports(self, ports_to_check: list) -> bool:
+    def validate_openvpn_ports(self, ports_to_check: list) -> bool:
         #-----check for non-integers or numbers outside the range-----
         for port in ports_to_check:
             if not port:
@@ -1219,55 +1217,6 @@ space_allocated={space_allocated}
 
         return True
 
-    #--------------------------------------------------------------------------------
-
-    #-----optional, so it won't error if the data is missing or invalid-----
-    # invalid data will be dropped and the custom rules will be disabled
-    def validate_iptables_custom_rules(self):
-        iptables_custom_rules = self.conf_data_loaded.get('IPtablesCustomRules', None)
-        if not iptables_custom_rules:
-            return
-        if not isinstance(iptables_custom_rules, dict):
-            return
-
-        iptables_custom_rules_enable = iptables_custom_rules.get('Enable', 'False')
-        if iptables_custom_rules_enable.upper()=='TRUE':
-            self.ConfigData['IPtablesCustomRules']['Enable'] = True
-        else:
-            return
-
-        iptables_custom_rules_dports = iptables_custom_rules.get('DestinationPorts', None)
-        if not iptables_custom_rules_dports:
-            # no destination ports, disable the custom rules
-            self.ConfigData['IPtablesCustomRules']['Enable'] = False
-            return
-
-        # protect the SSH port
-        unsafe_ports = [22]
-        # must be a list of port numbers
-        unverified_ports = iptables_custom_rules_dports.split(',')
-        # list of approved ports
-        approved_ports = []
-        # drop any ports that are not valid or on the unsafe list
-        for port in unverified_ports:
-            if not port:
-                continue
-            if not port.isdigit():
-                print(f'IPtablesCustomRules skipping invalid port number {port}')
-                continue
-            if len(port)>5:
-                continue
-            port_num = int(port)
-            if port_num in unsafe_ports:
-                print(f'IPtablesCustomRules skipping unsafe port number {port}')
-                continue
-            # passed tests, add to the approved list
-            approved_ports.append(port_num)
-        if approved_ports:
-            # remove duplicates and sort the list
-            unique_ports = list(dict.fromkeys(approved_ports))
-            self.ConfigData['IPtablesCustomRules']['DestinationPorts'] = sorted(unique_ports)
-
     #TODO: finish adding tests here
     #      apply default values rather than erroring on bad data?
     #      accumulate all errors and print them all at once, only if a print_err param is True
@@ -1321,9 +1270,6 @@ space_allocated={space_allocated}
         if DiskSpace and isinstance(DiskSpace, dict):
             validated_all_keys = self.validate_diskspace(DiskSpace)
 
-        # IPtablesCustomRules - optional (DestinationPorts, Enable)
-        self.validate_iptables_custom_rules()
-
         # LogParserRowLimit
         LogParserRowLimit = str(self.conf_data_loaded['LogParserRowLimit'])
         if LogParserRowLimit.isdigit():
@@ -1365,7 +1311,7 @@ space_allocated={space_allocated}
                 ports_openvpn_open = ports_openvpn.get('Open', None)
                 ports_openvpn_open_squid = ports_openvpn.get('OpenSquid', None)
                 ports_to_check = [ports_openvpn_dns, ports_openvpn_dns_icap, ports_openvpn_dns_squid, ports_openvpn_open, ports_openvpn_open_squid]
-                if self.validate_ports(ports_to_check):
+                if self.validate_openvpn_ports(ports_to_check):
                     self.ConfigData['Ports']['OpenVPN']['dns'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNS'])
                     self.ConfigData['Ports']['OpenVPN']['dns-icap'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNSICAP'])
                     self.ConfigData['Ports']['OpenVPN']['dns-squid'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNSSquid'])

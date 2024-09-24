@@ -499,6 +499,9 @@ class UpdateZzz:
         elif table=='settings':
             # width_max is too wide when applied to the first column
             options = self.make_json_options(options, 'json', '')
+            options = self.make_json_options(options, 'ip_log_raw_data_view', '')
+            options = self.make_json_options(options, 'iptables_rules', '')
+            options = self.make_json_options(options, 'icap', '')
             options = self.make_collapsable_html_options(options, ['squid_nobumpsites', 'squid_hide_domains'])
         elif table=='squid_log':
             options = self.make_collapsable_html_options(options, ['url_str'])

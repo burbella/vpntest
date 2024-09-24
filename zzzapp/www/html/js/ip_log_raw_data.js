@@ -11,7 +11,7 @@ var date_obj_ip_log_raw_data = new Date();
 
 var clear_status_save_log_timer = null;
 
-var ip_log_raw_data_checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_internal', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns'];
+var ip_log_raw_data_checkbox_fields = ['auto_update_file_list', 'connection_external', 'connection_inbound', 'connection_internal', 'connection_outbound', 'extra_analysis', 'flags_any', 'flags_none', 'include_accepted_packets', 'include_blocked_packets', 'prec_tos_zero', 'prec_tos_nonzero', 'protocol_tcp', 'protocol_udp', 'protocol_icmp', 'protocol_other', 'show_max_bps_columns'];
 
 //-----load the relevant jQuery code for the page-----
 function load_js_ip_log_raw_data()
@@ -50,6 +50,14 @@ function load_js_ip_log_raw_data()
             start_logfile_timer();
             get_logfile_menu();
         }
+    });
+
+    $('#view_raw_text').click(function() {
+        view_raw_text('live');
+    });
+
+    $('#saved_view_raw_text').click(function() {
+        view_raw_text('saved');
     });
 
     $('#view_previous_log').click(function() {
@@ -125,6 +133,8 @@ function time_since_last_menu_update() {
     return elapsed;
 }
 
+//--------------------------------------------------------------------------------
+
 function hide_stuff_before_dom_update(filename='') {
     $('#show_all_data').hide();
 
@@ -133,11 +143,25 @@ function hide_stuff_before_dom_update(filename='') {
     $('#view_next_log').hide();
     $('#view_saved_log').hide();
 
+    $('#view_raw_text').hide();
+    $('#saved_view_raw_text').hide();
+
     $('#logdata_misc_info').hide();
     $('#extra_analysis_output').hide();
 
     $('#loading_msg').html(`Loading ${filename}...`);
 }
+
+function show_buttons() {
+    $('#view_previous_log').show();
+    $('#view_log').show();
+    $('#view_next_log').show();
+    $('#view_saved_log').show();
+    $('#view_raw_text').show();
+    $('#saved_view_raw_text').show();
+}
+
+//--------------------------------------------------------------------------------
 
 function set_sort_by() {
     // clear all selected options
@@ -339,6 +363,7 @@ function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
 
     $('#loading_msg').html(''); // clear the status message
     $('#logdata').html(data.logdata);
+    $('#limit_field_errors').html(data.limit_field_errors);
 
     $('#src_ip_analysis').html(data.src_ip_analysis);
     $('#dst_ip_analysis').html(data.dst_ip_analysis);
@@ -363,6 +388,8 @@ function add_logdata_to_dom(data, download_start_time_ms, use_saved_log=false) {
     $('#displayed_dst_ports').html(data.displayed_dst_ports);
     $('#displayed_packet_lengths').html(data.displayed_packet_lengths);
     $('#displayed_packet_ttls').html(data.displayed_packet_ttls);
+    $('#displayed_src_not_in_dst').html(data.displayed_src_not_in_dst);
+    $('#displayed_dst_not_in_src').html(data.displayed_dst_not_in_src);
 
     let loaded_from = 'loaded from unsaved log';
     if (use_saved_log) {
@@ -466,6 +493,7 @@ function view_log(log_type='current_log') {
 
     let postdata = `action=${action}&filename=${filename}&src_ip=${src_ip}&dst_ip=${dst_ip}&src_ports=${src_ports}&dst_ports=${dst_ports}&search_length=${search_length}&ttl=${ttl}&sort_by=${sort_by}&flag_bps_above_value=${flag_bps_above_value}&flag_pps_above_value=${flag_pps_above_value}&min_displayed_packets=${min_displayed_packets}${checkbox_url_params}`;
 
+    let status_field = $('#loading_msg');
     let download_start_time_ms = Date.now();
     $.post({
         'url': url_ip_log_raw_data,
@@ -475,20 +503,16 @@ function view_log(log_type='current_log') {
     })
     .done(function(data){
         add_logdata_to_dom(data, download_start_time_ms, use_saved_log);
+
+        $('#loading_msg').html('');
     })
     .fail(function(){
-        // status_field.html('ERROR');
+        status_field.html('ERROR: AJAX failed');
     })
     .always(function(){
         //-----auto-clear the message after a short time-----
         // status_ip_log_parse_now_timer = setTimeout(clear_status_ip_log_parse_now, 3000);
-
-        $('#view_previous_log').show();
-        $('#view_log').show();
-        $('#view_next_log').show();
-        $('#view_saved_log').show();
-
-        $('#loading_msg').html('');
+        show_buttons();
     });
 }
 
@@ -549,6 +573,9 @@ function get_logfile_menu() {
 
 //-----reset all search fields to default values-----
 function reset_search() {
+    // warnings
+    $('#limit_field_errors').html('');
+
     // checkboxes
     leave_unchecked = ['connection_internal', 'extra_analysis']
     for (let i=0; i<ip_log_raw_data_checkbox_fields.length; i++) {
@@ -608,3 +635,43 @@ function reset_show_hide() {
 
 //--------------------------------------------------------------------------------
 
+function view_raw_text(log_type='live') {
+    let filename = '';
+    let action = 'view_raw_text';
+    if (log_type=='live') {
+        filename = $('#logfile>option:selected').val();
+    } else if (log_type=='saved') {
+        filename = $('#saved_logfile_menu>option:selected').val();
+        action = 'saved_view_raw_text';
+    }
+    setTimeout(hide_stuff_before_dom_update, 1, filename);
+
+    let status_field = $('#loading_msg');
+    let postdata = `action=${action}&filename=${filename}`;
+    $.post({
+        'url': url_ip_log_raw_data,
+        'data': postdata,
+        'success': null,
+        'dataType': 'json' // html, json, script, text, xml
+    })
+    .done(function(data){
+        if (data.status == 'error') {
+            status_field.html(`ERROR: ${data.error_msg}`);
+            return;
+        }
+
+        $('#logdata').html(data.logdata);
+        $('#loading_msg').html('');
+    })
+    .fail(function(){
+        status_field.html('ERROR: AJAX failed');
+    })
+    .always(function(){
+        show_buttons();
+        $('#show_all_data').show();
+        reset_show_hide();
+    });
+
+}
+
+//--------------------------------------------------------------------------------

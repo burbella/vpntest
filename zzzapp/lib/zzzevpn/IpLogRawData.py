@@ -130,6 +130,24 @@ class IpLogRawData:
 
     #--------------------------------------------------------------------------------
 
+    def is_connection_internal(self, entry: dict) -> bool:
+        if (not entry.get('in', None)) or (not entry.get('out', None)):
+            # internal connections have only one interface listed
+            return True
+        return False
+
+    def is_connection_inbound(self, entry: dict) -> bool:
+        if self.is_connection_internal(entry):
+            # first rule-out internal connections
+            return False
+        if entry['in'] == self.ConfigData['PhysicalNetworkInterfaces']['internal']:
+            # external connections are "inbound" to the client if they are coming in to the router on the internal interface, going out on one of the openvpn tunnel interfaces
+            # EX: ens5 -> tun3
+            return True
+        return False
+
+    #--------------------------------------------------------------------------------
+
     # returns an entry dict created from parsed line data
     # combines some fields into a single field since IPtablesLogParser.py does not need them separated
     def parse_line_complete(self, line: str, extended_parsing: bool=False) -> dict:
@@ -165,6 +183,8 @@ class IpLogRawData:
             # if entry['mac']:
             #     mac = entry['mac'].split('=')[1]
             entry['timestamp'] = self.timestamp_str_to_decimal(entry['datetime'])
+            entry['internal'] = self.is_connection_internal(entry)
+            entry['inbound'] = self.is_connection_inbound(entry)
             entry = self.parse_msg(entry)
 
         return entry
@@ -403,6 +423,8 @@ class IpLogRawData:
                 'incremental_bps': {},
                 'length_analysis': {},
                 'unique_ips': set(),
+                'src_not_in_dst': set(),
+                'dst_not_in_src': set(),
 
                 'start_timestamp': '',
                 'end_timestamp': '',
@@ -468,6 +490,8 @@ class IpLogRawData:
             'incremental_bps': incremental_bps,
             'length_analysis': length_analysis,
             'unique_ips': unique_ips,
+            'src_not_in_dst': set(),
+            'dst_not_in_src': set(),
 
             'start_timestamp': start_timestamp,
             'end_timestamp': end_timestamp,
@@ -483,6 +507,7 @@ class IpLogRawData:
         analysis = self.calc_incremental_bps(analysis, entries)
         # flag bad data
         analysis = self.flag_bad_data(analysis)
+        analysis = self.report_src_dst_mismatch(analysis)
 
         analysis['calculation_time'] = round(time.time() - start_time, 2)
 
@@ -629,6 +654,18 @@ class IpLogRawData:
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 5
                     elif segment_info['pps'] > flag_pps_above_value:
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
+
+        return analysis
+
+    #--------------------------------------------------------------------------------
+
+    #-----report src IPs not in the dst IP list and vice versa-----
+    def report_src_dst_mismatch(self, analysis: dict) -> dict:
+        src_ips = set(analysis['analysis_by_src_ip'].keys())
+        dst_ips = set(analysis['analysis_by_dst_ip'].keys())
+
+        analysis['src_not_in_dst'] = src_ips - dst_ips
+        analysis['dst_not_in_src'] = dst_ips - src_ips
 
         return analysis
 
