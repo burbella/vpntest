@@ -64,8 +64,8 @@ print('Date: ' + disk.util.current_datetime())
 count_args = 0
 
 if args.delay:
-    if disk.util.is_int(args.delay):
-        sleep_time = args.delay
+    sleep_time = disk.util.get_int_safe(args.delay)
+    if sleep_time:
         # max 15 minutes delay
         if sleep_time > 900:
             sleep_time = 900

@@ -239,6 +239,9 @@ class IPutil:
             'invalid': set(),
             'error_msg': [],
         }
+        if not ips_to_check:
+            return result
+
         for ip in ips_to_check:
             if not ip:
                 continue
@@ -252,7 +255,9 @@ class IPutil:
                 else:
                     result['invalid'].add(ip)
 
-        result['error_msg'].append('Invalid IPs: ' + ', '.join(result['invalid']))
+        if result['invalid']:
+            result['error_msg'].append('Invalid IPs: ' + ', '.join(result['invalid']))
+
         return result
 
     #--------------------------------------------------------------------------------

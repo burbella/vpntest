@@ -163,16 +163,16 @@ class IPtablesRulesPage:
         #TODO: block_low_ttl - JS auto-warning on high TTLs?
 
         #TEST
-        print('-'*40)
-        print('IPtablesRulesPage.data_cleanup() - uploaded data:')
-        pprint.pprint(data)
-        print('-'*40)
-        print('IPtablesRulesPage.data_cleanup() - cleanup_result:')
-        pprint.pprint(cleanup_result)
-        print('-'*40)
-        clean_data = json.dumps(self.settings.IPtablesRules, indent=4)
-        print(f'clean data: {clean_data}')
-        print('-'*40)
+        # print('-'*40)
+        # print('IPtablesRulesPage.data_cleanup() - uploaded data:')
+        # pprint.pprint(data)
+        # print('-'*40)
+        # print('IPtablesRulesPage.data_cleanup() - cleanup_result:')
+        # pprint.pprint(cleanup_result)
+        # print('-'*40)
+        # clean_data = json.dumps(self.settings.IPtablesRules, indent=4)
+        # print(f'clean data: {clean_data}')
+        # print('-'*40)
         #ENDTEST
 
         return cleanup_result
@@ -191,7 +191,7 @@ class IPtablesRulesPage:
 
     # settings from the settings.IPtablesRulesView need to be put in self.IPtablesRulesHTML
     def load_settings_into_html(self):
-        text_fields = ['allow_ips', 'block_low_ttl', 'bytes_per_sec', 'dst_ports', 'notes', 'packets_per_sec', 'throttle_expire', 'traffic_direction']
+        text_fields = ['allow_ips', 'block_low_ttl', 'bytes_burst', 'bytes_per_sec', 'dst_ports', 'notes', 'packets_burst', 'packets_per_sec', 'throttle_expire', 'traffic_direction']
         for field in text_fields:
             self.IPtablesRulesHTML[field] = self.settings.IPtablesRules[field]
         # self.IPtablesRulesHTML['enable_auto_blocking'] = self.settings.IPtablesRules['enable_auto_blocking']

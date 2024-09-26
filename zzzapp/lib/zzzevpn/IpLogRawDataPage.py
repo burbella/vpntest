@@ -24,9 +24,6 @@ class IpLogRawDataPage:
     IpLogRawDataHTML = {}
     service_name = 'iptables'
 
-    # default - return only the table rows, not the entire HTML page
-    return_page_header = True
-
     sort_by = 'ip' # ip, packets, bytes
     allowed_sort_by = ['ip', 'packets', 'bytes']
 
@@ -123,7 +120,6 @@ class IpLogRawDataPage:
     def init_vars(self):
         self.count_test_prints = 0
         self.errors = []
-        self.return_page_header = True
 
         self.limit_fields = {
             'src_ip': set(),
@@ -150,9 +146,9 @@ class IpLogRawDataPage:
             'logfile_menu': '',
             'logrotate_numfiles': self.ConfigData['LogRotate']['NumFiles'],
             'min_displayed_packets_default': self.settings.IPLogRawDataView_default['min_displayed_packets'],
-            'view_raw_text': '',
+            'hide_view_raw_text': '',
             'saved_logfile_menu': '',
-            'saved_view_raw_text': '',
+            'hide_saved_view_raw_text': '',
             'show_rowcount': '',
         }
 
@@ -208,8 +204,7 @@ class IpLogRawDataPage:
             # save the latest settings
             self.store_data_in_settings(data)
             self.settings.save_ip_log_view_settings()
-            self.return_page_header = False
-            return self.make_IpLogRawData(environ, data['filename'], data['action'])
+            return self.view_log_analysis(data['filename'], data['action'])
         elif data['action']=='save_logfile':
             return self.save_logfile(data['filename'])
         elif data['action']=='delete_logfile':
@@ -379,10 +374,7 @@ class IpLogRawDataPage:
     #--------------------------------------------------------------------------------
 
     def make_webpage(self, environ, pagetitle):
-        # if self.webpage is None:
-        #     self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, pagetitle, self.settings)
         self.webpage.update_header(environ, pagetitle)
-        # self.webpage.settings.get_settings()
     
         output = self.webpage.make_webpage(environ, self.make_IpLogRawData(environ))
     
@@ -392,26 +384,15 @@ class IpLogRawDataPage:
 
     def raw_text_buttons(self):
         # only show the raw text buttons if the dev checkbox is checked
-        if not self.settings.is_setting_enabled('show_dev_tools'):
+        if self.settings.is_setting_enabled('show_dev_tools'):
             return
-        self.IpLogRawDataHTML['view_raw_text'] = '''
-        <td class="no_border width_65">
-        <a class="clickable" id="view_raw_text">Raw Text</a>
-        </td>
-        '''
-        self.IpLogRawDataHTML['saved_view_raw_text'] = '''
-        <td class="no_border width_65">
-        <a class="clickable" id="saved_view_raw_text">Raw Text</a>
-        </td>
-        '''
+        self.IpLogRawDataHTML['hide_view_raw_text'] = 'hide_item'
+        self.IpLogRawDataHTML['hide_saved_view_raw_text'] = 'hide_item'
 
     #--------------------------------------------------------------------------------
 
     # settings from the settings.IPLogRawDataView need to be put in self.IpLogRawDataHTML
     def load_settings_into_html(self):
-        # settings = self.settings.get_settings()
-        # self.IpLogRawDataHTML['CHECKBOX_ID'] = self.settings.is_setting_enabled('CHECKBOX_ID', self.settings.SettingTypeIPLogRawDataView)
-
         self.IpLogRawDataHTML['saved_logfile_menu'] = self.make_saved_logfile_menu()
         self.IpLogRawDataHTML['logfile_menu'] = self.make_logfile_menu()
 
@@ -429,6 +410,8 @@ class IpLogRawDataPage:
 
         self.raw_text_buttons()
 
+        # Format:
+        # self.IpLogRawDataHTML['CHECKBOX_ID'] = self.settings.is_setting_enabled('CHECKBOX_ID', self.settings.SettingTypeIPLogRawDataView)
         default_value = 'true'
         for checkbox in self.checkbox_fields:
             self.IpLogRawDataHTML[checkbox] = self.limit_fields[checkbox]
@@ -481,16 +464,7 @@ class IpLogRawDataPage:
 
     #--------------------------------------------------------------------------------
 
-    def make_IpLogRawData(self, environ: dict, filename:str =None, action: str=None) -> str:
-        #-----CSP nonce required for JS to run in browser-----
-        self.IpLogRawDataHTML['CSP_NONCE'] = environ['CSP_NONCE']
-        self.load_settings_into_html()
-
-        #-----initial page load, just return the page header-----
-        if self.return_page_header:
-            body = self.webpage.load_template('IpLogRawData')
-            return body.format(**self.IpLogRawDataHTML)
-
+    def view_log_analysis(self, filename: str, action: str) -> str:
         if self.limit_fields['show_max_bps_columns']:
             self.ip_log_raw_data.adjust_bps_columns(100, 5)
         else:
@@ -549,6 +523,15 @@ class IpLogRawDataPage:
         json_data_to_send = json.dumps(data_to_send)
 
         return json_data_to_send
+
+    #--------------------------------------------------------------------------------
+
+    def make_IpLogRawData(self, environ: dict) -> str:
+        #-----CSP nonce required for JS to run in browser-----
+        self.IpLogRawDataHTML['CSP_NONCE'] = environ['CSP_NONCE']
+        self.load_settings_into_html()
+        body = self.webpage.load_template('IpLogRawData')
+        return body.format(**self.IpLogRawDataHTML)
 
     #--------------------------------------------------------------------------------
 
@@ -1103,8 +1086,9 @@ class IpLogRawDataPage:
         if not os.path.isfile(filepath):
             return None
         file_size = os.path.getsize(filepath)
-        # about 220 bytes per line, so 2000 lines is enough data to analyze
-        if file_size > (220*2000):
+        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
+        # 2000 lines is enough data to analyze
+        if file_size > (bytes_per_line*2000):
             # file is large enough
             return None
 

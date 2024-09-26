@@ -206,10 +206,9 @@ class IPtables:
             # zero disables this rule
             return rules
 
-        #TODO: make this a setting
-        hashlimit_burst = bytes_per_sec * 5
+        bytes_burst = self.util.get_int_safe(self.settings.IPtablesRules['bytes_burst'])
 
-        rules = self.make_rate_limit_rules(header_prefixes, 'BPSLIMIT', f'{bytes_per_sec}b/second', hashlimit_burst)
+        rules = self.make_rate_limit_rules(header_prefixes, 'BPSLIMIT', f'{bytes_per_sec}b/second', bytes_burst)
         return rules
 
     def make_packets_per_sec_rules(self, header_prefixes):
@@ -220,10 +219,9 @@ class IPtables:
             return rules
 
         packets_per_minute = packets_per_sec * 60
-        #TODO: make this a setting
-        hashlimit_burst = packets_per_sec * 5
+        packets_burst = self.util.get_int_safe(self.settings.IPtablesRules['packets_burst'])
 
-        rules = self.make_rate_limit_rules(header_prefixes, 'PPSLIMIT', f'{packets_per_minute}/minute', hashlimit_burst)
+        rules = self.make_rate_limit_rules(header_prefixes, 'PPSLIMIT', f'{packets_per_minute}/minute', packets_burst)
         return rules
 
     #--------------------------------------------------------------------------------
@@ -233,12 +231,16 @@ class IPtables:
     # iptables_rules strings/ints: allow_ips, block_low_ttl, bytes_per_sec, dst_ports, packets_per_sec, throttle_expire
     # if TCP and UDP protocols are both selected, we need to make two rules, one for each protocol
     def make_custom_rules_header(self):
+        enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
+        custom_rules = ':CUSTOMRULES -\n'
+        custom_rules_footer = '-A CUSTOMRULES -j LOGACCEPT\n'
+        if not enable_auto_blocking:
+            return f'{custom_rules}{custom_rules_footer}'
+
         block_low_ttl = self.settings.IPtablesRules['block_low_ttl']
         block_nonzero_tos = self.is_rule_enabled('block_nonzero_tos')
         vpn_ip_range = self.ConfigData['AppInfo']['VpnIPRange']
 
-        custom_rules = ':CUSTOMRULES -\n'
-        custom_rules_footer = '-A CUSTOMRULES -j LOGACCEPT\n'
         # ports and IP ranges are the same for all custom rules
         header_prefixes = self.make_custom_rules_prefix('CUSTOMRULES')
 
@@ -292,11 +294,10 @@ class IPtables:
 
     #-----iptables config file header-----
     def make_iptables_header(self):
-        enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
         header = '#-----Zzz app auto-generated custom IP blocking rules-----\n\n'
-        if enable_auto_blocking:
-            # this goes first since the "*mangle" chains get configured separately from "*filter"
-            header += self.mangle_packets_config()
+
+        # this goes first since the "*mangle" chains get configured separately from "*filter"
+        header += self.mangle_packets_config()
 
         header += '*filter\n'
         header += ':INPUT ACCEPT\n'
@@ -324,8 +325,7 @@ class IPtables:
         #-----new chain to apply custom rules-----
         # -m multiport --dports 6672,61455,61457,61456,61458
         # port 6672, all 10.* VPN IP's, TOS=0x00, accept
-        if enable_auto_blocking:
-            header += self.make_custom_rules_header()
+        header += self.make_custom_rules_header()
 
         return header
 
@@ -424,12 +424,13 @@ class IPtables:
     #      reduce useless logging where practical
     #      may need a static ipset with a list of internal IP's
     def make_iptables_logaccept_entry(self, filter_table):
-        enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
-        if enable_auto_blocking:
-            # apply custom rules if enabled
-            # CUSTOMRULES will jump to LOGACCEPT/LOGREJECT/LOGDROP as needed
-            return f'-A {filter_table} -j CUSTOMRULES\n'
-        return f'-A {filter_table} -m limit --limit {self.log_packets_per_minute}/min -j LOG --log-prefix "zzz accepted " --log-level 7\n'
+        return f'-A {filter_table} -j CUSTOMRULES\n'
+        # enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
+        # if enable_auto_blocking:
+        #     # apply custom rules if enabled
+        #     # CUSTOMRULES will jump to LOGACCEPT/LOGREJECT/LOGDROP as needed
+        #     return f'-A {filter_table} -j CUSTOMRULES\n'
+        # return f'-A {filter_table} -m limit --limit {self.log_packets_per_minute}/min -j LOG --log-prefix "zzz accepted " --log-level 7\n'
     
     #--------------------------------------------------------------------------------
     

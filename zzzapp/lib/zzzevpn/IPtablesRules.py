@@ -51,7 +51,7 @@ class IPtablesRules:
         self.iptables = zzzevpn.IPtables(self.ConfigData, self.db, self.util, self.settings)
 
         #TEST
-        self.iptables.test_mode = True
+        self.iptables.test_mode = False
 
         self.init_vars()
 
@@ -148,7 +148,7 @@ class IPtablesRules:
 
         # iptables_rules flags: block_non_allowed_ips, block_nonzero_tos, block_tcp, block_udp, enable_auto_blocking
 
-        # iptables_rules strings/ints: allow_ips, block_low_ttl, bytes_per_sec, dst_ports, packets_per_sec, throttle_expire
+        # iptables_rules strings/ints: allow_ips, block_low_ttl, bytes_burst, bytes_per_sec, dst_ports, packets_burst, packets_per_sec, throttle_expire
 
         self.ipset.update_allowlist()
         self.ipset.install_allowlist()

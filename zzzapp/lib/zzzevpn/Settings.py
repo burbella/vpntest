@@ -83,9 +83,11 @@ class Settings:
         'block_low_ttl': 70,
         'block_nonzero_tos': 'false',
         'block_non_allowed_ips': 'false',
+        'bytes_burst': 50000,
         'bytes_per_sec': 10000,
         'dst_ports': '',
         'notes': '',
+        'packets_burst': 50,
         'packets_per_sec': 10,
         'throttle_expire': 6*60, # minutes until rule expires
         'traffic_direction': 'inbound',

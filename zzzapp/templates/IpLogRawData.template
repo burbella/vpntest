@@ -16,7 +16,9 @@ $(function() {{
 <br>
 <table class="no_border">
     <tr>
-        {view_raw_text}
+        <td class="no_border width_65 {hide_view_raw_text}">
+            <a class="clickable" id="view_raw_text">Raw Text</a>
+        </td>
         <td class="no_border">
             Logfile: <select id="logfile">{logfile_menu}</select>
         </td>
@@ -32,7 +34,9 @@ $(function() {{
     </tr>
     <tr id="saved_logs_section" class="hide_item">
         <!-- un-hide if any logs are saved -->
-        {saved_view_raw_text}
+        <td class="no_border width_65 {hide_saved_view_raw_text}">
+            <a class="clickable" id="saved_view_raw_text">Raw Text</a>
+        </td>    
         <td class="no_border">
             Saved Logs: <select id="saved_logfile_menu">{saved_logfile_menu}</select>
         </td>

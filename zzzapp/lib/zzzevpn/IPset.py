@@ -211,8 +211,8 @@ class IPset:
     def update_allowlist(self):
         allowlist_filepath = self.ConfigData['UpdateFile']['iptables']['src_filepath_allow']
         ipset_filepath = self.ConfigData['UpdateFile']['ipset']['allowlist_filepath']
-        iptables_rules_ip_result = set()
-        default_ip_result = set()
+        iptables_rules_ip_result = { 'valid': set(), 'invalid': set(), 'error_msg': [], }
+        default_ip_result =  { 'valid': set(), 'invalid': set(), 'error_msg': [], }
 
         #-----extra allowlist IP's from IPtables Custom Rules-----
         enable_auto_blocking = self.settings.is_setting_enabled('enable_auto_blocking', self.settings.SettingTypeIPtablesRules)

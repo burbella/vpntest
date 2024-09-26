@@ -42,12 +42,25 @@ $(function() {{
             Packets/sec: <input type="text" id="packets_per_sec" size="8" maxlength="8" value="{packets_per_sec}" data-default="">
             <span id="status_packets_per_sec"></span>
         </td>
+        <td class="no_border">
+            Packets-burst: <input type="text" id="packets_burst" size="8" maxlength="8" value="{packets_burst}" data-default="">
+            <span id="status_packets_burst"></span>
+        </td>
     </tr>
     <tr>
         <td class="no_border"></td>
         <td class="no_border">
             Bytes/sec: <input type="text" id="bytes_per_sec" size="12" maxlength="12" value="{bytes_per_sec}" data-default="">
             <span id="status_bytes_per_sec"></span>
+        </td>
+        <td class="no_border">
+            Bytes-burst: <input type="text" id="bytes_burst" size="12" maxlength="12" value="{bytes_burst}" data-default="">
+            <span id="status_bytes_burst"></span>
+        </td>
+    </tr>
+    <tr>
+        <td class="no_border" colspan="3">
+            Throttling gets applied after the burst limit is reached.
         </td>
     </tr>
 </table>
