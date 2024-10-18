@@ -1,6 +1,6 @@
 #-----Zzz Setup python pip on Windows-----
 # This script assumes that the repository is checked-out to this directory:
-#   C:\Users\USERNAME\Documents\GitHub\test\
+#   C:\Users\USERNAME\Documents\GitHub\vpntest\
 # This script assumes that python is installed in this directory:
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Python310\python.exe
 # user Path var:
@@ -9,14 +9,14 @@
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Launcher\
 # user PYTHONPATH var:
 #   C:\Users\USERNAME\AppData\Local\zzzevpn\venv\Lib\site-packages
-#   C:\Users\USERNAME\Documents\GitHub\test\zzzapp\lib
-#   C:\Users\USERNAME\Documents\GitHub\test\zzzapp\lib\zzzevpn
+#   C:\Users\USERNAME\Documents\GitHub\vpntest\zzzapp\lib
+#   C:\Users\USERNAME\Documents\GitHub\vpntest\zzzapp\lib\zzzevpn
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Python310\Lib
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Python310\DLLs
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Python310\Scripts
 #   C:\Users\USERNAME\AppData\Local\Programs\Python\Python310\Tools
 # Run this in a windows powershell:
-#   cd "$($env:USERPROFILE)\Documents\GitHub\test\windows"
+#   cd "$($env:USERPROFILE)\Documents\GitHub\vpntest\windows"
 #   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 #   Unblock-File -Path .\zzz_update_pip_windows.ps1
 #   .\zzz_update_pip_windows.ps1
@@ -39,7 +39,6 @@ $zzz_venv_dir = "$zzz_appdata_dir\$venv_name"
 $zzz_venv_scripts_dir = "$zzz_venv_dir\Scripts"
 $zzz_venv_lib_dir = "$zzz_venv_dir\Lib"
 $zzz_repos_dir = "$($env:USERPROFILE)\Documents\GitHub\$repos_name\install"
-# $zzz_repos_win_dir = "$($env:USERPROFILE)\Documents\GitHub\test\windows"
 $python_dir = "$($env:LOCALAPPDATA)\Programs\Python\Python310"
 $python_filepath = "$python_dir\python.exe"
 

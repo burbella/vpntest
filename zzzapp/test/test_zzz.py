@@ -6,7 +6,7 @@
 
 # live code: /opt/zzz/python/lib, /opt/zzz/python/bin
 # pytest code: /opt/zzz/python/test/lib, /opt/zzz/python/test/bin
-# repos code: /home/ubuntu/repos/test/zzzapp/lib, /home/ubuntu/repos/test/zzzapp/bin
+# repos code: /home/ubuntu/repos/vpntest/zzzapp/lib, /home/ubuntu/repos/vpntest/zzzapp/bin
 
 import os
 import pprint

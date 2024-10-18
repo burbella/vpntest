@@ -503,8 +503,6 @@ function view_log(log_type='current_log') {
     })
     .done(function(data){
         add_logdata_to_dom(data, download_start_time_ms, use_saved_log);
-
-        $('#loading_msg').html('');
     })
     .fail(function(){
         status_field.html('ERROR: AJAX failed');

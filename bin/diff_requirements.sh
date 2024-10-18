@@ -1,8 +1,8 @@
 #!/bin/bash
 #-----compare requirements files for different venv's-----
-# /home/ubuntu/repos/test/install/requirements.txt
-# /home/ubuntu/repos/test/install/requirements-alt.txt
-# /home/ubuntu/repos/test/install/requirements-test.txt
+# /home/ubuntu/repos/vpntest/install/requirements.txt
+# /home/ubuntu/repos/vpntest/install/requirements-alt.txt
+# /home/ubuntu/repos/vpntest/install/requirements-test.txt
 
 source /opt/zzz/util/util.sh
 # vars set in util.sh: REPOS_DIR

@@ -65,7 +65,7 @@ echo "=============================================="
 echo
 grep -rnP '^\s*function ' $REPOS_DIR/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
 # Example:
-# grep -rnP '^\s*function ' /home/ubuntu/repos/test/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
+# grep -rnP '^\s*function ' /home/ubuntu/repos/vpntest/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
 
 #-----report python functions with duplicate names-----
 echo "--------------------------------------------------------------------------------"
@@ -75,4 +75,4 @@ echo "=========================================="
 echo
 grep -rnP '^\s*def ' $REPOS_DIR/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'
 # Example:
-# grep -rnP '^\s*def ' /home/ubuntu/repos/test/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'
+# grep -rnP '^\s*def ' /home/ubuntu/repos/vpntest/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'

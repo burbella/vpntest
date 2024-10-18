@@ -14,7 +14,7 @@
 #   /opt/zzz/python/bin/config-parse.py --var 'ProtectedIPs'
 #
 # alternate config file, YAML parse without Config.py:
-#   /opt/zzz/python/bin/config-parse.py --var 'IPv6/Activate' --config '/home/ubuntu/repos/test/config/zzz.conf' --yaml
+#   /opt/zzz/python/bin/config-parse.py --var 'IPv6/Activate' --config '/home/ubuntu/repos/vpntest/config/zzz.conf' --yaml
 #
 # Config expects these files to be installed:
 #   /etc/zzz.conf - user manually installs

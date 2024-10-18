@@ -228,7 +228,7 @@ class IPtables:
 
     #-----build the custom rules-----
     # iptables_rules flags: block_non_allowed_ips, block_nonzero_tos, block_tcp, block_udp, enable_auto_blocking
-    # iptables_rules strings/ints: allow_ips, block_low_ttl, bytes_per_sec, dst_ports, packets_per_sec, throttle_expire
+    # iptables_rules strings/ints: allow_ips, block_low_ttl, block_packet_length, bytes_per_sec, dst_ports, packets_per_sec, throttle_expire
     # if TCP and UDP protocols are both selected, we need to make two rules, one for each protocol
     def make_custom_rules_header(self):
         enable_auto_blocking = self.is_rule_enabled('enable_auto_blocking')
@@ -237,8 +237,9 @@ class IPtables:
         if not enable_auto_blocking:
             return f'{custom_rules}{custom_rules_footer}'
 
-        block_low_ttl = self.settings.IPtablesRules['block_low_ttl']
+        block_low_ttl = self.util.standalone.get_int_safe(self.settings.IPtablesRules['block_low_ttl'])
         block_nonzero_tos = self.is_rule_enabled('block_nonzero_tos')
+        block_packet_length = self.util.standalone.get_int_safe(self.settings.IPtablesRules['block_packet_length'])
         vpn_ip_range = self.ConfigData['AppInfo']['VpnIPRange']
 
         # ports and IP ranges are the same for all custom rules
@@ -271,6 +272,22 @@ class IPtables:
         if block_low_ttl:
             for header_prefix in header_prefixes:
                 custom_rules += f'''{header_prefix} -m ttl --ttl-lt {block_low_ttl} -j LOGDROP\n'''
+
+        #TODO: option to extract and store the IP packet length. currently only the payload length is stored.
+        # packet logged:
+        # 2024-10-06T20:34:08.834617 [1567563.318909] zzz accepted IN=ens5 OUT=tun4 MAC=01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e SRC=1.2.3.4 DST=10.8.0.3 LEN=46 TOS=0x00 PREC=0x00 TTL=111 ID=37606 PROTO=UDP SPT=23456 DPT=12345 LEN=26
+        # the first LEN is the total packet length, the second LEN is the UDP payload length
+        # iptables rules can only match on the total packet length
+
+        # drop packets with length equal to the specified value, unless it's zero
+        # IP header: 20-60 bytes (20 if there are no options)
+        # UDP payload: 26 bytes
+        #   UDP header: 8 bytes (included in the UDP payload length)
+        #   UDP data: 18 bytes
+        # total: 46 bytes
+        if block_packet_length:
+            for header_prefix in header_prefixes:
+                custom_rules += f'''{header_prefix} -m length --length {block_packet_length} -j LOGDROP\n'''
         # block TOS (Type of Service) packets with nonzero values
         if block_nonzero_tos:
             for header_prefix in header_prefixes:

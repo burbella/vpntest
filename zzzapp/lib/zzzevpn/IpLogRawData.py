@@ -39,6 +39,10 @@ class IpLogRawData:
     # private IPs and the VPN server IP are exempt, or get might higher limits
     exempted_ips = set()
 
+    #TODO: handle IP options and tcp sequence numbers
+    #      requires adding extra params to the iptables config:
+    #        --log-ip-options --log-tcp-sequence --log-tcp-options
+
     #-----constants-----
     field_names = { 'DPT', 'ID', 'LEN', 'PREC', 'PROTO', 'RES', 'SPT', 'TOS', 'TTL', 'URGP', 'WINDOW', }
     # leaving out WINDOW and URGP because they are optional
@@ -50,6 +54,7 @@ class IpLogRawData:
     #     'URGP': '0',
     # }
     common_field_values = {
+        'header_length': 20,
         'PREC': '0x00',
         'RES': '0x00',
         'TOS': '0x00',
@@ -217,20 +222,44 @@ class IpLogRawData:
             #TODO: parse the ICMP response?
             # entry = self.parse_icmp_response(entry, icmp_response)
 
+        # payload_length is only relevant for IP packets(TCP, UDP)
+        entry['header_length'] = 0
+        entry['payload_length'] = 0
         unparsed_msgs = []
         for field in main_packet_metadata:
             if not field:
                 continue
             param = field.split('=')
-            if param[0] in self.field_names:
-                if param[0] in self.int_fields:
-                    # cast string to int for number fields
-                    entry[param[0]] = self.util.get_int_safe(param[1])
-                else:
-                    entry[param[0]] = param[1]
-            else:
+            if not (param[0] in self.field_names):
                 unparsed_msgs.append(field)
+                continue
+            if len(param) < 2:
+                # no value for this field
+                entry[param[0]] = ''
+                continue
+            if not (param[0] in self.int_fields):
+                # string fields just get copied over
+                entry[param[0]] = param[1]
+                continue
+            if param[0] != 'LEN':
+                # cast string to int for number fields
+                entry[param[0]] = self.util.get_int_safe(param[1])
+                continue
+            if entry['LEN']:
+                # we already have a length field, so this is the payload length
+                entry['payload_length'] = self.util.get_int_safe(param[1])
+                if entry['payload_length']:
+                    entry['header_length'] = entry['LEN'] - entry['payload_length']
+            else:
+                entry[param[0]] = self.util.get_int_safe(param[1])
         unparsed_msgs.append(icmp_response)
+        
+        #TODO: calculate the IP header length from IP options(if any)
+        #      then subtract that from the total length to get the payload length
+        # for now, just assume the IP header is the standard 20 bytes
+        if not entry['payload_length']:
+            entry['header_length'] = 20
+            entry['payload_length'] = entry['LEN'] - entry['header_length']
 
         #-----dump the unparsed fields into the msg field-----
         entry['msg'] = ' '.join(unparsed_msgs)

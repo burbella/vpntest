@@ -142,18 +142,18 @@ sudo --user=ubuntu -H /opt/zzz/venv/bin/pip3 install --upgrade $ZZZ_PIP_VERSION
 #-----first do the PIP package installer tools-----
 # other PIP packages report various errors/warnings if these tools are not present and updated
 # setuptools, testresources, testtools, wheel
-# sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements-tools.txt
+# sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements-tools.txt
 sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r $REPOS_DIR/install/requirements-tools.txt
 
 #TODO: generate a thorough requirements.txt file from a running system, then save it to the repos
 #  /opt/zzz/venv/bin/python3 -m pip freeze > requirements-full.txt
 #TODO: load all pip apps with the requirements-full.txt file
-# sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements.txt
+# sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements.txt
 sudo --user=ubuntu -H /opt/zzz/venv/bin/python3 -m pip install -r $REPOS_DIR/install/requirements.txt
 
 #-----make a second venv for testing-----
-# sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements-tools.txt
-# sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements.txt
+# sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements-tools.txt
+# sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements.txt
 sudo --user=ubuntu /usr/bin/python3 -m venv /opt/zzz/venvtest
 sudo --user=ubuntu -H /opt/zzz/venvtest/bin/pip3 install --upgrade $ZZZ_PIP_VERSION
 sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r $REPOS_DIR/install/requirements-tools.txt
@@ -161,8 +161,8 @@ sudo --user=ubuntu -H /opt/zzz/venvtest/bin/python3 -m pip install -r $REPOS_DIR
 
 #-----make a third venv for an alternate codebase-----
 # some old pypi packages are not compatible with modern packages, so they can go here if they are still needed
-# sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements-tools.txt
-# sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r /home/ubuntu/repos/test/install/requirements-alt.txt
+# sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements-tools.txt
+# sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r /home/ubuntu/repos/vpntest/install/requirements-alt.txt
 sudo --user=ubuntu /usr/bin/python3 -m venv /opt/zzz/venv_alt
 sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/pip3 install --upgrade $ZZZ_PIP_VERSION
 sudo --user=ubuntu -H /opt/zzz/venv_alt/bin/python3 -m pip install -r $REPOS_DIR/install/requirements-tools.txt

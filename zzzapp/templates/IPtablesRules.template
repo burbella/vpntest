@@ -73,6 +73,8 @@ $(function() {{
 <p class="font-courier">
     Block Low TTL: <input type="text" id="block_low_ttl" size="3" maxlength="3" value="{block_low_ttl}" data-default=""> <span id="status_block_low_ttl"></span> (0-254, Windows TTLs start at 128, linux starts at 64, set to 0 to disable)
     <br>
+    Block Packet Length: <input type="text" id="block_packet_length" size="5" maxlength="5" value="{block_packet_length}" data-default=""> <span id="status_block_packet_length"></span> (set to 0 to disable)
+    <br>
     Protocol:
     <input type="checkbox" id="block_tcp" {block_tcp}>TCP <span id="status_block_tcp"></span> &#8226;
     <input type="checkbox" id="block_udp" {block_udp}>UDP <span id="status_block_udp"></span>

@@ -80,6 +80,8 @@ class IpLogRawDataPage:
     displayed_raw_data_src_ports = set()
     displayed_raw_data_dst_ports = set()
     displayed_packet_lengths = set()
+    displayed_packet_header_lengths = set()
+    displayed_packet_payload_lengths = set()
     displayed_packet_ttls = set()
 
     count_test_prints = 0
@@ -137,6 +139,8 @@ class IpLogRawDataPage:
         self.displayed_raw_data_src_ports = set()
         self.displayed_raw_data_dst_ports = set()
         self.displayed_packet_lengths = set()
+        self.displayed_packet_header_lengths = set()
+        self.displayed_packet_payload_lengths = set()
         self.displayed_packet_ttls = set()
 
         #-----prep the HTML values-----
@@ -510,6 +514,8 @@ class IpLogRawDataPage:
             'displayed_src_ports': self.numbers_to_printable_str(self.displayed_raw_data_src_ports),
             'displayed_dst_ports': self.numbers_to_printable_str(self.displayed_raw_data_dst_ports),
             'displayed_packet_lengths': self.numbers_to_printable_str(self.displayed_packet_lengths),
+            'displayed_packet_header_lengths': self.numbers_to_printable_str(self.displayed_packet_header_lengths),
+            'displayed_packet_payload_lengths': self.numbers_to_printable_str(self.displayed_packet_payload_lengths),
             'displayed_packet_ttls': self.numbers_to_printable_str(self.displayed_packet_ttls),
             'displayed_src_not_in_dst': '\n'.join(sorted(displayed_src_not_in_dst)),
             'displayed_dst_not_in_src': '\n'.join(sorted(displayed_dst_not_in_src)),
@@ -878,7 +884,9 @@ class IpLogRawDataPage:
 <th>Src Port</th>
 <th>Dst IP</th>
 <th>Dst Port</th>
-<th>Length</th>
+<th>IP<br>Length</th>
+<th>IP<br>Header</th>
+<th>Payload<br>Length</th>
 <th>TTL</th>
 <th>Proto</th>
 <th>PREC</th>
@@ -1041,6 +1049,18 @@ class IpLogRawDataPage:
         # note the packet lengths that are displayed in the raw data
         if entry['LEN']:
             self.displayed_packet_lengths.add(entry['LEN'])
+        # note the packet header lengths that are displayed in the raw data
+        header_length = entry.get('header_length', None)
+        if header_length is None:
+            header_length = 0
+        else:
+            self.displayed_packet_header_lengths.add(header_length)
+        # note the packet payload lengths that are displayed in the raw data
+        payload_length = entry.get('payload_length', None)
+        if payload_length is None:
+            payload_length = 0
+        else:
+            self.displayed_packet_payload_lengths.add(payload_length)
         # note the packet TTLs that are displayed in the raw data
         if entry['TTL']:
             self.displayed_packet_ttls.add(entry['TTL'])
@@ -1064,6 +1084,8 @@ class IpLogRawDataPage:
 <td class="cursor_copy">{display_entry['dst']}</td>
 <td>{display_entry['DPT']}</td>
 <td class="right_align">{display_entry['LEN']}</td>
+<td class="right_align">{display_entry['header_length']}</td>
+<td class="right_align">{display_entry['payload_length']}</td>
 <td>{display_entry['TTL']}</td>
 <td>{display_entry['PROTO']}</td>
 <td>{display_entry['PREC']}</td>

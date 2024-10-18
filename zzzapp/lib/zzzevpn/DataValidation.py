@@ -63,15 +63,12 @@ class DataValidation:
 
         'boolean': {
             'length': 5,
-            # 'regex_pattern': r'^([Tt]rue|[Ff]alse)$',
             'regex_pattern': r'^(0|1|true|false)$',
             'regex_flags': re.IGNORECASE,
             'regex_description': 'true/false or 0/1',
         },
         'cidr-list': {
             'length': 5*megabyte,
-            #TODO: make code accept "\s*" and comma as separators, then update the regex to allow spaces
-            # 'regex_pattern': r'((\d{1,3}\.){3}\d{1,3}(|\/\d{1,2})(|\n))*',
             'regex_pattern': cidr_list_regex_pattern,
         },
         'domain': {
@@ -93,7 +90,7 @@ class DataValidation:
         'int-range-list': {
             # EX: 1-100,200-300,400,999
             'length': 1000,
-            'regex_pattern': r'^[0-9,-]+$',
+            'regex_pattern': r'^[\s0-9,-]+$',
         },
         'ip': {
             'length': 15,

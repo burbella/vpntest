@@ -6,6 +6,7 @@ var iptables_rules_status_fields = [
     'block_low_ttl',
     'block_nonzero_tos',
     'block_non_allowed_ips',
+    'block_packet_length',
     'block_tcp',
     'block_udp',
     'bytes_burst',
@@ -104,9 +105,10 @@ function make_json_settings() {
     // radio buttons: traffic_direction
     settings_object.traffic_direction = $(':radio[name=traffic_direction]:checked').val();
 
-    // text fields: allow_ips(textarea), block_low_ttl, bytes_per_sec, dst_ports, notes, packets_per_sec, throttle_expire
+    // text fields: allow_ips(textarea), block_low_ttl, block_packet_length, bytes_per_sec, dst_ports, notes, packets_per_sec, throttle_expire
     settings_object.allow_ips = $('#allow_ips').val();
     settings_object.block_low_ttl = $('#block_low_ttl').val();
+    settings_object.block_packet_length = $('#block_packet_length').val();
     settings_object.bytes_burst = $('#bytes_burst').val();
     settings_object.bytes_per_sec = $('#bytes_per_sec').val();
     settings_object.dst_ports = $('#dst_ports').val();

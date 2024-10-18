@@ -191,7 +191,7 @@ class IPtablesRulesPage:
 
     # settings from the settings.IPtablesRulesView need to be put in self.IPtablesRulesHTML
     def load_settings_into_html(self):
-        text_fields = ['allow_ips', 'block_low_ttl', 'bytes_burst', 'bytes_per_sec', 'dst_ports', 'notes', 'packets_burst', 'packets_per_sec', 'throttle_expire', 'traffic_direction']
+        text_fields = ['allow_ips', 'block_low_ttl', 'block_packet_length', 'bytes_burst', 'bytes_per_sec', 'dst_ports', 'notes', 'packets_burst', 'packets_per_sec', 'throttle_expire', 'traffic_direction']
         for field in text_fields:
             self.IPtablesRulesHTML[field] = self.settings.IPtablesRules[field]
         # self.IPtablesRulesHTML['enable_auto_blocking'] = self.settings.IPtablesRules['enable_auto_blocking']
