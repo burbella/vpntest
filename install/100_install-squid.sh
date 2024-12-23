@@ -61,6 +61,7 @@ $RUN_AS_UBUNTU gpg --homedir /home/ubuntu/.gnupg --keyserver keyserver.ubuntu.co
 #    The current zzz squid config only works with version 5.5+
 #    The latest squid release on github is still 4.13, so the www download must be used instead to get the 5.7 release
 #    The github will still be cloned here in case it is useful later.
+#  2024: github has 6.10 and seems to be updated regularly now, so use github instead of www
 git clone https://github.com/squid-cache/squid.git
 SQUID_SRC=$SRC_DIR/squid
 SQUID_LATEST_STABLE_VERSION=`git tag|grep 'SQUID_'|tail -1`
@@ -96,25 +97,19 @@ if [ "$ZZZ_SQUID_INSTALL_METHOD" == "www" ]; then
     #-----only change the directory name if we're installing from www-----
     #EX: /home/ubuntu/src/squid-6.10
     SQUID_SRC=$SRC_DIR/squid-$NEW_VERSION
+else
+    #-----github compile-----
+    /opt/zzz/util/squid_github_compile.sh
+    ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE=`cat $SQUID_INSTALLER_STATUS_FILE`
+    if [ "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE" != "OK" ]; then
+        echo "$ZZZ_SQUID_DOWNLOAD_VERIFY_COMPILE"
+    fi
 fi
 
 #-----do another cd in case the directory name changed above-----
 cd $SQUID_SRC
 
-#-----compile and install-----
-# NOTE: compiling takes about 20 minutes
-# ./bootstrap.sh
-# ./configure --with-openssl --enable-ssl-crtd --enable-icap-client \
-#     --prefix=/usr \
-#     --localstatedir=/var \
-#     --libexecdir=${prefix}/lib/squid \
-#     --datadir=${prefix}/share/squid \
-#     --sysconfdir=/etc/squid \
-#     --with-default-user=proxy \
-#     --with-logdir=/var/log/squid \
-#     --with-pidfile=/var/run/squid.pid
-# make -j `nproc` all
-
+#-----install-----
 make install
 
 #-----Log directory accessible to both apache and squid-----
@@ -122,10 +117,6 @@ make install
 #drwxr-s--- 2 proxy www-data 4096 Jul 30 03:46 /var/log/squid_access/
 chown proxy.www-data /var/log/squid_access
 chmod 2750 /var/log/squid_access
-
-#-----Setup custom rotation for the squid_access directory-----
-# /var/log/squid/*.log /var/log/squid_access/*.log
-# /etc/logrotate.d/squid
 
 #-----install squid configs-----
 CONFIG_DIR=$ZZZ_CONFIG_DIR/squid

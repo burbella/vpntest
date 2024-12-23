@@ -20,9 +20,10 @@ if [[ "$ZZZ_INCLUDE_COVERAGE" == "--include-coverage" ]]; then
     sudo --user=www-data -H /opt/zzz/venv/bin/coverage html --data-file=$ZZZ_COVERAGE_DATA_FILE --directory=$ZZZ_COVERAGE_HTML_DIR
     chmod 644 $ZZZ_COVERAGE_HTML_DIR/*
 
+    # coverage version 7.6.1 does not seem to have this problem, also the filename got random characters added to it
     #-----cleanup deprecated JS-----
-    COVERAGE_JS_FILEPATH=$ZZZ_COVERAGE_HTML_DIR/coverage_html.js
-    sed --in-place 's/window.addEventListener("unload"/window.addEventListener("pagehide"/g' $COVERAGE_JS_FILEPATH
+    # COVERAGE_JS_FILEPATH=$ZZZ_COVERAGE_HTML_DIR/coverage_html.js
+    # sed --in-place 's/window.addEventListener("unload"/window.addEventListener("pagehide"/g' $COVERAGE_JS_FILEPATH
 
     #-----JSON format?-----
     # sudo --user=www-data -H /opt/zzz/venv/bin/coverage json --data-file=$ZZZ_COVERAGE_DATA_FILE -o $ZZZ_COVERAGE_JSON_FILE --pretty-print
