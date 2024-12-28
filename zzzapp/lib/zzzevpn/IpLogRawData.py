@@ -3,6 +3,7 @@
 import datetime
 import os
 import re
+import time
 
 #-----package with all the Zzz modules-----
 import zzzevpn
@@ -21,10 +22,12 @@ class IpLogRawData:
     regex_filename_date = None
 
     filepath_list = []
+    saved_log_filepath_list = set()
     no_match_lines = []
 
-    #TODO: make this a config var
-    flag_bps_above_value = 20000
+    #TODO: make these config vars
+    # flag_bps_above_value = 10000
+    # flag_pps_above_value = 8
 
     # data is processed in increments of 5 seconds
     bps_increment_size = 5
@@ -35,6 +38,31 @@ class IpLogRawData:
     # IPs/CIDRs that are exempt from the bps_above_value check
     # private IPs and the VPN server IP are exempt, or get might higher limits
     exempted_ips = set()
+
+    #TODO: handle IP options and tcp sequence numbers
+    #      requires adding extra params to the iptables config:
+    #        --log-ip-options --log-tcp-sequence --log-tcp-options
+
+    #-----constants-----
+    field_names = { 'DPT', 'ID', 'LEN', 'PREC', 'PROTO', 'RES', 'SPT', 'TOS', 'TTL', 'URGP', 'WINDOW', }
+    # leaving out WINDOW and URGP because they are optional
+    int_fields = { 'DPT', 'ID', 'LEN', 'SPT', 'TTL', }
+    # common_values = {
+    #     'PREC': '0x00',
+    #     'TOS': '0x00',
+    #     'RES': '0x00',
+    #     'URGP': '0',
+    # }
+    common_field_values = {
+        'header_length': 20,
+        'PREC': '0x00',
+        'RES': '0x00',
+        'TOS': '0x00',
+        'type': 'accepted',
+        'URGP': '0',
+    }
+
+    #--------------------------------------------------------------------------------
 
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None, settings: zzzevpn.Settings=None):
         #-----get Config-----
@@ -66,12 +94,20 @@ class IpLogRawData:
     #-----clear internal variables-----
     def init_vars(self):
         self.filepath_list = []
+        self.saved_log_filepath_list = set()
         self.no_match_lines = []
         self.exempted_ips = set(self.ConfigData['ProtectedIPs'])
 
         #-----assemble IP log regex-----
+        # typical UDP entry: (internal DNS query)
         # 2020-02-16T00:16:01.844723 [93216.767428] zzz accepted IN=eth0 OUT= MAC=01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e SRC=172.30.0.2 DST=172.30.0.164 LEN=174 TOS=0x00 PREC=0x00 TTL=255 ID=10659 PROTO=UDP SPT=53 DPT=35500 LEN=154
         regex_date = r'(\d{4}\-\d{2}\-\d{2}T\d{2}\:\d{2}\:\d{2}\.\d{6})' # 2020-02-16T00:16:01.844723
+        #
+        # typical UDP entry: (external data xfer)
+        #
+        #
+        # typical ICMP entry: (UDP packet went to a server, ICMP response came from a firewall/IDS/etc and included the original packet metadata)
+        # ipv4.log-1720116841:2024-07-04T18:12:52.920513 [223862.264352] zzz accepted IN=ens5 OUT=tun3 MAC=01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e SRC=1.2.3.4 DST=10.8.0.3 LEN=96 TOS=0x00 PREC=0x00 TTL=237 ID=55225 PROTO=ICMP TYPE=3 CODE=13 [SRC=10.8.0.3 DST=1.2.0.0 LEN=78 TOS=0x00 PREC=0x00 TTL=114 ID=26260 PROTO=UDP SPT=137 DPT=137 LEN=58 ] 
 
         #TODO: rename this to PID?
         regex_timestamp = r'\[(\s*\d+\.\d+)\]' # [ 3216.767428]
@@ -99,39 +135,26 @@ class IpLogRawData:
 
     #--------------------------------------------------------------------------------
 
-    # returns an entry dict created from parsed line data
-    # combines some fields into a single field since IPtablesLogParser.py does not need them separated
-    def parse_line_upsert(self, line: str) -> dict:
-        match = self.ip_log_regex.match(line)
-        if not match:
-            self.no_match_lines.append(line)
-            return None
+    def is_connection_internal(self, entry: dict) -> bool:
+        if (not entry.get('in', None)) or (not entry.get('out', None)):
+            # internal connections have only one interface listed
+            return True
+        return False
 
-        #-----regex groups-----
-        # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
-        entry = {
-            'datetime': match.group(1),
-            # regex_timestamp group(2) is not used
-            'type': match.group(3),
-            'in': match.group(4),
-            'out': match.group(5),
-            'mac': match.group(6),
-            'src': match.group(7),
-            'dst': match.group(8),
-            'msg': match.group(9),
-        }
-        return entry
+    def is_connection_inbound(self, entry: dict) -> bool:
+        if self.is_connection_internal(entry):
+            # first rule-out internal connections
+            return False
+        if entry['in'] == self.ConfigData['PhysicalNetworkInterfaces']['internal']:
+            # external connections are "inbound" to the client if they are coming in to the router on the internal interface, going out on one of the openvpn tunnel interfaces
+            # EX: ens5 -> tun3
+            return True
+        return False
 
     #--------------------------------------------------------------------------------
 
     # returns an entry dict created from parsed line data
+    # combines some fields into a single field since IPtablesLogParser.py does not need them separated
     def parse_line_complete(self, line: str, extended_parsing: bool=False) -> dict:
         match = self.ip_log_regex.match(line)
         if not match:
@@ -140,13 +163,14 @@ class IpLogRawData:
         
         #-----regex groups-----
         # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
+        # 2: process ID?
+        # 3: type - accepted/blocked
+        # 4: IN
+        # 5: OUT
+        # 6: MAC
+        # 7: SRC
+        # 8: DST
+        # 9: rest of msg
         entry = {
             'datetime': match.group(1),
             'pid': match.group(2),
@@ -164,48 +188,78 @@ class IpLogRawData:
             # if entry['mac']:
             #     mac = entry['mac'].split('=')[1]
             entry['timestamp'] = self.timestamp_str_to_decimal(entry['datetime'])
+            entry['internal'] = self.is_connection_internal(entry)
+            entry['inbound'] = self.is_connection_inbound(entry)
             entry = self.parse_msg(entry)
 
         return entry
 
     #--------------------------------------------------------------------------------
 
+    #-----the end of the log line contains various optional items-----
     def parse_msg(self, entry:dict) -> dict:
-        msg = ''
-        unparsed_msgs = []
-        field_names = { 'DPT', 'ID', 'LEN', 'PREC', 'PROTO', 'RES', 'SPT', 'TOS', 'TTL', 'URGP', 'WINDOW', }
-
-        # leaving out WINDOW and URGP because they are optional
-        int_fields = { 'DPT', 'ID', 'LEN', 'SPT', 'TTL', }
-
-        common_values = {
-            'PREC': '0x00',
-            'TOS': '0x00',
-            'RES': '0x00',
-            'URGP': '0',
-        }
-
         # make sure all fields are present, even if they need to be blank
-        for field in field_names:
+        for field in self.field_names:
+            # field names are uppercase, while the keys in the entry dict are lowercase
             entry[field] = ''
 
         if not entry['msg']:
             # no further processing if msg is empty
             return entry
 
-        msg_fields = entry['msg'].strip().split(' ')
-        for field in msg_fields:
+        #-----trim trailing spaces-----
+        #-----split on '[', which may be optional and only used with ICMP packets-----
+        msg_parts = entry['msg'].strip().split('[')
+
+        #-----now split on spaces-----
+        main_packet_metadata = msg_parts[0].strip().split(' ')
+
+        icmp_response = ''
+        if len(msg_parts) > 1:
+            #-----get the ICMP response-----
+            # ICMP can be a response to a UDP packet, so the UDP packet metadata is included in the ICMP response
+            icmp_response = 'ICMP: ' + msg_parts[1].strip().split(']')[0].strip()
+            #TODO: parse the ICMP response?
+            # entry = self.parse_icmp_response(entry, icmp_response)
+
+        # payload_length is only relevant for IP packets(TCP, UDP)
+        entry['header_length'] = 0
+        entry['payload_length'] = 0
+        unparsed_msgs = []
+        for field in main_packet_metadata:
             if not field:
                 continue
             param = field.split('=')
-            if param[0] in field_names:
-                if param[0] in int_fields:
-                    # cast string to int for number fields
-                    entry[param[0]] = self.util.get_int_safe(param[1])
-                else:
-                    entry[param[0]] = param[1]
-            else:
+            if not (param[0] in self.field_names):
                 unparsed_msgs.append(field)
+                continue
+            if len(param) < 2:
+                # no value for this field
+                entry[param[0]] = ''
+                continue
+            if not (param[0] in self.int_fields):
+                # string fields just get copied over
+                entry[param[0]] = param[1]
+                continue
+            if param[0] != 'LEN':
+                # cast string to int for number fields
+                entry[param[0]] = self.util.get_int_safe(param[1])
+                continue
+            if entry['LEN']:
+                # we already have a length field, so this is the payload length
+                entry['payload_length'] = self.util.get_int_safe(param[1])
+                if entry['payload_length']:
+                    entry['header_length'] = entry['LEN'] - entry['payload_length']
+            else:
+                entry[param[0]] = self.util.get_int_safe(param[1])
+        unparsed_msgs.append(icmp_response)
+        
+        #TODO: calculate the IP header length from IP options(if any)
+        #      then subtract that from the total length to get the payload length
+        # for now, just assume the IP header is the standard 20 bytes
+        if not entry['payload_length']:
+            entry['header_length'] = 20
+            entry['payload_length'] = entry['LEN'] - entry['header_length']
 
         #-----dump the unparsed fields into the msg field-----
         entry['msg'] = ' '.join(unparsed_msgs)
@@ -268,6 +322,22 @@ class IpLogRawData:
         if current_log_entry and include_current_log:
             self.filepath_list.append(current_log_entry.path)
 
+    def get_saved_logfiles(self):
+        self.saved_log_filepath_list = set()
+
+        #-----saved logs directory-----
+        dir_to_scan_saved_logs = self.ConfigData['Directory']['IPtablesSavedLog']
+        for entry in os.scandir(dir_to_scan_saved_logs):
+            try:
+                #-----skip empty files-----
+                if (not entry.is_file()) or (entry.stat().st_size==0):
+                    continue
+                self.saved_log_filepath_list.add(entry.path)
+            except:
+                #-----skip files that cannot be read-----
+                # logrotate may be in the process of rotating the log
+                continue
+
     #--------------------------------------------------------------------------------
 
     # count packets and bytes per IP
@@ -287,31 +357,146 @@ class IpLogRawData:
 
     #--------------------------------------------------------------------------------
 
-    #TODO: apply limits from UI fields: src_ports, dst_ports, hide_internal_connections
+    #TODO: additional detailed breakdowns
+    # breakdown entries data by ip, then port, then packet count
+    # breakdown entries data by ip, then port, then length
+
+    #--------------------------------------------------------------------------------
+
+    #TODO: all IP counts appear under one length entry, fix this
+    #
+    # analysis['length_analysis']['total']['src_ip'][ip] = int
+    # analysis['length_analysis']['total']['dst_ip'][ip] = int
+    #
+    # analysis['length_analysis']['src_ip']['details'][ip][length]['packets'] = int
+    # analysis['length_analysis']['src_ip']['details'][ip][length]['percent'] = float
+    #
+    # analysis['length_analysis']['dst_ip']['details'][ip][length]['packets'] = int
+    # analysis['length_analysis']['dst_ip']['details'][ip][length]['percent'] = float
+    def length_analysis_details(self, src_or_dst: str, ip: str, length: int, length_analysis: dict):
+        length_analysis['total'][src_or_dst][ip] = length_analysis['total'][src_or_dst].get(ip, 0) + 1
+        current_ip_details = length_analysis[src_or_dst]['details'].get(ip, None)
+        if current_ip_details:
+            current_ip_length = current_ip_details.get(length, { 'packets': 0, 'percent': 0, })
+            current_ip_length['packets'] += 1
+            length_analysis[src_or_dst]['details'][ip][length] = current_ip_length
+        else:
+            # init new IP details
+            length_analysis[src_or_dst]['details'][ip] = {
+                length: { 'packets': 1, 'percent': 0, },
+            }
+
+    #-----extra analysis: packet length distribution-----
+    # analysis['length_analysis']['total']['summary'] = int
+    #
+    # (store packets by length, then calculate percentages later)
+    # analysis['length_analysis']['src_ip']['summary'][length]['packets'] = int
+    # analysis['length_analysis']['src_ip']['summary'][length]['percent'] = float
+    #
+    # analysis['length_analysis']['dst_ip']['summary'][length]['packets'] = int
+    # analysis['length_analysis']['dst_ip']['summary'][length]['percent'] = float
+    def do_extra_analysis(self, length_analysis: dict, length: int, src_ip: str, dst_ip: str):
+        # summary
+        length_analysis['total']['summary'] = length_analysis['total'].get('summary', 0) + 1
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            summary = length_analysis[src_or_dst]['summary']
+            summary_length = summary.get(length, { 'packets': 0, 'percent': 0, })
+            summary_length['packets'] += 1
+            length_analysis[src_or_dst]['summary'][length] = summary_length
+
+        # details
+        self.length_analysis_details('src_ip', src_ip, length, length_analysis)
+        self.length_analysis_details('dst_ip', dst_ip, length, length_analysis)
+
+    #--------------------------------------------------------------------------------
+
+    def calc_extra_percentages(self, length_analysis: dict):
+        # summary
+        # analysis['length_analysis']['total']['summary'] = int
+        # analysis['length_analysis']['src_ip']['summary'][length]['percent'] = float
+        # analysis['length_analysis']['dst_ip']['summary'][length]['percent'] = float
+        total_packets = length_analysis['total']['summary']
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            summary = length_analysis[src_or_dst]['summary']
+            for length in summary.keys():
+                packets = summary[length]['packets']
+                percent = round((packets / total_packets) * 100, 2)
+                length_analysis[src_or_dst]['summary'][length]['percent'] = percent
+
+        # details
+        # analysis['length_analysis']['total']['src_ip'][ip] = int
+        # analysis['length_analysis']['src_ip']['details'][ip][length]['percent'] = float
+        # analysis['length_analysis']['dst_ip']['details'][ip][length]['percent'] = float
+        for src_or_dst in ['src_ip', 'dst_ip']:
+            details = length_analysis[src_or_dst]['details']
+            for ip in details.keys():
+                ip_total_packets = length_analysis['total'][src_or_dst].get(ip, 0)
+                for length in details[ip].keys():
+                    packets = details[ip][length]['packets']
+                    percent = 0
+                    if ip_total_packets>0:
+                        percent = round((packets / ip_total_packets) * 100, 2)
+                    length_analysis[src_or_dst]['details'][ip][length]['percent'] = percent
+
+    #--------------------------------------------------------------------------------
+
     # do various types of analysis on the raw log data
     # list unique IPs
     # count packets per IP (each row is one packet)
     # count amount of data per IP (sum the length field)
-    def analyze_log_data(self, entries: list) -> dict:
+    def analyze_log_data(self, entries: list, extra_analysis: bool=False) -> dict:
         if not entries:
             return {
                 'analysis_by_src_ip': {},
                 'analysis_by_dst_ip': {},
+                'incremental_bps': {},
+                'length_analysis': {},
                 'unique_ips': set(),
+                'src_not_in_dst': set(),
+                'dst_not_in_src': set(),
+
+                'start_timestamp': '',
+                'end_timestamp': '',
+
+                'datetime_start': datetime.datetime.now(),
+                'datetime_end': datetime.datetime.now(),
+                'duration': 0,
+
+                'calculation_time': 0,
             }
 
         analysis_by_src_ip = {}
         analysis_by_dst_ip = {}
+        length_analysis = {
+            'total': {
+                'summary': 0,
+                'src_ip': {},
+                'dst_ip': {},
+            },
+            'src_ip': {
+                'details': {},
+                'summary': {},
+            },
+            'dst_ip': {
+                'details': {},
+                'summary': {},
+            },
+        }
         unique_ips = set()
         incremental_bps = {}
 
         #-----process each line-----
+        start_time = time.time()
         for entry in entries:
             length = entry.get('LEN', 0)
             # data by src_ip
             analysis_by_src_ip, unique_ips = self.sum_data_by_ip(analysis_by_src_ip, unique_ips, entry['src'], length)
             # data by dst_ip
             analysis_by_dst_ip, unique_ips = self.sum_data_by_ip(analysis_by_dst_ip, unique_ips, entry['dst'], length)
+            if extra_analysis:
+                self.do_extra_analysis(length_analysis, length, entry['src'], entry['dst'])
+        if extra_analysis:
+            self.calc_extra_percentages(length_analysis)
 
         #-----sort by amount of data-----
         # sorted_data_per_ip = sorted(data_per_ip.items(), key=lambda kv: kv[1], reverse=True)
@@ -332,7 +517,10 @@ class IpLogRawData:
             'analysis_by_src_ip': analysis_by_src_ip,
             'analysis_by_dst_ip': analysis_by_dst_ip,
             'incremental_bps': incremental_bps,
+            'length_analysis': length_analysis,
             'unique_ips': unique_ips,
+            'src_not_in_dst': set(),
+            'dst_not_in_src': set(),
 
             'start_timestamp': start_timestamp,
             'end_timestamp': end_timestamp,
@@ -340,12 +528,17 @@ class IpLogRawData:
             'datetime_start': datetime_start,
             'datetime_end': datetime_end,
             'duration': duration,
+
+            'calculation_time': 0,
         }
 
         # incremental bps
         analysis = self.calc_incremental_bps(analysis, entries)
         # flag bad data
         analysis = self.flag_bad_data(analysis)
+        analysis = self.report_src_dst_mismatch(analysis)
+
+        analysis['calculation_time'] = round(time.time() - start_time, 2)
 
         return analysis
 
@@ -365,6 +558,11 @@ class IpLogRawData:
         '''convert a timestamp string in the format "2024-01-07T11:11:02.021770" to a decimal'''
         datetime_obj = datetime.datetime.strptime(timestamp, self.util.date_format_hi_res)
         return datetime_obj.timestamp()
+
+    def adjust_bps_columns(self, max_segments: int=12, increment_size: int=5):
+        self.max_segments = max_segments
+        self.bps_increment_size = increment_size
+        self.bps_time_limit = self.bps_increment_size * self.max_segments
 
     #--------------------------------------------------------------------------------
 
@@ -403,20 +601,28 @@ class IpLogRawData:
                 break
 
             # too many segments will make the html table too wide, so exit early
-            if end_segment_id > (self.max_segments * self.bps_increment_size):
+            if end_segment_id > (self.bps_time_limit):
                 break
 
+            # calculate bytes/sec and packets/sec
             if analysis[direction_key][ip].get('bps_by_segment', None) is None:
                 analysis[direction_key][ip]['bps_by_segment'] = {}
             # label the entry with the timestamp of the increment it belongs to
             # add the length of the packet to the bps for the current increment
             segment_info = analysis[direction_key][ip]['bps_by_segment'].get(end_segment_id, None)
+            bps = entry['LEN'] / self.bps_increment_size
+            pps = 1 / self.bps_increment_size
             if segment_info:
                 # flags will be checked/updated elsewhere
-                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['bps'] += entry['LEN'] / self.bps_increment_size
+                # calculate bps
+                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['bps'] += bps
+                # calculate packets/sec
+                analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['pps'] += pps
             else:
+                # init a new segment
                 analysis[direction_key][ip]['bps_by_segment'][end_segment_id] = {
-                    'bps': entry['LEN'] / self.bps_increment_size,
+                    'bps': bps,
+                    'pps': pps,
                     'flags': 0,
                 }
 
@@ -447,8 +653,11 @@ class IpLogRawData:
     def flag_bad_data(self, analysis: dict) -> dict:
         if not analysis:
             return analysis
-        #TEST
-        # return analysis
+
+        # multiplier for major flag
+        major_flag_multiplier = 2
+        flag_bps_above_value = self.settings.IPLogRawDataView['flag_bps_above_value']
+        flag_pps_above_value = self.settings.IPLogRawDataView['flag_pps_above_value']
 
         # direction_key: 'analysis_by_src_ip' or 'analysis_by_dst_ip'
         # assume some sections of the dictionary may have no data
@@ -462,8 +671,30 @@ class IpLogRawData:
                 if not bps_by_segment:
                     continue
                 for end_segment_id, segment_info in bps_by_segment.items():
-                    if segment_info['bps'] > self.flag_bps_above_value:
+                    # BPS limit checks
+                    if segment_info['bps'] > (flag_bps_above_value * major_flag_multiplier):
+                        # major flags value for exceeding the bps limit by a lot
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 5
+                    elif segment_info['bps'] > flag_bps_above_value:
+                        # minor flags value for exceeding the bps limit
                         analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
+                    # PPS limit checks
+                    if segment_info['pps'] > (flag_pps_above_value * major_flag_multiplier):
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 5
+                    elif segment_info['pps'] > flag_pps_above_value:
+                        analysis[direction_key][ip]['bps_by_segment'][end_segment_id]['flags'] += 1
+
+        return analysis
+
+    #--------------------------------------------------------------------------------
+
+    #-----report src IPs not in the dst IP list and vice versa-----
+    def report_src_dst_mismatch(self, analysis: dict) -> dict:
+        src_ips = set(analysis['analysis_by_src_ip'].keys())
+        dst_ips = set(analysis['analysis_by_dst_ip'].keys())
+
+        analysis['src_not_in_dst'] = src_ips - dst_ips
+        analysis['dst_not_in_src'] = dst_ips - src_ips
 
         return analysis
 

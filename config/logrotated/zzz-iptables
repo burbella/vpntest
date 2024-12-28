@@ -22,7 +22,11 @@
     postrotate
         # 1/2/2021 - this doesn't work in ubuntu 20.04 anymore, replace with a different command
         # /usr/sbin/service rsyslog rotate
-        killall -HUP rsyslogd
+        #
+        # 7/8/2024 - replace killall with rsyslog-rotate
+        # killall -HUP rsyslogd
+        /usr/lib/rsyslog/rsyslog-rotate
+
         touch /var/log/zzz/ip-logs-rotated
     endscript
 }

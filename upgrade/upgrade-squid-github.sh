@@ -18,8 +18,8 @@ echo "upgrade-squid-github.sh - START"
 #-----import the shell utils-----
 source /opt/zzz/util/util.sh
 exit_if_not_running_as_root
+# vars set in util: SRC_DIR
 
-SRC_DIR=/home/ubuntu/src
 SQUID_SRC=$SRC_DIR/squid
 cd $SQUID_SRC
 
@@ -86,18 +86,7 @@ echo "SQUID_SRC: $SQUID_SRC"
 git checkout tags/$NEW_VERSION
 
 #-----configure and compile-----
-# NOTE: compiling takes about 20 minutes
-./bootstrap.sh
-./configure --with-openssl --enable-ssl-crtd --enable-icap-client \
-  --prefix=/usr \
-  --localstatedir=/var \
-  --libexecdir=${prefix}/lib/squid \
-  --datadir=${prefix}/share/squid \
-  --sysconfdir=/etc/squid \
-  --with-default-user=proxy \
-  --with-logdir=/var/log/squid \
-  --with-pidfile=/var/run/squid.pid
-make -j `nproc` all
+/opt/zzz/util/squid_github_compile.sh
 
 #-----verify and install-----
 echo "Stopping squid..."

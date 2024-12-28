@@ -3,42 +3,43 @@ ansi2html==1.9.1
 #TEST: beautifulsoup4 is an HTML/XML parser
 # beautifulsoup4==4.12.2
 Brotli==1.1.0
-certifi>=2024.2.2
-coverage==7.4.2
+certifi>=2024.8.30
+coverage==7.6.1
 dnspython==2.6.1
-file-read-backwards==3.0.0
-flake8==7.0.0
-Flask==3.0.2
+file-read-backwards==3.1.0
+flake8==7.1.1
+Flask==3.0.3
 icecream==2.1.3
 ifcfg==0.24
 importlab==0.8.1
 # ipwhois is left out because it cannot handle the latest version of dnspython
-maxminddb==2.5.2
+maxminddb==2.6.2
 memory-profiler==0.61.0
 # netaddr==0.10.1
 nslookup==1.7.0
 pep8==1.7.1
-Pillow==10.2.0
-pip-check==2.8.1
-pipdeptree==2.14.0
+pillow==10.2.0
+pip-check==2.9
+pipdeptree==2.23.3
 psutil==5.9.8
 pycycle==0.0.8
 pyicap==1.0b1
-pylint==3.0.3
+pylint==3.2.6
 #TEST: pypcapkit for pcap file analysis
 pypcapkit==1.3.1.post5
-pytest==8.0.1
+pytest==8.3.3
 python-magic==0.4.27
-python-whois==0.8.0
-pytz==2024.1
+python-whois==0.9.4
+pytz==2024.2
 PyYAML==6.0.1
-rdap==1.5.0
+rdap==1.5.2
+#NOTE: avoid upgrading Redis to the latest version because of the license change, plan to switch to ValKey
 redis==5.0.1
 requests==2.31.0
 sqlite-utils==3.36
 tldextract==5.1.1
 Unidecode==1.3.8
-urllib3==2.2.1
-validators==0.22.0
-Werkzeug==3.0.1
+urllib3>=2.2.1
+validators==0.33.0
+Werkzeug==3.0.3
 wizard-whois==2.5.9

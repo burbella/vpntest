@@ -10,6 +10,7 @@ fi
 ZZZ_REPOS_NAME=vpntest
 # assume the repos will be in this directory:
 REPOS_DIR=/home/ubuntu/repos/$ZZZ_REPOS_NAME
+SRC_DIR=/home/ubuntu/src
 #ZZZ_INSTALLER_DIR=$REPOS_DIR/install
 ZZZ_CONFIG_DIR=/opt/zzz/config
 ZZZ_INSTALLER_DIR=/opt/zzz/install
@@ -23,8 +24,6 @@ DB_FILE=/opt/zzz/sqlite/services.sqlite3
 MAXMIND_DB_FILE=/usr/share/GeoIP/GeoLite2-Country.mmdb
 RUN_AS_UBUNTU="sudo -H -u ubuntu"
 ZZZ_LINEFEED=$'\n'
-ZZZ_SQUID_VALIDATION_KEY="B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E"
-SQUID_INSTALLER_STATUS_FILE="/opt/zzz/install_squid_status"
 
 #-----pip 23.3 started generating errors, so install the last known good version-----
 # 10/21/2023 - fixed in version 23.3.1
@@ -35,13 +34,20 @@ SQUID_INSTALLER_STATUS_FILE="/opt/zzz/install_squid_status"
 # github issue:
 #   https://github.com/pypa/pip/issues/12357
 # set the version to just "pip" to get the latest
-ZZZ_PIP_VERSION="pip==24.0"
+ZZZ_PIP_VERSION="pip==24.2"
 # ZZZ_PIP_VERSION="pip"
 
+#-----squid vars-----
+# install by "github" or "www"
+ZZZ_SQUID_INSTALL_METHOD="github"
 # github tag
-ZZZ_SQUID_VERSION_TAG=SQUID_4_13
+ZZZ_SQUID_VERSION_TAG=SQUID_6_10
 # version to download from www.squid-cache.org
-ZZZ_SQUID_VERSION_INSTALL="6.6"
+ZZZ_SQUID_VERSION_INSTALL="6.10"
+# gpg key, for validating downloads from www.squid-cache.org
+ZZZ_SQUID_VALIDATION_KEY="B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E"
+# file to log the squid installer status
+SQUID_INSTALLER_STATUS_FILE="/opt/zzz/install_squid_status"
 
 #-----easyrsa vars filenames-----
 VARS_FILENAME_APACHE=vars-apache
@@ -227,7 +233,7 @@ calc_openvpn_version_tag() {
 # note: working directory will change when running this
 validate_openvpn_version(){
     local TEST_VERSION=$1
-    cd /home/ubuntu/src/openvpn
+    cd $SRC_DIR/openvpn
     VALIDATE_OPENVPN_VERSION_FOUND=`git tag | grep -v '_' | grep $TEST_VERSION`
 }
 

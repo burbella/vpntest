@@ -47,32 +47,6 @@ function load_js_update_zzz()
         })
         .always(function(){
         });
-    
-        /*
-        let postdata = 'action=refresh_code_diff';
-        $.post(url_update_zzz, postdata, function(data, status, jqXHR){
-            if (status == 'success') { $('#print_code_diff').html(data); }
-            else { $('#print_code_diff').html('ERROR refreshing code diff output'); }
-        });
-        
-        let postdata2 = 'action=refresh_pytest';
-        $.post(url_update_zzz, postdata2, function(data, status, jqXHR){
-            if (status == 'success') { $('#print_pytest').html(data); }
-            else { $('#print_pytest').html('ERROR refreshing pytest data'); }
-        });
-        
-        let postdata3 = 'action=refresh_installer_output';
-        $.post(url_update_zzz, postdata3, function(data, status, jqXHR){
-            if (status == 'success') { $('#print_installer_output').html(data); }
-            else { $('#print_installer_output').html('ERROR refreshing Zzz installer output'); }
-        });
-        
-        let postdata4 = 'action=refresh_git_output';
-        $.post(url_update_zzz, postdata4, function(data, status, jqXHR){
-            if (status == 'success') { $('#print_git_output').html(data); }
-            else { $('#print_git_output').html('ERROR refreshing git output'); }
-        });
-        */
     });
     
     //-----request a new list of Zzz updates-----
@@ -200,6 +174,7 @@ function load_js_update_zzz()
         .done(function(data){
             status_field.html(data);
             attach_click_events_pipdeptree();
+            attach_copy_to_clipboard();
         })
         .fail(function(){
             status_field.html('ERROR requesting PIP versions');

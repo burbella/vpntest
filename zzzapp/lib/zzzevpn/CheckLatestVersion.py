@@ -96,16 +96,24 @@ class CheckLatestVersion:
             latest_version = self.util.subprocess_output.stdout
         if latest_version is not None:
             latest_version = latest_version.rstrip()
+
         if self.util.run_script(['/usr/local/sbin/openvpn', '--version']):
             installed_version = self.parse_openvpn_version_output(self.util.subprocess_output.stdout)
         else:
             #-----for some reason, this generates a CalledProcessError on success, so parse the output looking for the version-----
             if self.util.script_output is not None:
                 installed_version = self.parse_openvpn_version_output(self.util.script_output)
+        if installed_version is not None:
+            installed_version = installed_version.rstrip()
+
         versions = {
-            'latest_version': latest_version.rstrip(),
-            'installed_version': installed_version.rstrip(),
+            'latest_version': latest_version,
+            'latest_version_int': self.util.standalone.version_to_int(latest_version.lstrip('v')),
+            'installed_version': installed_version,
+            'installed_version_int': self.util.standalone.version_to_int(installed_version.lstrip('v')),
         }
+        print('get_openvpn_versions()')
+        pprint.pprint(versions)
         return versions
     
     #--------------------------------------------------------------------------------
@@ -122,15 +130,16 @@ class CheckLatestVersion:
     #--------------------------------------------------------------------------------
     
     #-----indicate if openvpn is running the latest version or not-----
+    # this will be displayed on the Index page, so output HTML
     def update_openvpn_version_status(self):
         output = 'OpenVPN version check'
         openvpn_versions = self.get_openvpn_versions()
-        if openvpn_versions['installed_version'] is None or openvpn_versions['latest_version'] is None:
-            output = 'ERROR checking OpenVPN:\n'
-            if openvpn_versions['installed_version'] is None:
-                output += '  failed to get installed version\n'
-            if openvpn_versions['latest_version'] is None:
-                output += '  failed to get latest version\n'
+        if openvpn_versions['installed_version_int']==0 or openvpn_versions['latest_version_int']==0:
+            output = 'ERROR checking OpenVPN:<br>\n'
+            if openvpn_versions['installed_version_int']==0:
+                output += '  failed to get installed version<br>\n'
+            if openvpn_versions['latest_version_int']==0:
+                output += '  failed to get latest version<br>\n'
             self.util.save_output(self.ConfigData['VersionFiles']['openvpn'], output)
             return
         
@@ -142,7 +151,7 @@ Run in an SSH terminal:<br>
 OpenVPN client downloads:
 <a href="https://openvpn.net/community-downloads/">https://openvpn.net/community-downloads/</a>
 '''
-        comparison_result = self.compare_versions(openvpn_versions['installed_version'], openvpn_versions['latest_version'])
+        comparison_result = self.compare_versions(openvpn_versions['installed_version_int'], openvpn_versions['latest_version_int'])
         if comparison_result == self.EQUAL:
             output = f'''You have the latest OpenVPN version installed: {openvpn_versions['installed_version']}'''
         elif comparison_result == self.LESS:
@@ -160,33 +169,7 @@ OpenVPN client downloads:
         self.util.save_output(self.ConfigData['VersionFiles']['openvpn'], output)
     
     #--------------------------------------------------------------------------------
-    
-    def squid_version_to_int(self, version):
-        version_int = 0
-        
-        # "4.10" --> "004010000" --> 4010000
-        # "4_10" --> "004010000" --> 4010000
-        regex_pattern = r'^(\d+)(\.|\_)(\d+)$'
-        regex = re.compile(regex_pattern, re.DOTALL | re.IGNORECASE)
-        match = regex.match(version)
-        if match:
-            version_major = str(match.group(1)).zfill(3)
-            version_minor = str(match.group(3)).zfill(3)
-            version_int = f'{version_major}{version_minor}'
-            return int(version_int)
-        
-        # "5.0.1" --> "005000001" --> 5000001
-        regex_pattern = r'^(\d+)(\.|\_)(\d+)(\.|\_)(\d+)$'
-        regex = re.compile(regex_pattern, re.DOTALL | re.IGNORECASE)
-        match = regex.match(version)
-        if match:
-            version_major = str(match.group(1)).zfill(3)
-            version_minor = str(match.group(3)).zfill(3)
-            version_patch = str(match.group(5)).zfill(3)
-            version_int = f'{version_major}{version_minor}{version_patch}'
-        
-        return int(version_int)
-    
+
     #-----get the installed version of squid-----
     # Reference: REPOS_DIR/upgrade/upgrade-squid.sh
     # do not allow major versions earlier than 4
@@ -201,10 +184,7 @@ OpenVPN client downloads:
         if latest_version:
             # reduce it to numbers and dots
             latest_version = self.parse_squid_github_version(latest_version.rstrip())
-            #TEST
-            print('get_squid_versions(): latest_version=' + latest_version)
         else:
-            #TEST
             print('ERROR: latest version not found')
         
         installed_version = None
@@ -218,18 +198,16 @@ OpenVPN client downloads:
         #-----reduce it to numbers and dots-----
         if installed_version_full:
             installed_version = self.parse_squid_version_output(installed_version_full.rstrip())
-        
-        #TEST
-        print('get_squid_versions(): installed_version_full=' + installed_version_full)
-        print('get_squid_versions(): installed_version=' + installed_version)
-        
+
         latest_version = latest_version
         installed_version = installed_version
         versions = {
             'latest_version': latest_version,
-            'latest_version_int': self.squid_version_to_int(latest_version.lstrip('SQUID_')),
+            # 'latest_version_int': self.squid_version_to_int(latest_version.lstrip('SQUID_')),
+            'latest_version_int': self.util.standalone.version_to_int(latest_version.lstrip('SQUID_')),
             'installed_version': installed_version,
-            'installed_version_int': self.squid_version_to_int(installed_version),
+            # 'installed_version_int': self.squid_version_to_int(installed_version),
+            'installed_version_int': self.util.standalone.version_to_int(installed_version),
         }
         return versions
     
@@ -280,12 +258,6 @@ OpenVPN client downloads:
         output = 'Squid version check'
         
         squid_versions = self.get_squid_versions()
-        
-        #TEST
-        print('squid_versions:')
-        pprint.pprint(squid_versions)
-        #ENDTEST
-        
         if squid_versions['installed_version'] is None or squid_versions['latest_version'] is None:
             output = 'ERROR checking Squid:\n'
             if squid_versions['installed_version'] is None:

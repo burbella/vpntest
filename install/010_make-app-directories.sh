@@ -16,6 +16,7 @@ mkdir -p /opt/zzz/data/ipdeny-ipv6
 mkdir -p /opt/zzz/data/ssl-private
 mkdir -p /opt/zzz/data/ssl-public
 mkdir -p /opt/zzz/data/tldextract_cache
+mkdir -p /opt/zzz/iptables/log
 mkdir -p /opt/zzz/named/settings
 mkdir -p /opt/zzz/python/.pytest_cache
 mkdir -p /opt/zzz/python/bin/subprocess

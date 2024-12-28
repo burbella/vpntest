@@ -94,7 +94,7 @@ class LogParser:
     #TODO: highlighting is too slow, so it's off by default for now
     #      implement binary search trees for util.is_ip_blocked(), util.is_protected_ip()
     @lru_cache(maxsize=300)
-    def make_ip_analysis_links(self, ip, highlight_ips=True, include_blocking_links=True):
+    def make_ip_analysis_links(self, ip, highlight_ips: bool=True, include_blocking_links: bool=True, include_class_c_blocking: bool=False, rdns_popup: bool=False):
         ip_analysis_links = ''
         highlight_class = 'cursor_copy'
         if self.util.ip_util.is_public_ip(ip):
@@ -104,14 +104,13 @@ class LogParser:
                 is_blocked = self.util.is_ip_blocked(ip)
             ip_blocking_links = ''
             if include_blocking_links:
-                ip_blocking_links = self.get_ip_blocking_links(ip, is_blocked=is_blocked)
-            analysis_links_data = {
-                'base64_ip': self.util.encode_base64(ip),
-                'ip': ip,
-                'ip_blocking_links': ip_blocking_links,
-            }
-            ip_analysis_links = '''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable reverse_dns" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
-            '''.format(**analysis_links_data)
+                ip_blocking_links = self.get_ip_blocking_links(ip, is_blocked=is_blocked, include_class_c_blocking=include_class_c_blocking)
+            rdns_class = 'reverse_dns'
+            if rdns_popup:
+                rdns_class = 'reverse_dns_popup'
+            base64_ip = self.util.encode_base64(ip)
+            ip_analysis_links = f'''<br><a class="clickable search_google" data-onclick="{base64_ip}">(G)</a><a class="clickable search_ipinfo" data-onclick="{base64_ip}">(L)</a><a class="clickable {rdns_class}" data-onclick="{ip}">(R)</a><a class="clickable search_whois" data-onclick="{base64_ip}">(W)</a> {ip_blocking_links}
+            '''
             
             #TODO: needs a binary search tree
             if highlight_ips:
@@ -126,16 +125,19 @@ class LogParser:
             'highlight_ip': highlight_ip,
         }
         return ip_data
-    
+
     #--------------------------------------------------------------------------------
-    
+
     #-----generates the link that is used to block an IP-----
-    def get_ip_blocking_links(self, server_ip, is_blocked=False):
+    def get_ip_blocking_links(self, server_ip: str, is_blocked: bool=False, include_class_c_blocking: bool=False) -> str:
         blocking_links = ''
         if (not is_blocked) and (server_ip not in self.ConfigData['ProtectedIPs']):
-            blocking_links = '<a class="clickable_red block_ip" data-onclick="{}">(I)</a><a class="clickable_red block_ip" data-onclick="{}">(IC)</a>'.format(server_ip, self.util.generate_class_c(server_ip));
+            class_c_str = ''
+            if include_class_c_blocking:
+                class_c_str = f'''<a class="clickable_red block_ip" data-onclick="{self.util.generate_class_c(server_ip)}">(IC)</a>'''
+            blocking_links = f'''<a class="clickable_red block_ip" data-onclick="{server_ip}">(I)</a>{class_c_str}'''
         return blocking_links
-    
+
     #--------------------------------------------------------------------------------
 
     #-----update missing country codes in log tables-----

@@ -1,0 +1,31 @@
+#
+# Zzz Ubuntu Logrotate fragment for iptables logs
+#
+# init-iptables.py will process this template with IPtables.make_iptables_logrotate_config()
+#
+# NOTE:
+#   The "rotate" command is a more graceful than "restart"
+#   This fails: systemctl rotate rsyslog
+#   Workaround: service rsyslog rotate
+/var/log/iptables/*.log {{
+    rotate {numfiles}
+    size 1M
+    nocompress
+    missingok
+    notifempty
+    nomail
+    dateext
+    dateformat -%s
+    create 0644 syslog www-data
+    sharedscripts
+    postrotate
+        # 1/2/2021 - this doesn't work in ubuntu 20.04 anymore, replace with a different command
+        # /usr/sbin/service rsyslog rotate
+        #
+        # 7/8/2024 - replace killall with rsyslog-rotate
+        # killall -HUP rsyslogd
+        /usr/lib/rsyslog/rsyslog-rotate
+
+        touch /var/log/zzz/ip-logs-rotated
+    endscript
+}}

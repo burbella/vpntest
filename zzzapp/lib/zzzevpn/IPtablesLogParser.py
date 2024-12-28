@@ -36,6 +36,7 @@ import os
 import pathlib
 import re
 import resource
+import shutil
 import sys
 import time
 import urllib.parse
@@ -943,37 +944,6 @@ class IPtablesLogParser:
         # return TEST_OUTPUT
         return True
 
-    #TODO: replace this with self.ip_log_raw_data.parse_line_upsert()
-    # returns an entry dict created from parsed line data
-    def parse_line_upsert(self, line: str) -> dict:
-        #TODO: replace this with self.ip_log_raw_data.ip_log_regex
-        match = self.ip_log_regex.match(line)
-        if not match:
-            #TODO: log no-match lines for debugging?
-            self.no_match_lines.append(line)
-            return None
-        
-        #-----regex groups-----
-        # 1: datetime hires
-        # 2: accepted/blocked
-        # 3: IN
-        # 4: OUT
-        # 5: MAC
-        # 6: SRC
-        # 7: DST
-        # 8: rest of msg
-        entry = {
-            'datetime': match.group(1),
-            'type': match.group(2),
-            'in': match.group(3),
-            'out': match.group(4),
-            'mac': match.group(5),
-            'src': match.group(6),
-            'dst': match.group(7),
-            'msg': match.group(8),
-        }
-        return entry
-
     #--------------------------------------------------------------------------------
     
     #TODO: check a boolean var that indicates start/stop
@@ -1028,7 +998,6 @@ class IPtablesLogParser:
                 parsed_data = False
                 line = line.strip()
                 if do_upsert:
-                    # entry = self.parse_line_upsert(line)
                     entry = self.ip_log_raw_data.parse_line_complete(line)
                     if entry:
                         parsed_data = True
@@ -1609,9 +1578,79 @@ class IPtablesLogParser:
         #-----parse available logs-----
         # self.parse_latest_logs(update_db=True)
         # self.rebuild_summary_table()
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    def save_ip_logfile(self, filename: str) -> bool:
+        print(f'save_ip_logfile(): filename={filename}')
+
+        if not self.util.is_running_as_root():
+            print(f'ERROR: save_ip_logfile() not running as root')
+            return False
+
+        if not self.util.standalone.is_valid_ip_log_filename(filename):
+            print(f'''ERROR: save_ip_logfile() filename invalid: {filename}''')
+            return False
+
+        src_filepath = f'''{self.ConfigData['Directory']['IPtablesLog']}/{filename}'''
+        dst_filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+        if not os.path.exists(src_filepath):
+            print(f'ERROR: save_ip_logfile() logfile not found: {src_filepath}')
+            return False
+
+        try:
+            shutil.copy2(src_filepath, dst_filepath)
+        except Exception as e:
+            print(f'ERROR: save_ip_logfile() failed copying file: {e}')
+            return False
+
+        return True
+
+    #--------------------------------------------------------------------------------
+
+    def delete_ip_logfile(self, filename: str) -> bool:
+        print(f'delete_ip_logfile(): filename={filename}')
+
+        if not self.util.is_running_as_root():
+            print(f'ERROR: delete_ip_logfile() not running as root')
+            return False
+        if not self.util.standalone.is_valid_ip_log_filename(filename):
+            print(f'''ERROR: delete_ip_logfile() filename invalid: {filename}''')
+            return False
+
+        filepath = f'''{self.ConfigData['Directory']['IPtablesSavedLog']}/{filename}'''
+        if not os.path.exists(filepath):
+            print(f'ERROR: delete_ip_logfile() logfile not found: {filepath}')
+            return False
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            print(f'ERROR: delete_ip_logfile() failed deleting file: {e}')
+            return False
+
+        return True
+
+    #-----delete all files in the saved log directory-----
+    def delete_all_ip_logfiles(self) -> bool:
+        if not self.util.is_running_as_root():
+            print(f'ERROR: save_ip_logfile() not running as root')
+            return False
+
+        self.ip_log_raw_data.get_saved_logfiles()
+        files_deleted = 0
+        files_failed = 0
+        for filepath in self.ip_log_raw_data.saved_log_filepath_list:
+            try:
+                os.remove(filepath)
+                files_deleted += 1
+            except:
+                files_failed += 1
+        print(f'delete_all_ip_logfiles(): files_deleted={files_deleted}, files_failed={files_failed}')
+
+        return True
+
+    #--------------------------------------------------------------------------------
+
     # ip_log_last_time_parsed="2020-02-16T21:16:10.166070"
     # system table: zzz_system(version, json, last_updated, ip_log_last_time_parsed)
     def get_last_time_parsed(self):

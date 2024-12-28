@@ -101,6 +101,10 @@ def make_config(default_config, default_ConfigData):
 #--------------------------------------------------------------------------------
 
 @pytest.fixture(scope="session")
+def standalone():
+    return zzzevpn.Standalone()
+
+@pytest.fixture(scope="session")
 def zzz_config(make_config):
     pytest_ConfigFile = '/opt/zzz/python/test/pytest_zzz.conf'
     return make_config(pytest_ConfigFile)
@@ -229,6 +233,14 @@ def iptables(ConfigData, db, util, settings):
 @pytest.fixture(scope="session")
 def iptables_logparser(ConfigData, db, util, settings):
     return zzzevpn.IPtablesLogParser(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
+def iptables_rules(ConfigData, db, util, settings):
+    return zzzevpn.IPtablesRules(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
+def iptables_rules_page(ConfigData, db, util, settings):
+    return zzzevpn.IPtablesRulesPage(ConfigData, db, util, settings)
 
 @pytest.fixture(scope="session")
 def list_manager(ConfigData, db, util):

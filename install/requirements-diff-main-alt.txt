@@ -1,0 +1,13 @@
+1c1
+< #-----this is the main requirements file-----
+---
+> #-----this is used for the alternate venv-----
+8c8,9
+< dnspython==2.6.1
+---
+> # dnspython is held back to version 2.0.0, because this is required by ipwhois
+> dnspython==2.0.0
+15c16
+< # ipwhois is left out because it cannot handle the latest version of dnspython
+---
+> ipwhois==1.2.0

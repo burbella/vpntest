@@ -3,6 +3,7 @@
 # weekly cron?
 
 echo "upgrade-ipdeny.sh - START"
+date
 
 #-----import the shell utils-----
 source /opt/zzz/util/util.sh

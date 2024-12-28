@@ -53,8 +53,8 @@ cd $OPENVPN_SRC
 git fetch --quiet
 
 #-----get the latest production version of OpenVPN-----
-# "v2.5.3"
-OPENVPN_LATEST_STABLE_VERSION=`git tag|grep -v '_'|tail -1`
+# "v2.6.12"
+OPENVPN_LATEST_STABLE_VERSION=`git tag | grep -v '_' | sort --version-sort | tail -1`
 
 if [[ "$REQUESTED_VERSION" == "--latest" ]];then
     # for "--latest", get the latest version
@@ -72,9 +72,9 @@ else
     # version 2.5.7+ is required
     if [[ $REQUESTED_VERSION =~ ^v[2]\.[5]\.[7-9]$ ]]; then
         NEW_VERSION=$REQUESTED_VERSION
-    elif [[ $REQUESTED_VERSION =~ ^v[2]\.[6-9]\.[0-9]$ ]]; then
+    elif [[ $REQUESTED_VERSION =~ ^v[2]\.[6-9]\.[0-9]*$ ]]; then
         NEW_VERSION=$REQUESTED_VERSION
-    elif [[ $REQUESTED_VERSION =~ ^v[3]\.[0-9]\.[0-9]$ ]]; then
+    elif [[ $REQUESTED_VERSION =~ ^v[3]\.[0-9]\.[0-9]*$ ]]; then
         NEW_VERSION=$REQUESTED_VERSION
     else
         #-----ERROR-----

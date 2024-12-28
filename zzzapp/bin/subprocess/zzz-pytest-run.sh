@@ -20,9 +20,10 @@ if [[ "$ZZZ_INCLUDE_COVERAGE" == "--include-coverage" ]]; then
     sudo --user=www-data -H /opt/zzz/venv/bin/coverage html --data-file=$ZZZ_COVERAGE_DATA_FILE --directory=$ZZZ_COVERAGE_HTML_DIR
     chmod 644 $ZZZ_COVERAGE_HTML_DIR/*
 
+    # coverage version 7.6.1 does not seem to have this problem, also the filename got random characters added to it
     #-----cleanup deprecated JS-----
-    COVERAGE_JS_FILEPATH=$ZZZ_COVERAGE_HTML_DIR/coverage_html.js
-    sed --in-place 's/window.addEventListener("unload"/window.addEventListener("pagehide"/g' $COVERAGE_JS_FILEPATH
+    # COVERAGE_JS_FILEPATH=$ZZZ_COVERAGE_HTML_DIR/coverage_html.js
+    # sed --in-place 's/window.addEventListener("unload"/window.addEventListener("pagehide"/g' $COVERAGE_JS_FILEPATH
 
     #-----JSON format?-----
     # sudo --user=www-data -H /opt/zzz/venv/bin/coverage json --data-file=$ZZZ_COVERAGE_DATA_FILE -o $ZZZ_COVERAGE_JSON_FILE --pretty-print
@@ -65,7 +66,7 @@ echo "=============================================="
 echo
 grep -rnP '^\s*function ' $REPOS_DIR/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
 # Example:
-# grep -rnP '^\s*function ' /home/ubuntu/repos/test/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
+# grep -rnP '^\s*function ' /home/ubuntu/repos/vpntest/zzzapp/www/html/js | cut -d ':' -f 3 | cut -d ' ' -f 2 | cut -d '(' -f 1 | sort | uniq -c | grep -vP '^\s*1\s'
 
 #-----report python functions with duplicate names-----
 echo "--------------------------------------------------------------------------------"
@@ -75,4 +76,4 @@ echo "=========================================="
 echo
 grep -rnP '^\s*def ' $REPOS_DIR/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'
 # Example:
-# grep -rnP '^\s*def ' /home/ubuntu/repos/test/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'
+# grep -rnP '^\s*def ' /home/ubuntu/repos/vpntest/zzzapp/lib/zzzevpn | cut -d ':' -f 3 | sed --quiet --regexp-extended 's/.*def (.+?)\(.*/\1/p' | sort | uniq -c | grep -vP '^\s*1\s'

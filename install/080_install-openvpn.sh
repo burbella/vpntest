@@ -20,7 +20,7 @@ git clone https://github.com/OpenVPN/openvpn.git
 cd $OPENVPN_SRC
 
 # OPENVPN_LATEST_STABLE_VERSION=`git tag|grep -v '_'|tail -1`
-OPENVPN_LATEST_STABLE_VERSION="v2.6.9"
+OPENVPN_LATEST_STABLE_VERSION="v2.6.12"
 git checkout tags/$OPENVPN_LATEST_STABLE_VERSION
 
 #-----initialize the Git submodule inside openvpn (required for the compile to work)-----

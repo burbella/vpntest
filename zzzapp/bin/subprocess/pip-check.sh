@@ -1,7 +1,9 @@
 #!/bin/bash
 #-----check installed pip versions, including pip itself-----
 
-PIP_LIST_NOTICES=`nice -n 19 /opt/zzz/venv/bin/pip3 list 2>&1 | grep -P '^\[notice\] '`
+# "pip3 list" no longer shows the version of pip itself, so try "pip3 install -r /dev/null" instead
+# install -r /dev/null
+PIP_LIST_NOTICES=`nice -n 19 /opt/zzz/venv/bin/pip3 install -r /dev/null 2>&1 | grep -P '^\[notice\] '`
 PYTHON_PATH="run: python3"
 VENV_PYTHON_PATH="run: /opt/zzz/venv/bin/python3"
 echo "${PIP_LIST_NOTICES//$PYTHON_PATH/$VENV_PYTHON_PATH}"

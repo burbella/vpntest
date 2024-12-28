@@ -54,7 +54,8 @@ class UpdateZzz:
     # git_reset: /home/ubuntu/bin/git-checkout main
     allowed_actions_dev = ['db_view', 'db_view_table_info', 'dev_upgrade', 'refresh_code_diff', 'refresh_pytest', 'refresh_installer_output', 'refresh_git_output', 'run_code_diff', 'run_pytest', 'install_zzz_codebase', 'git_branch', 'git_diff', 'git_reset', 'pipdeptree', 'pip_versions', 'queue_upgrades', 'version_checks']
     allowed_actions = ['queue_upgrades', 'version_checks']
-    
+    allowed_post_params = ['action', 'all_packages', 'branch', 'case_insensitive', 'colname', 'column_value', 'comparison_name', 'dev_version', 'format', 'max_rows', 'max_table_cell_data', 'order_by', 'order_asc_desc', 'package_name', 'pip_hide_dependencies', 'pip_local_only', 'table']
+
     def __init__(self, ConfigData: dict=None, db: zzzevpn.DB=None, util: zzzevpn.Util=None, settings: zzzevpn.Settings=None):
         if ConfigData is None:
             config = zzzevpn.Config(skip_autoload=True)
@@ -78,6 +79,22 @@ class UpdateZzz:
             self.settings.get_settings()
         if self.webpage is None:
             self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, 'Update Zzz', self.settings)
+        self.init_vars()
+
+    #--------------------------------------------------------------------------------
+
+    #-----clear internal variables-----
+    def init_vars(self):
+        self.code_diff_filedata = ''
+        self.dev_tools = ''
+        self.dev_tools_note = ''
+        self.new_favicon = ''
+        self.squid_latest_version = ''
+        self.pytest_filedata = ''
+        self.zzz_git_output_filedata = ''
+        self.zzz_installer_output_filedata = ''
+        self.zzz_update_requests_html = ''
+
         self.db_view_formats = []
         self.db_view_formats.extend(self.ConfigData['SqliteUtilsFormats']['ascii_formats'])
         self.db_view_formats.extend(self.ConfigData['SqliteUtilsFormats']['html_formats'])
@@ -92,74 +109,43 @@ class UpdateZzz:
         #-----return if missing data-----
         if request_body_size==0:
             return self.webpage.error_log(environ, 'ERROR: missing data')
-        
-        #-----read the POST data-----
-        request_body = environ['wsgi.input'].read(request_body_size)
-        
-        #-----decode() so we get text strings instead of binary data, then parse it-----
-        raw_data = urllib.parse.parse_qs(request_body.decode('utf-8'))
-        action = raw_data.get('action', None)
-        branch = raw_data.get('branch', None)
-        dev_version = raw_data.get('dev_version', None)
-        pip_local_only = raw_data.get('pip_local_only', None)
-        pip_hide_dependencies = raw_data.get('pip_hide_dependencies', None)
-        package_name = raw_data.get('package_name', None)
-        all_packages = raw_data.get('all_packages', None)
-        
+
+        self.init_vars()
+
+        #-----get POST data-----
+        data = self.webpage.load_data_from_post(environ, request_body_size, self.allowed_post_params)
+
         #-----return if missing data-----
-        if action:
-            action = action[0]
-        else:
+        action = data['action']
+        if not action:
             return self.webpage.error_log(environ, 'ERROR: missing action')
         
         #-----optional data-----
-        if branch:
-            branch = branch[0]
-        else:
-            branch = None
-        if dev_version:
-            dev_version = dev_version[0]
-        else:
-            dev_version = None
-        if pip_local_only:
-            pip_local_only = pip_local_only[0]
-        if pip_hide_dependencies:
-            pip_hide_dependencies = pip_hide_dependencies[0]
-        if package_name:
-            package_name = package_name[0]
-            if not package_name:
-                package_name = ''
+        package_name = data['package_name']
+        if not package_name:
+            package_name = ''
         show_all_packages = False
-        if all_packages:
-            all_packages = all_packages[0]
-            if all_packages == 'TRUE':
-                show_all_packages = True
+        if data['all_packages'] == 'TRUE':
+            show_all_packages = True
 
         #-----validate data-----
-        if self.data_validation==None:
-            self.data_validation = zzzevpn.DataValidation(self.ConfigData)
-        data = {
-            'action': action,
-            'branch': branch,
-            'dev_version': dev_version,
-        }
+        if self.data_validation is None:
+            self.data_validation = zzzevpn.DataValidation(self.ConfigData, allow_undeclared_params=False)
         if not self.data_validation.validate(environ, data):
             return self.webpage.error_log(environ, 'ERROR: data validation failed')
 
         if self.settings.is_setting_enabled('show_dev_tools'):
             if not (action in self.allowed_actions_dev):
                 self.webpage.error_log(environ, 'allowed_actions_dev: ' + ','.join(self.allowed_actions_dev))
-                return self.webpage.error_log(environ, 'ERROR: bad action "' + action + '"')
+                return self.webpage.error_log(environ, f'''ERROR: bad action "{action}"''')
         else:
             if not (action in self.allowed_actions):
                 self.webpage.error_log(environ, 'allowed_actions: ' + ','.join(self.allowed_actions))
-                return self.webpage.error_log(environ, 'ERROR: bad action "' + action + '"')
+                return self.webpage.error_log(environ, f'''ERROR: bad action "{action}"''')
 
         if action=='refresh_code_diff':
             #-----send the files-----
             return self.get_all_diff_files()
-            # self.get_code_diff_file()
-            # return self.util.ascii_to_html_with_line_breaks(self.code_diff_filedata)
         elif action=='refresh_pytest':
             #-----send the file-----
             self.get_pytest_file()
@@ -174,15 +160,15 @@ class UpdateZzz:
             return self.util.ascii_to_html_with_line_breaks(self.zzz_git_output_filedata, highlight_diff=True)
         elif action=='pip_versions':
             # this may take around 12 seconds to run
-            return self.lookup_pip_versions(pip_local_only, pip_hide_dependencies)
+            return self.lookup_pip_versions(data['pip_local_only'], data['pip_hide_dependencies'])
         elif action=='pipdeptree':
             return self.lookup_pipdeptree(package_name=package_name, all_packages=show_all_packages)
         elif action=='db_view':
-            return self.db_view_lookup(environ, raw_data)
+            return self.db_view_lookup(environ, data)
         elif action=='db_view_table_info':
-            return self.db_view_column_names(environ, raw_data)
+            return self.db_view_column_names(environ, data['table'])
         elif action in ['dev_upgrade', 'run_code_diff', 'run_pytest', 'install_zzz_codebase', 'git_branch', 'git_diff', 'git_reset', 'version_checks', 'queue_upgrades']:
-            status = self.request_zzz_update(action, dev_version=dev_version, branch=branch)
+            status = self.request_zzz_update(action, dev_version=data['dev_version'], branch=data['branch'])
             return status
         
         #-----this should never happen-----
@@ -240,10 +226,18 @@ class UpdateZzz:
         # <script nonce="" type="text/javascript" src="coverage_html.js" defer></script>
         if not self.new_favicon:
             self.new_favicon = self.webpage.make_all_favicons()
-        output = output.replace('<link rel="icon" sizes="32x32" href="favicon_32.png">', self.new_favicon)
-        output = output.replace('src="keybd_closed.png"', 'src="/coverage/keybd_closed.png"')
-        output = output.replace('href="style.css"', 'href="/coverage/style.css"')
-        output = output.replace('src="coverage_html.js"', 'src="/coverage/coverage_html.js"')
+        output = re.sub(r'<link rel="icon" sizes="32x32" href="favicon_32[\w]+\.png">', self.new_favicon, output, 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+        patterns = {
+            r'src="(keybd_closed[\w]+\.png)': 'src="/coverage/',
+            r'src="(coverage_html[\w]+\.js)': 'src="/coverage/',
+            r'href="(style[\w]+\.css)': 'href="/coverage/',
+        }
+        for pattern in patterns:
+            match = re.search(pattern, output, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+            if match:
+                filename = match.group(1)
+                new_html = f'{patterns[pattern]}{filename}'
+                output = re.sub(pattern, new_html, output, 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         
         #-----replace style with class-----
         # <div style="display: none;">
@@ -257,11 +251,8 @@ class UpdateZzz:
 
     #--------------------------------------------------------------------------------
 
-    def db_view_column_names(self, environ, raw_data):
-        table = raw_data.get('table', None)
-        if table:
-            table = table[0]
-        else:
+    def db_view_column_names(self, environ: dict, table: str) -> str:
+        if not table:
             return self.webpage.error_log(environ, '<option>ERROR: no table selected</option>')
         tables = self.db.list_tables()
         if not table:
@@ -508,6 +499,9 @@ class UpdateZzz:
         elif table=='settings':
             # width_max is too wide when applied to the first column
             options = self.make_json_options(options, 'json', '')
+            options = self.make_json_options(options, 'ip_log_raw_data_view', '')
+            options = self.make_json_options(options, 'iptables_rules', '')
+            options = self.make_json_options(options, 'icap', '')
             options = self.make_collapsable_html_options(options, ['squid_nobumpsites', 'squid_hide_domains'])
         elif table=='squid_log':
             options = self.make_collapsable_html_options(options, ['url_str'])
@@ -525,7 +519,12 @@ class UpdateZzz:
         table_html = f'<p>Rows: {row_count}</p><table>{table_rows}</table>'
         return table_html
 
-    def db_view_lookup(self, environ, raw_data):
+    def db_view_lookup(self, environ, data):
+        #TODO: validate data in multiple places
+        #-----validate data separately for DB view-----
+        # if not self.data_validation.validate(environ, data):
+        #     return self.webpage.error_log(environ, 'ERROR: data validation failed')
+
         default_format = 'html'
         row_limit_max = 10000
         row_limit_default = 100
@@ -534,51 +533,35 @@ class UpdateZzz:
         db_filepath = self.ConfigData['DBFilePath']['Services']
 
         #-----get data-----
-        table = raw_data.get('table', None)
-        if table:
-            table = table[0]
-        else:
+        if not data['table']:
             return self.webpage.error_log(environ, 'ERROR: no table selected')
-        if table == 'schema':
-            subprocess_commands = [self.ConfigData['Subprocess']['sqlite-utils'], 'schema', db_filepath]
-            output = ''
-            if self.util.run_script(subprocess_commands):
-                output = self.util.subprocess_output.stdout
-            else:
-                output = self.util.script_output
-            return self.util.ascii_to_html_with_line_breaks(output)
+        if data['table'] == 'schema':
+            return self.db_view_schema()
 
-        format = raw_data.get('format', None)
-        max_rows = raw_data.get('max_rows', None)
-        max_table_cell_data = raw_data.get('max_table_cell_data', None)
-        colname = raw_data.get('colname', None)
-        column_value = raw_data.get('column_value', None)
-        comparison_name = raw_data.get('comparison_name', None)
-        order_by = raw_data.get('order_by', None)
-        order_asc_desc = raw_data.get('order_asc_desc', None)
+        format = default_format
+        if data['format']:
+            format = data['format']
 
-        if format:
-            format = format[0]
-        else:
-            format = default_format
+        max_rows = row_limit_default
+        if data['max_rows']:
+            max_rows = data['max_rows']
 
-        if max_rows:
-            max_rows = max_rows[0]
-        else:
-            max_rows = row_limit_default
+        max_table_cell_data = table_cell_limit_default
+        if data['max_table_cell_data']:
+            max_table_cell_data = data['max_table_cell_data']
 
-        if max_table_cell_data:
-            max_table_cell_data = max_table_cell_data[0]
-        else:
-            max_table_cell_data = table_cell_limit_default
+        colname = data['colname']
+        column_value = data['column_value']
+        case_insensitive = self.util.js_string_to_python_bool(data['case_insensitive'])
+        comparison_name = data['comparison_name']
+        order_by = data['order_by']
+        order_asc_desc = data['order_asc_desc']
 
         valid_tables = self.db.list_tables()
 
         #-----validate-----
-        if table not in valid_tables:
+        if data['table'] not in valid_tables:
             return 'ERROR: invalid table'
-        if not format:
-            format = default_format
         if format not in self.db_view_formats:
             format = default_format
 
@@ -610,11 +593,7 @@ class UpdateZzz:
         valid_column_value = False
         table_columns = []
         if colname or order_by:
-            table_columns = self.db.list_table_columns(table)
-        if colname:
-            colname = colname[0]
-        if column_value:
-            column_value = column_value[0]
+            table_columns = self.db.list_table_columns(data['table'])
         if colname and column_value:
             #-----column name must be found in the table in the DB, or it doesn't get used-----
             if colname in table_columns:
@@ -627,35 +606,38 @@ class UpdateZzz:
                 valid_column_value = True
 
         if comparison_name:
-            comparison_name = comparison_name[0]
-            if comparison_name:
-                if comparison_name not in ['equals', 'contains', 'starts_with', 'ends_with', 'greater_than', 'less_than']:
-                    # bad data, use default value
-                    comparison_name = 'equals'
+            if comparison_name not in ['equals', 'contains', 'starts_with', 'ends_with', 'greater_than', 'less_than']:
+                # bad data, use default value
+                comparison_name = 'equals'
 
         #-----assemble the WHERE clause-----
+        # case_insensitive only applies to: equals
+        case_insensitive_option = ''
+        if case_insensitive:
+            case_insensitive_option = 'collate nocase'
         where_query = ''
         sqlite_utils_where_query = ''
         where_param = ()
+        # placeholder is for sqlite_utils_where_query
         placeholder = ':colname'
         if valid_column_name and valid_column_value:
             if comparison_name=='equals':
                 # where colname=?
-                where_query = f'where {colname}=?'
-                sqlite_utils_where_query = f'{colname}={placeholder}'
+                where_query = f'where {colname}=? {case_insensitive_option}'
+                # sqlite_utils_where_query = f'{colname}={placeholder}'
                 where_param = (column_value,)
             elif comparison_name=='greater_than':
                 where_query = f'where {colname}>?'
-                sqlite_utils_where_query = f'{colname}>{placeholder}'
+                # sqlite_utils_where_query = f'{colname}>{placeholder}'
                 where_param = (column_value,)
             elif comparison_name=='less_than':
                 where_query = f'where {colname}<?'
-                sqlite_utils_where_query = f'{colname}<{placeholder}'
+                # sqlite_utils_where_query = f'{colname}<{placeholder}'
                 where_param = (column_value,)
             elif comparison_name in ['contains', 'starts_with', 'ends_with']:
                 # where colname like '%' + ? + '%'
                 where_query = f'where {colname} like ?'
-                sqlite_utils_where_query = f'{colname} like {placeholder}'
+                # sqlite_utils_where_query = f'{colname} like {placeholder}'
                 start_percent_sign = ''
                 end_percent_sign = ''
                 if comparison_name in ['contains', 'starts_with']:
@@ -666,21 +648,16 @@ class UpdateZzz:
 
         #-----order by-----
         order_by_param = ''
-        if order_by:
-            order_by = order_by[0]
-            if order_by:
-                if order_by in table_columns:
-                    order_by_param = f'order by {order_by}'
+        if order_by in table_columns:
+            order_by_param = f'order by {order_by}'
         if order_by_param and order_asc_desc:
-            order_asc_desc = order_asc_desc[0]
-            if order_asc_desc:
-                if order_asc_desc in ['asc', 'desc']:
-                    order_by_param += f' {order_asc_desc}'
+            if order_asc_desc in ['asc', 'desc']:
+                order_by_param += f' {order_asc_desc}'
 
         #TODO: fix the syntax errors before enabling sqlite_utils_where_query, then remove this line
         sqlite_utils_where_query = ''
 
-        sql = f'''select * from {table} {sqlite_utils_where_query} {order_by_param} limit {max_rows}'''
+        sql = f'''select * from {data['table']} {sqlite_utils_where_query} {order_by_param} limit {max_rows}'''
         params = ()
         if where_query:
             params = where_param
@@ -688,8 +665,8 @@ class UpdateZzz:
         #-----HTML format can be handled better by DB/Util functions instead of command-line app-----
         if format=='html':
             # different query format for HTML tables
-            sql = f'''select * from {table} {where_query} {order_by_param} limit {max_rows}'''
-            return self.db_view_html(table, max_table_cell_data, sql, params)
+            sql = f'''select * from {data['table']} {where_query} {order_by_param} limit {max_rows}'''
+            return self.db_view_html(data['table'], max_table_cell_data, sql, params)
 
         # table dump:
         # subprocess_commands = [self.ConfigData['Subprocess']['sqlite-utils'], 'rows', '--limit', str(max_rows), '--fmt', format, db_filepath, table]
@@ -715,6 +692,18 @@ class UpdateZzz:
         else:
             output = self.util.ascii_to_html_with_line_breaks(self.util.script_output)
         return output
+
+    #--------------------------------------------------------------------------------
+
+    def db_view_schema(self) -> str:
+        db_filepath = self.ConfigData['DBFilePath']['Services']
+        subprocess_commands = [self.ConfigData['Subprocess']['sqlite-utils'], 'schema', db_filepath]
+        output = ''
+        if self.util.run_script(subprocess_commands):
+            output = self.util.subprocess_output.stdout
+        else:
+            output = self.util.script_output
+        return self.util.ascii_to_html_with_line_breaks(output)
 
     #--------------------------------------------------------------------------------
 
@@ -798,10 +787,11 @@ class UpdateZzz:
     #--------------------------------------------------------------------------------
     
     def get_squid_latest_version(self):
-        data = ''
-        with open(self.ConfigData['VersionFiles']['squid'], 'r') as read_file:
-            data = read_file.read()
-        self.squid_latest_version = data
+        # data = ''
+        # with open(self.ConfigData['VersionFiles']['squid'], 'r') as read_file:
+        #     data = read_file.read()
+        # self.squid_latest_version = data
+        self.squid_latest_version = self.util.get_filedata(self.ConfigData['VersionFiles']['squid'])
     
     #--------------------------------------------------------------------------------
     
@@ -937,6 +927,8 @@ class UpdateZzz:
                 continue
 
             #-----check for notices (usually about a pip upgrade available)-----
+            # [notice] A new release of pip is available: 24.1.2 -> 24.2
+            # [notice] To update, run: python3 -m pip install --upgrade pip
             line = self.util.remove_ansi_codes(line)
             if line.startswith('[notice] '):
                 notices.append(line)
@@ -978,7 +970,7 @@ class UpdateZzz:
                 found_highlight_package = self.highlight_package_row.get(package_name, None)
                 if found_highlight_package:
                     highlight_row = 'gray-bg'
-                html_table_data.append(f'<tr class="{highlight_row}"><td class="{highlight_name}">{package_name}</td><td>{version}</td><td>{latest}</td><td>{pipdeptree_button}</td><td>{linked_url}</td></tr>\n')
+                html_table_data.append(f'<tr class="{highlight_row}"><td class="{highlight_name}">{package_name}</td><td>{version}</td><td><span class="cursor_copy">{latest}</span></td><td>{pipdeptree_button}</td><td>{linked_url}</td></tr>\n')
                 continue
 
             if line=='Loading package versions...':
