@@ -88,12 +88,15 @@ function lookup_table_data(include_where=false, include_order_by=false) {
     let max_rows = $('#max_rows').val();
     let max_table_cell_data = $('#max_table_cell_data').val();
 
+    let case_insensitive = String($('#case_insensitive').is(':checked'));
+    let case_insensitive_param = `&case_insensitive=${case_insensitive}`;
+
     let query_data = '';
     if (include_where) {
         let query_colname = $('#column_menu>option:selected').val();
         let comparison_name = $('#compare_menu>option:selected').val();
         let column_value = $('#column_value').val();
-        query_data = `&comparison_name=${comparison_name}&colname=${query_colname}&column_value=` + encodeURIComponent(column_value);
+        query_data = `${case_insensitive_param}&comparison_name=${comparison_name}&colname=${query_colname}&column_value=` + encodeURIComponent(column_value);
     }
 
     let order_by = '';

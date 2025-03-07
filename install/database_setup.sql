@@ -154,13 +154,20 @@ create table work_available(
 
 
 -- no indexes because only one table row ever exists
+-- JSON data fields: json, ip_log_raw_data_view, iptables_rules, icap
 create table settings(
     json text not null,
     squid_nobumpsites text,
     squid_hide_domains text,
     hide_ips text,
     allow_ips text,
-    last_updated integer not null
+    ip_log_raw_data_view text,
+    iptables_rules text,
+    icap text,
+    last_updated integer not null,
+    raw_data_view_last_updated integer,
+    iptables_rules_last_updated integer,
+    icap_last_updated integer
 );
 
 
@@ -259,10 +266,13 @@ create table zzz_list_entries(
     id integer primary key,
     zzz_list_id integer not null,
     entry_data text not null,
+    notes text,
+    last_updated integer,
     FOREIGN KEY(zzz_list_id) REFERENCES zzz_list(id)
 );
 create index if not exists zzz_list_entries_list_id_idx on zzz_list_entries(zzz_list_id);
 create index if not exists zzz_list_entries_data_idx on zzz_list_entries(entry_data);
+create index if not exists zzz_list_entries_last_updated_idx on zzz_list_entries(last_updated);
 -- prevent duplicate entries within a list
 create unique index if not exists zzz_list_entries_idx on zzz_list_entries(zzz_list_id, entry_data);
 

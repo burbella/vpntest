@@ -6,15 +6,14 @@
     }});
 </script>
 
-{RebootNeededWarning}
-
-<!-- <p><b>Zzz Enhanced VPN - Manage Services</b></p> -->
 <table class="width_max no_border">
     <tr>
         <td class="no_border"><b>Zzz Enhanced VPN - Manage Services</b></td>
         <td id="show_clock" class="no_border right_align"></td>
     </tr>
 </table>
+
+{RebootNeededWarning}
 
 <br>
 
@@ -38,7 +37,8 @@
         <td>iptables</td>
         <td><a href="/z/edit_ip">Edit IP Blocks</a> &#8226;
             <a href="/z/iptables_log">View IP Log</a> &#8226;
-            <a href="/z/ip_log_raw_data">IP Raw Data</a>
+            <a href="/z/ip_log_raw_data">IP Raw Data</a> &#8226;
+            <a href="/z/iptables_rules">iptables Rules</a>
         </td>
     </tr>
     <tr>
@@ -121,6 +121,7 @@
         <td>
             <a href="/z/iptables_log">View IP Log</a> &#8226;
             <a href="/z/ip_log_raw_data">IP Raw Data</a> &#8226;
+            <a href="/z/iptables_rules">iptables Rules</a> &#8226;
             <a href="/z/squid_log">View Squid Log</a> &#8226;
             <a href="/z/network_service">Whois, nslookup, reverse DNS</a> &#8226;
             <a href="/z/network_service?action=whois_cache">Whois Cache</a> &#8226;

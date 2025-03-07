@@ -129,6 +129,10 @@ function load_js_settings()
         show_unsaved_status('status_set_block_country_ip_always');
     });
     
+    $('#set_block_custom_ip_always').change(function() {
+        show_unsaved_status('status_set_block_custom_ip_always');
+    });
+    
     $('#set_block_tld_always').change(function() {
         show_unsaved_status('status_set_block_tld_always');
     });
@@ -282,6 +286,7 @@ function make_json_settings() {
     settings_object.block_country_tld = String($('#set_block_country_tld').is(':checked'));
     settings_object.block_country_tld_always = String($('#set_block_country_tld_always').is(':checked'));
     settings_object.block_country_ip_always = String($('#set_block_country_ip_always').is(':checked'));
+    settings_object.block_custom_ip_always = String($('#set_block_custom_ip_always').is(':checked'));
     settings_object.block_tld_always = String($('#set_block_tld_always').is(':checked'));
     settings_object.dark_mode = String($('#set_dark_mode').is(':checked'));
     
@@ -362,6 +367,7 @@ function clear_settings_status() {
     $('#status_set_block_country_tld').html('');
     $('#status_set_block_country_tld_always').html('');
     $('#status_set_block_country_ip_always').html('');
+    $('#status_set_block_custom_ip_always').html('');
     $('#status_set_block_tld_always').html('');
     $('#status_set_dark_mode').html('');
     

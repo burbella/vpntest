@@ -256,6 +256,8 @@ class NetworkService:
             return self.make_webpage(environ, 'Whois', data)
         elif self.action == 'nslookup':
             return self.make_webpage(environ, 'nslookup', data)
+        elif self.action =='reverse_dns':
+            return self.make_webpage(environ, 'reverse_dns', data)
         elif self.action=='ips_by_country':
             return self.show_ips_by_country(environ)
 
@@ -317,7 +319,7 @@ class NetworkService:
             host = data['host']
             if not host:
                 host = ''
-            err = f'failed to lookup whois for host {host}'
+            err = f'failed to lookup whois for host {host}<br>{self.show_maxmind_location(host)}'
             return self.make_return_json('error', err, f'ERROR: {err}')
         elif self.action=='whois_cache':
             if data['do_delete']:
@@ -522,7 +524,19 @@ class NetworkService:
         return True
 
     #--------------------------------------------------------------------------------
-    
+
+    def show_maxmind_location(self, ip: str) -> str:
+        if not self.ConfigData['EnableMaxMind']:
+            return ''
+        if not self.util.ip_util.is_ip(ip):
+            return ''
+        country_code = self.util.lookup_ip_country(ip)
+        if not country_code:
+            country_code = 'UNKNOWN'
+        return f'<p>Maxmind Location: {country_code}</p>'
+
+    #--------------------------------------------------------------------------------
+
     #-----remove junk from a submitted string-----
     # \n, \r, \t, space, comma
     def cleanup_form_str(self, host):
@@ -728,7 +742,7 @@ class NetworkService:
         #TEST
         self.print_test_results([f'make_webpage() - action={self.action} - data:', data])
 
-        if self.action in ['network_service', 'whois', 'nslookup']:
+        if self.action in ['network_service', 'whois', 'nslookup', 'reverse_dns']:
             output = self.webpage.make_webpage(environ, self.make_NetworkServicePage_NEW(environ, pagetitle, data))
             return output
 
@@ -754,7 +768,7 @@ class NetworkService:
 
         if self.from_post:
             self.NetworkServiceHTML['show_header'] = "false"
-        if self.action in ['whois', 'nslookup']:
+        if self.action in ['whois', 'nslookup', 'reverse_dns']:
             host = data.get('host', '')
             if not host:
                 host = data.get('ip', '')
@@ -1007,8 +1021,6 @@ class NetworkService:
         # samples to match:
         #   'Creation Date: 1997-09-15T07:00:00+0000'
         #   'Creation Date: 2018-07-23T12:26:02Z'
-        # date_format_with_tz = '%Y-%m-%d %H:%M:%S %Z'
-        date_format = '%Y-%m-%d %H:%M:%S'
         if value is None:
             return None
         value = str(value)
@@ -1021,8 +1033,7 @@ class NetworkService:
             # drop the timezone to prevent errors
             date_parts = value.split(' ')
             value = date_parts[0] + ' ' + date_parts[1]
-            # return datetime.datetime.strptime(value, date_format_with_tz)
-            return datetime.datetime.strptime(value, date_format)
+            return datetime.datetime.strptime(value, self.util.date_format_seconds)
         return None
     
     #TODO: catch errors
@@ -1214,6 +1225,7 @@ class NetworkService:
         
         body = '''
 <h2>Whois for {title}</h2>
+{maxmind_location}
 <table>
 <tr><th>Field</th><th>Data</th></tr>
 {table_data}
@@ -1252,7 +1264,9 @@ class NetworkService:
         table_data += f'''<tr><td class="top_align">json</td><td class="td_expanded_wide">{pprint.pformat(json_str)}</td></tr>'''
 
         ip = whois_data.get('ip', '')
+
         IPWhoisHTML = {
+            'maxmind_location': self.show_maxmind_location(ip),
             'title': ip,
             'table_data': table_data,
         }

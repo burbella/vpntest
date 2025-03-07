@@ -1,0 +1,35 @@
+<p>
+    Loaded: {datetime_now}
+</p>
+
+<p>
+    <b>Disk Usage:</b><br>
+    <span class="font-courier">
+        {disk_usage}
+    </span>
+</p>
+
+<p>
+    <b>iptables files:</b><br>
+    <span class="font-courier">
+        {iptables_files}
+    </span>
+</p>
+
+<p>
+    <b>Database file size:</b> {db_filesize} MB
+</p>
+
+<!--
+MiB Mem :   1921.1 total,    107.6 free,    467.4 used,   1346.1 buff/cache
+available = total - free - 500 - used
+-->
+<p>
+    <b>Memory Usage:</b><br>
+    {memory_usage}<br>
+    Assumes that the OS will keep 100MB "free" for the system to run smoothly.<br>
+    "buff/cache" probably needs at least 500MB at all times.<br>
+</p>
+
+<pre>{top_result}</pre>
+

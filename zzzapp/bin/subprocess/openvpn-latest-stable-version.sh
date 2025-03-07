@@ -9,6 +9,6 @@ cd $OPENVPN_SRC
 #-----update the tag list-----
 git fetch >> /dev/null
 
-OPENVPN_LATEST_STABLE_VERSION=`git tag|grep -v '_'|tail -1`
+OPENVPN_LATEST_STABLE_VERSION=`git tag | grep -v '_' | sort --version-sort | tail -1`
 
 echo $OPENVPN_LATEST_STABLE_VERSION

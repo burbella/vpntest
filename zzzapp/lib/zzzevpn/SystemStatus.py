@@ -30,6 +30,7 @@ class SystemStatus:
             self.util = zzzevpn.Util(self.ConfigData, self.db)
         else:
             self.util = util
+        self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, 'System Status')
     
     #--------------------------------------------------------------------------------
     
@@ -45,13 +46,13 @@ class SystemStatus:
         output = ''
         pagetitle = ''
         if status_page=='top':
-            (output, pagetitle) = self.show_top()
+            (output, pagetitle) = self.show_top(environ)
         elif status_page=='installed_packages':
             (output, pagetitle) = self.show_installed_packages()
         elif status_page=='installed_software':
             (output, pagetitle) = self.show_installed_software()
-        
-        self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, pagetitle)
+
+        self.webpage.update_header(environ, pagetitle)
         output = self.webpage.make_webpage(environ, output)
         
         return output
@@ -66,7 +67,7 @@ class SystemStatus:
     #--------------------------------------------------------------------------------
     
     #-----show top output and disk usage-----
-    def show_top(self):
+    def show_top(self, environ: dict):
         pagetitle = 'System Status'
 
         datetime_now = self.util.current_datetime()
@@ -79,17 +80,37 @@ class SystemStatus:
         #-----disk usage-----
         subprocess_commands = ['/bin/df', '-h']
         df_result = self.run_command(subprocess_commands)
-        show_df_result = ''
+        disk_usage = []
         for line in df_result.split('\n'):
             if ('G' in line) or ('Filesystem' in line):
-                show_df_result += line + '\n'
+                disk_usage.append(line)
 
         db_filesize = self.util.get_filesize(self.ConfigData['DBFilePath']['Services'])
-        db_filesize = round(db_filesize/(1024*1024), 2)
+        db_filesize = round(db_filesize/self.util.standalone.MEGABYTE, 2)
+
+        large_directories = ['/opt/zzz/iptables/log', '/var/log/iptables']
+        iptables_files = []
+        for dir in large_directories:
+            subprocess_commands = ['/usr/bin/du', '-sh', dir]
+            result = self.run_command(subprocess_commands)
+            iptables_files.append(result)
+        memory = zzzevpn.Memory(self.ConfigData, self.db, self.util)
+        mem_info = memory.check_system_memory()
+        memory_usage = f'''Total: {mem_info['total']} MB<br>Free: {mem_info['free']} MB<br>Used: {mem_info['used']} MB<br>Available: {mem_info['avail']}<br>Effective Available: {mem_info['effective_avail']} MB'''
+
+        SystemStatusHTML = {
+            'datetime_now': datetime_now,
+            'db_filesize': db_filesize,
+            'disk_usage': self.util.ascii_to_html_with_line_breaks('\n'.join(disk_usage)),
+            'iptables_files': '<br>\n'.join(iptables_files),
+            'memory_usage': memory_usage,
+            'top_result': top_result,
+        }
 
         #-----output-----
-        output = f'''<pre>Loaded: {datetime_now}\n\nDisk Usage:\n{show_df_result}\nDatabase file size: {db_filesize} MB\n\n{top_result}</pre>'''
-        return (output, pagetitle)
+        self.webpage.update_header(environ, pagetitle)
+        body = self.webpage.load_template('SystemStatus')
+        return (body.format(**SystemStatusHTML), pagetitle)
     
     #--------------------------------------------------------------------------------
     

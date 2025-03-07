@@ -157,7 +157,9 @@
         <td>
             <b>Blocking:</b><br>
             <span class="clickable_red">(I)</span> - Block IP (iptables)<br>
+            <!--
             <span class="clickable_red">(IC)</span> - Block class-C IP (iptables)
+            -->
         </td>
         <td>
             View Last Updated: <span id="last_time_view_updated"></span><br>

@@ -98,6 +98,21 @@
     color: #000000;
 }
 
+.warning_text_dark {
+    background-color: #bbbb00;
+    color: #000000;
+}
+
+.warning_text_red {
+    background-color: red;
+    color: #000000;
+}
+
+.warning_text_red_dark {
+    background-color: #bb0000;
+    color: #000000;
+}
+
 /**************************************************/
 /* Settings menus */
 .selected_option {

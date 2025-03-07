@@ -1,0 +1,99 @@
+<script nonce="{CSP_NONCE}" src="/js/iptables_rules.js"></script>
+<script nonce="{CSP_NONCE}">
+$(function() {{
+    // jQuery start
+    load_js_iptables_rules('{traffic_direction}');
+}});
+</script>
+
+<p>
+    <b>iptables Rules</b>
+</p>
+<p class="font-courier">
+    <input type="checkbox" id="enable_auto_blocking" {enable_auto_blocking}>enable auto-blocking
+    <span id="status_enable_auto_blocking"></span><br>
+</p>
+<table class="no_border">
+    <tr>
+        <td class="no_border right_align">
+            Allowed IPs/CIDRs:<br>
+            (never block these)<br>
+            Separate by commas or spaces.<br>
+            (1.2.3.4, 5.6.7.0/24)<br>
+            <span id="status_allow_ips"></span>
+        </td>
+        <td class="no_border">
+            <textarea id="allow_ips" rows="10" cols="60">{allow_ips}</textarea>
+        </td>
+    </tr>
+</table>
+
+<p>
+    <input type="checkbox" id="block_nonzero_tos" {block_nonzero_tos}>Block Nonzero TOS/DS <span id="status_block_nonzero_tos"></span> (Type of Service/Differentiated Services)
+    <br>
+    
+    <input type="checkbox" id="block_non_allowed_ips" {block_non_allowed_ips}>Block Non-Allowed IPs <span id="status_block_non_allowed_ips"></span> (complete block for any IPs not on the list above)
+</p>
+
+<table class="no_border">
+    <tr>
+        <td class="no_border">Throttle excessive traffic:</td>
+        <td class="no_border">
+            Packets/sec: <input type="text" id="packets_per_sec" size="8" maxlength="8" value="{packets_per_sec}" data-default="">
+            <span id="status_packets_per_sec"></span>
+        </td>
+        <td class="no_border">
+            Packets-burst: <input type="text" id="packets_burst" size="8" maxlength="8" value="{packets_burst}" data-default="">
+            <span id="status_packets_burst"></span>
+        </td>
+    </tr>
+    <tr>
+        <td class="no_border"></td>
+        <td class="no_border">
+            Bytes/sec: <input type="text" id="bytes_per_sec" size="12" maxlength="12" value="{bytes_per_sec}" data-default="">
+            <span id="status_bytes_per_sec"></span>
+        </td>
+        <td class="no_border">
+            Bytes-burst: <input type="text" id="bytes_burst" size="12" maxlength="12" value="{bytes_burst}" data-default="">
+            <span id="status_bytes_burst"></span>
+        </td>
+    </tr>
+    <tr>
+        <td class="no_border" colspan="3">
+            Throttling gets applied after the burst limit is reached.
+        </td>
+    </tr>
+</table>
+<p class="font-courier">
+    Auto-expire throttling after <input type="text" id="throttle_expire" size="4" maxlength="4" value="{throttle_expire}" data-default=""> minutes
+    <span id="status_throttle_expire"></span>
+    <br>
+    Throttled IPs will be un-throttled if no excessive traffic is detected for this period of time.
+</p>
+<p class="font-courier">
+    Block Low TTL: <input type="text" id="block_low_ttl" size="3" maxlength="3" value="{block_low_ttl}" data-default=""> <span id="status_block_low_ttl"></span> (0-254, Windows TTLs start at 128, linux starts at 64, set to 0 to disable)
+    <br>
+    Block Packet Length: <input type="text" id="block_packet_length" size="5" maxlength="5" value="{block_packet_length}" data-default=""> <span id="status_block_packet_length"></span> (set to 0 to disable)
+    <br>
+    Protocol:
+    <input type="checkbox" id="block_tcp" {block_tcp}>TCP <span id="status_block_tcp"></span> &#8226;
+    <input type="checkbox" id="block_udp" {block_udp}>UDP <span id="status_block_udp"></span>
+    <br>
+    
+    Traffic Direction: <span id="status_traffic_direction"></span>
+    <input type="radio" name="traffic_direction" value="inbound">Inbound &#8226;
+    <input type="radio" name="traffic_direction" value="outbound">Outbound 
+    <br>
+    
+    Destination Ports: <input type="text" id="dst_ports" size="60" maxlength="1000" value="{dst_ports}" data-default=""> <span id="status_dst_ports"></span>
+    <br>
+    Can accept ranges. Separate by commas or spaces. (2000,3000-4000)
+    Ports not allowed: {ports_not_allowed}<br>
+    Limit of 15 ports.<br>
+    
+    Notes: <textarea id="notes" rows="3" cols="80">{notes}</textarea>
+</p>
+<p>
+    <a id="save_iptables_rules" class="clickable">Save Rules</a> <span id="saved_indicator"></span><br>
+    <span id="status_save_iptables_rules" class="warning_text"></span>
+</p>

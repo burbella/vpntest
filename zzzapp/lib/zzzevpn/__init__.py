@@ -18,6 +18,8 @@
 #-----import modules in order by dependencies-----
 # this is required for type hints to not crash
 # EX: DB must be imported before BIND, because it is needed by BIND
+
+from .Standalone import Standalone
 from .IPutil import IPutil
 from .DNSservice import DNSservice
 from .Config import Config
@@ -38,14 +40,18 @@ from .SquidLogParser import SquidLogParser
 from .ListManager import ListManager
 from .UpdateFile import UpdateFile
 
+from .IPset import IPset
+from .IPtables import IPtables
+from .IPtablesRules import IPtablesRules
+
 from .BIND import BIND
 from .CheckLatestVersion import CheckLatestVersion
 from .IndexPage import IndexPage
 from .IpLogRawData import IpLogRawData
 from .IpLogRawDataPage import IpLogRawDataPage
-from .IPset import IPset
-from .IPtables import IPtables
 from .IPtablesLogParser import IPtablesLogParser
+# IPtablesRulesPage --> IPtablesRules --> IPtables/IPset
+from .IPtablesRulesPage import IPtablesRulesPage
 from .ListManagerPage import ListManagerPage
 from .SettingsPage import SettingsPage
 from .SquidLogPage import SquidLogPage

@@ -59,6 +59,7 @@ class SettingsPage:
     #  "block_country_tld": "false",
     #  "block_country_tld_always": "false",
     #  "block_country_ip_always": "false",
+    #  "block_custom_ip_always": "false",
     #  "block_tld_always": "false",
     #  "dark_mode": "true",
     #  "check_zzz_update": "true",

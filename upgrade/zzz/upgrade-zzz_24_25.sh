@@ -1,5 +1,5 @@
 #!/bin/bash
-#-----upgrade zzz system using version numbers specified on the command line-----
+#-----upgrade zzz system using version numbers specified on the command line, with a custom DB schema file-----
 
 CURRENT_VERSION=24
 NEW_VERSION=25
@@ -19,5 +19,7 @@ source $UPGRADE_UTILS_INSTALLED
 #-----give the zzz daemon a chance to shut down-----
 sleep 3
 
+mkdir -p /opt/zzz/iptables/log
+
 #-----do the upgrade process without a custom DB file, just a version number change in the DB-----
-simple_upgrade $CURRENT_VERSION $NEW_VERSION
+simple_upgrade_custom_db $CURRENT_VERSION $NEW_VERSION

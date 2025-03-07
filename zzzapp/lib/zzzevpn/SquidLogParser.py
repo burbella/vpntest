@@ -28,7 +28,6 @@ class SquidLogParser:
     #-----vars-----
     client_ips = []
     countries = {}
-    date_format = '%Y-%m-%d %H:%M:%S'
     db_ip_list = {} # data downloaded from the DB
     environ = { 'CSP_NONCE': '', }
     filepath = ''
@@ -318,7 +317,7 @@ class SquidLogParser:
         if use_hires:
             date_str = time_obj.strftime(self.util.date_format_hi_res)
             return self.microseconds_to_milliseconds(date_str)
-        return time_obj.strftime(self.date_format)
+        return time_obj.strftime(self.util.date_format_seconds)
     
     # INPUT: unix timestamp, duration in milliseconds
     # OUTPUT: readable date/time with the duration subtracted from the timestamp

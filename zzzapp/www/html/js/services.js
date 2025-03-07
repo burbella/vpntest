@@ -10,6 +10,7 @@ var loading_timer = null;
 
 var loading_start_time = 0;
 var overlay_enabled = false;
+var copy_to_clipboard_in_progress = false;
 
 //-----global URL's-----
 // the zzz_https_url JS var is set in zzz_config.js, which is loaded into every page by header.template
@@ -21,6 +22,7 @@ var url_edit_dns = zzz_https_url + '/z/edit_dns';
 var url_edit_ip = zzz_https_url + '/z/edit_ip';
 var url_iptables_log = zzz_https_url + '/z/iptables_log';
 var url_ip_log_raw_data = zzz_https_url + '/z/ip_log_raw_data';
+var url_iptables_rules = zzz_https_url + '/z/iptables_rules';
 var url_list_manager = zzz_https_url + '/z/list_manager';
 var url_network_service = zzz_https_url + '/z/network_service';
 var url_settings = zzz_https_url + '/z/settings';
@@ -262,6 +264,12 @@ function do_nslookup(host)
     window.open('https://' + app_domain + '/z/network_service?action=nslookup&host=' + host);
 }
 
+function reverse_dns_popup(host)
+{
+    // window.open('https://' + app_domain + '/z/nslookup?host=' + host);
+    window.open('https://' + app_domain + '/z/network_service?action=reverse_dns&host=' + host);
+}
+
 function search_ipinfo(ip) {
     window.open('https://ipinfo.io/' + ip);
 }
@@ -276,6 +284,7 @@ function clipboard_html_reset(item, original_text)
 {
     item.removeClass('warning_text');
     item.text(original_text);
+    copy_to_clipboard_in_progress = false;
 }
 
 // pass in jquery object - should be an HTML tag containing text
@@ -284,11 +293,17 @@ function clipboard_html_reset(item, original_text)
 // then run attach_copy_to_clipboard();
 function copy_to_clipboard(item)
 {
+    if (copy_to_clipboard_in_progress) {
+        // rapid double-click leaves the text as "Copied"
+        return;
+    }
+    copy_to_clipboard_in_progress = true;
+
     let original_text = item.text();
     navigator.clipboard.writeText(original_text);
     item.addClass('warning_text');
     item.text('Copied');
-    setTimeout(clipboard_html_reset, 1000, item, original_text);
+    setTimeout(clipboard_html_reset, 500, item, original_text);
 }
 
 //--------------------------------------------------------------------------------
@@ -438,6 +453,10 @@ function apply_onclick_events() {
     $(".reverse_dns").click(function() {
         reverse_dns($(this).attr("data-onclick"));
     });
+    // (R) - with popup
+    $(".reverse_dns_popup").click(function() {
+        reverse_dns_popup($(this).attr("data-onclick"));
+    });
     $(".reverse_dns_load_batch").click(function() {
         reverse_dns_load_batch();
     });
@@ -485,6 +504,20 @@ function print_html_delay_clear(obj_name, html_set, html_clear='', milliseconds=
  */
 function click_color_change(args) {
     //TEST
+}
+
+//--------------------------------------------------------------------------------
+
+//-----estimate the size of an object in memory-----
+function estimate_memory_size(obj) {
+    let json_str = JSON.stringify(obj);
+    return json_str.length;
+}
+
+function print_console_in_test_mode(msg, test_mode=false) {
+    if (test_mode) {
+        console.log(msg);
+    }
 }
 
 //--------------------------------------------------------------------------------

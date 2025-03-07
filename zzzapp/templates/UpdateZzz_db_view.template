@@ -45,21 +45,22 @@ $(function() {{
         <option value="less_than">less than</option>
     </select>
     <input id="column_value" type="text" size="30" maxlength="1000">
+    <input id="case_insensitive" type="checkbox">Case-insensitive search
+    <br>
+    <!-- [\w :.-] -->
+    allowed characters: space, a-z A-Z 0-9 _ : . -
+    <br>
     <select id="order_asc_desc">
         <option value="asc">order by asc</option>
         <option value="desc">order by desc</option>
     </select>:
     <select id="order_column_menu"><option>select a table</option></select>
-
     &nbsp;
     <a id="query_with_where" class="clickable">include Where</a>
     &nbsp;
     <a id="query_with_order_by" class="clickable">include OrderBy</a>
     &nbsp;
     <a id="query_with_both" class="clickable">include Both</a>
-    <br>
-    <!-- [\w :.-] -->
-    ( allowed characters: space, a-z A-Z 0-9 _ : . - )
 </p>
 <hr>
 

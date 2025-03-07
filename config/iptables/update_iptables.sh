@@ -31,6 +31,8 @@ iptables -t filter -X LOGACCEPT 2>/dev/null
 iptables -t filter -N LOGACCEPT
 iptables -t filter -X LOGREJECT 2>/dev/null
 iptables -t filter -N LOGREJECT
+iptables -t filter -X CUSTOMRULES 2>/dev/null
+iptables -t filter -N CUSTOMRULES
 
 #-----load rules from the auto-generated config file-----
 iptables-restore < /etc/iptables/iptables.conf

@@ -6,7 +6,7 @@
 
 # live code: /opt/zzz/python/lib, /opt/zzz/python/bin
 # pytest code: /opt/zzz/python/test/lib, /opt/zzz/python/test/bin
-# repos code: /home/ubuntu/repos/test/zzzapp/lib, /home/ubuntu/repos/test/zzzapp/bin
+# repos code: /home/ubuntu/repos/vpntest/zzzapp/lib, /home/ubuntu/repos/vpntest/zzzapp/bin
 
 import os
 import pprint
@@ -92,6 +92,9 @@ def test_dns_service(dns_service):
 def test_iputil(iputil):
     assert iputil is not None
 
+def test_standalone(standalone):
+    assert standalone is not None
+
 def test_util(util):
     assert util is not None
 
@@ -149,6 +152,12 @@ def test_iptables(iptables):
 
 def test_iptables_logparser(iptables_logparser):
     assert iptables_logparser is not None
+
+def test_iptables_rules(iptables_rules):
+    assert iptables_rules is not None
+
+def test_iptables_rules_page(iptables_rules_page):
+    assert iptables_rules_page is not None
 
 def test_list_manager(list_manager):
     assert list_manager is not None
@@ -267,6 +276,8 @@ def test_obj_no_params_supplied(ConfigData):
     make_obj_no_params(zzzevpn.IPset(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.IPtables(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.IPtablesLogParser(ConfigData), param_db_util_settings)
+    make_obj_no_params(zzzevpn.IPtablesRules(ConfigData), param_db_util_settings)
+    make_obj_no_params(zzzevpn.IPtablesRulesPage(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.ListManager(ConfigData), param_db_util)
     make_obj_no_params(zzzevpn.ListManagerPage(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.LogParser(ConfigData), param_db_util_settings)

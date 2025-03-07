@@ -21,6 +21,7 @@ class Config:
     conf_data_loaded: dict = None
     dns_service: zzzevpn.DNSservice = None
     ip_util: zzzevpn.IPutil = None
+    standalone: zzzevpn.Standalone = None
     
     #TODO: rename this to "zzzevpn" after moving the codebase to the new repos
     # should match ZZZ_REPOS_NAME in util.sh
@@ -113,6 +114,7 @@ class Config:
             'EasyRSA': '/home/ubuntu/easyrsa3',
             'EasyRSAvars': '/home/ubuntu/easyrsa3/zzz_vars',
             'IPtablesLog': '/var/log/iptables',
+            'IPtablesSavedLog': '/opt/zzz/iptables/log',
             'LinuxUser': '/home/ubuntu',
             'OpenVPNclient': '/home/ubuntu/openvpn',
             'OpenVPNserver': '/etc/openvpn',
@@ -134,6 +136,7 @@ class Config:
 
         'DiskSpace': {
             'Database': 1024, # default to 1024 MB database file size limit
+            'IPtablesBytesPerLine': 225, # for calculations, average bytes per line observed in testing
             'IPtablesLogFiles': 1024, # default to 1024 MB database file size limit
         },
 
@@ -181,7 +184,7 @@ class Config:
                 'conf_file': '/etc/iptables/ipset-update-countries-ipv6.conf',
             },
         },
-        
+
         'IPv4': {
             'Internal': '',
             'IPCountry': { # database SQL scripts to update the IP-country data
@@ -239,7 +242,16 @@ class Config:
 
         # too many HTML table rows makes the squid/IP log pages load too slowly or run out of memory
         'LogParserRowLimit': 10000,
-        
+
+        'LogRotate': {
+            'NumFiles': 0, # calculate below
+            'NumFilesError': '',
+        },
+
+        # prevent iptables from writing too much data too fast
+        # 50,000 packets/min should be around 10.7MB/sec
+        'MaxLogPacketsPerMinute': 50000,
+
         # prevent the squid log URL column from getting too wide, only affects HTTP URLs, not HTTPS
         'MaxUrlDisplayLength': 60,
 
@@ -464,6 +476,11 @@ class Config:
                 'allowlist_filepath': '/etc/iptables/ipset-update-allow-ip.conf',
                 'blacklist_filepath': '/etc/iptables/ipset-update-blacklist.conf',
                 'country_filepath': '/etc/iptables/ipset-update-countries.conf',
+                # temporary custom network shut-offs
+                # "default" is to allow all traffic
+                # "limited" is to block all traffic except for custom protected IP's
+                'custom_allowed_default': '/etc/iptables/ipset-custom-allowed-default.conf',
+                'custom_allowed_limited': '/etc/iptables/ipset-custom-allowed-limited.conf',
             },
             'ipset_ipv6': {
                 'allowlist_filepath': '/etc/iptables/ipset-ipv6-update-allowlist.conf',
@@ -483,7 +500,10 @@ class Config:
                 'dst_filepath': '/etc/iptables/ip-blacklist.conf',
                 'dst_countries_filepath': '/etc/iptables/ip-countries.conf',
                 'dst_log_accepted_filepath': '/etc/iptables/ip-log-accepted.conf',
-                
+
+                'logrotate_template': '/opt/zzz/config/logrotated/zzz-iptables.template',
+                'logrotate_dst': '/etc/logrotate.d/zzz-iptables',
+
                 'router_config_template': '/opt/zzz/config/iptables/iptables-zzz.conf.template',
                 'router_config_dst': '/etc/iptables/iptables-zzz.conf',
                 
@@ -573,16 +593,19 @@ class Config:
     # AFTER all upgrades are done in the entire codebase:
     #   remove the call to self.get_config_data()
     #   remove all params (except self and custom_ConfigData)
-    def __init__(self, print_log: bool=False, config_file: str=None, force_reload: bool=False, custom_ConfigData: dict=None, skip_autoload: bool=False) -> None:
+    def __init__(self, print_log: bool=False, config_file: str=None, force_reload: bool=False, custom_ConfigData: dict=None, skip_autoload: bool=False, test_mode: bool=False) -> None:
+        self.standalone = zzzevpn.Standalone()
         self.dns_service = zzzevpn.DNSservice()
         self.ip_util = zzzevpn.IPutil()
-        self.init_vars(custom_ConfigData)
+        self.init_vars(custom_ConfigData, test_mode)
+        if test_mode:
+            print('__init__() - test mode enabled')
         if not skip_autoload:
             self.get_config_data(print_log, config_file, force_reload, custom_ConfigData)
     
     #--------------------------------------------------------------------------------
     
-    def init_vars(self, custom_ConfigData: dict=None) -> None:
+    def init_vars(self, custom_ConfigData: dict=None, test_mode: bool=False) -> None:
         if custom_ConfigData:
             # pytest --> test_zzz.py --> uses custom_ConfigData to override constants above
             self.ConfigData = custom_ConfigData
@@ -592,7 +615,7 @@ class Config:
             self.ConfigData = copy.deepcopy(self.default_ConfigData)
         self.ConfigData['DataValid'] = False
         self.ConfigData['DataLoaded'] = False
-        self.test_mode = False
+        self.test_mode = test_mode
         
         # list all non-OpenVPN assigned ports
         self.invalid_ports = [
@@ -612,14 +635,16 @@ class Config:
     
     #TODO: move most of the __init__() code into here - requires re-writing about 85 calls to Config.Config()
     #-----returns the ConfigData dictionary-----
-    def get_config_data(self, print_log: bool=False, config_file: str=None, force_reload: bool=False, custom_ConfigData: dict=None):
+    def get_config_data(self, print_log: bool=False, config_file: str=None, force_reload: bool=False, custom_ConfigData: dict=None, test_mode: bool=False) -> dict:
+        if test_mode:
+            print('get_config_data() - test mode enabled')
         if config_file:
             if os.path.exists(config_file):
                 self.ConfigFile = config_file
         #-----skip this if we have already loaded data once-----
         if force_reload or not self.ConfigData['DataLoaded']:
             # reset vars in case of a forced reload
-            self.init_vars(custom_ConfigData)
+            self.init_vars(custom_ConfigData, test_mode)
             
             if not self.configtest():
                 return
@@ -681,6 +706,7 @@ class Config:
         self.load_ip_denylist()
         self.load_vpn_users()
         self.load_hide_ip_list()
+        self.calc_logrotate_numfiles()
 
         return True
     
@@ -848,6 +874,18 @@ class Config:
                     self.ConfigData['HideIPs'].add(ip)
 
     #--------------------------------------------------------------------------------
+
+    def calc_logrotate_numfiles(self) -> None:
+        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
+        lines_per_file = self.ConfigData['LogPacketsPerMinute']
+        max_diskspace = self.ConfigData['DiskSpace']['IPtablesLogFiles'] * self.standalone.MEGABYTE
+
+        result = self.standalone.calc_iptables_logrotate_numfiles(bytes_per_line, lines_per_file, max_diskspace)
+
+        self.ConfigData['LogRotate']['NumFiles'] = result['numfiles']
+        self.ConfigData['LogRotate']['NumFilesError'] = result['err']
+
+    #--------------------------------------------------------------------------------
     
     #TODO: change to "select * from countries" ?
     #      watch for upper/lowercase issues in country codes
@@ -945,6 +983,8 @@ class Config:
                     mark = e.problem_mark
                     print("Config file error position: line={}, column={}".format(mark.line+1, mark.column+1))
                 return False
+            if self.test_mode:
+                print(f'----------\nconf_data_loaded: {self.conf_data_loaded}\n----------')
         return True
     
     #--------------------------------------------------------------------------------
@@ -978,7 +1018,7 @@ class Config:
     #   ICAP: 29999
     #   Squid: 29901, 29902, 29903, 29911, 29912, 29913
     #   SSH: 22
-    def validate_ports(self, ports_to_check: list) -> bool:
+    def validate_openvpn_ports(self, ports_to_check: list) -> bool:
         #-----check for non-integers or numbers outside the range-----
         for port in ports_to_check:
             if not port:
@@ -1063,9 +1103,9 @@ class Config:
 
     # 15.4 GB total --> 8 GB used by system, 4 GB reserved as general free space, 3.4GB available for DB and iptables
     # returns number of MB available
-    def diskspace_available(self) -> int:
+    def get_diskspace_available(self) -> int:
         total, used, free = shutil.disk_usage('/')
-        available = (total - (12*1024*1024*1024)) / (1024*1024)
+        available = (total - (12*self.standalone.GIGABYTE)) / self.standalone.MEGABYTE
         return int(available)
 
     #-----use default values if some tests fail-----
@@ -1108,31 +1148,24 @@ class Config:
             return False, 0
         iptables_megabytes = int(DiskSpace_IPtables)
 
-        # 1.5MB in 2 minutes is 0.75MB per minute
-        # estimate 500MB for 720 minutes of logs with 1000 packets per minute
-        # currently /etc/logrotate.d/zzz-iptables contains:
+        # estimate the disk space needed for iptables log files
+        # default /etc/logrotate.d/zzz-iptables will be built with:
         #   rotate 360
         #   size 1M
-        # with 1000 packets/min, this rotates about every 2 minutes on a busy router, with 1.3MB-1.5MB filesize
-        # so 720 minutes of logs is about 500MB
-        # currently minutes is fixed and not configurable
+        # with 10000 packets/min, this rotates about every 1 minute on a busy router, with 2.15MB filesize
+        # so 360 minutes of logs is about 774MB
         packets_per_minute = self.ConfigData['LogPacketsPerMinute']
-        mb_per_minute = 0.75 * packets_per_minute/1000
-        minutes_of_logs = 720
-        needed_megabytes = int(mb_per_minute * minutes_of_logs) + 1
-        max_ppm_decimal = 1000*iptables_megabytes/(mb_per_minute*minutes_of_logs)
-        max_LogPacketsPerMinute = int(max_ppm_decimal) + 1
-
-        if iptables_megabytes>diskspace_available:
-            print('DiskSpace_IPtables invalid, exceeds available disk space({diskspace_available} MB)')
-            return False, 0
-        if needed_megabytes>diskspace_available:
-            print(f'{packets_per_minute} packets per minute will use {needed_megabytes} MB of disk space')
-            print(f'this exceeds available disk space({diskspace_available} MB)')
+        bytes_per_line = self.ConfigData['DiskSpace']['IPtablesBytesPerLine']
+        mb_per_minute = bytes_per_line * packets_per_minute / self.standalone.MEGABYTE
+        preferred_minutes_of_logs = 360
+        minimum_minutes_of_logs = 60
+        needed_megabytes = int(mb_per_minute * preferred_minutes_of_logs) + 1
+        # calculate the most packets per minute that can fit into iptables_megabytes
+        max_LogPacketsPerMinute = int(packets_per_minute*iptables_megabytes/needed_megabytes)
 
         #TODO: option to auto-adjust the max number of files in logrotate.d/zzz-iptables
         #      based on the number of packets per minute
-        #      require at least 20 minutes of data in case crons are delayed for a bit
+        #      require at least 60 minutes of data in case crons are delayed for a bit
 
         if self.test_mode:
             print(f'''needed_megabytes={needed_megabytes}
@@ -1140,21 +1173,34 @@ iptables_megabytes={iptables_megabytes}
 diskspace_available={diskspace_available}
 LogPacketsPerMinute={packets_per_minute}
 max_LogPacketsPerMinute={max_LogPacketsPerMinute}
+
+In {iptables_megabytes}MB of diskspace, you can store {max_LogPacketsPerMinute} packets per minute.
 ----------------
 ''')
 
+        if iptables_megabytes>diskspace_available:
+            print(f'IPtablesLogFiles invalid, exceeds available disk space({diskspace_available} MB)')
+            return False, 0
+
+        if needed_megabytes>diskspace_available:
+            print(f'ERROR: {packets_per_minute} packets per minute will use {needed_megabytes} MB of disk space')
+            print(f'this exceeds available disk space({diskspace_available} MB)')
+            return False, 0
+
+        self.ConfigData['DiskSpace']['IPtablesLogFiles'] = iptables_megabytes
         return True, iptables_megabytes
 
     #--------------------------------------------------------------------------------
 
     def validate_diskspace(self, DiskSpace: dict=None) -> bool:
         if not DiskSpace:
+            # no DiskSpace entry, skip the tests and go with defaults
             return True
 
-        diskspace_available = self.diskspace_available()
+        diskspace_available = self.get_diskspace_available()
         db_result, database_megabytes = self.validate_diskspace_database(DiskSpace, diskspace_available)
         iptables_result, iptables_megabytes = self.validate_diskspace_iptables(DiskSpace, diskspace_available)
-        if not db_result or not iptables_result:
+        if (not db_result) or (not iptables_result):
             return False
 
         space_allocated = database_megabytes + iptables_megabytes
@@ -1170,8 +1216,6 @@ space_allocated={space_allocated}
 ''')
 
         return True
-
-    #--------------------------------------------------------------------------------
 
     #TODO: finish adding tests here
     #      apply default values rather than erroring on bad data?
@@ -1212,8 +1256,8 @@ space_allocated={space_allocated}
         LogPacketsPerMinute = str(self.conf_data_loaded['LogPacketsPerMinute'])
         if LogPacketsPerMinute.isdigit():
             num = int(LogPacketsPerMinute)
-            if num<1 or num>20000:
-                print('LogPacketsPerMinute invalid, must be between 1 and 20000')
+            if num<1 or num>self.ConfigData['MaxLogPacketsPerMinute']:
+                print(f'LogPacketsPerMinute invalid, must be between 1 and {self.ConfigData["MaxLogPacketsPerMinute"]}')
                 validated_all_keys = False
             else:
                 self.ConfigData['LogPacketsPerMinute'] = num
@@ -1267,7 +1311,7 @@ space_allocated={space_allocated}
                 ports_openvpn_open = ports_openvpn.get('Open', None)
                 ports_openvpn_open_squid = ports_openvpn.get('OpenSquid', None)
                 ports_to_check = [ports_openvpn_dns, ports_openvpn_dns_icap, ports_openvpn_dns_squid, ports_openvpn_open, ports_openvpn_open_squid]
-                if self.validate_ports(ports_to_check):
+                if self.validate_openvpn_ports(ports_to_check):
                     self.ConfigData['Ports']['OpenVPN']['dns'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNS'])
                     self.ConfigData['Ports']['OpenVPN']['dns-icap'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNSICAP'])
                     self.ConfigData['Ports']['OpenVPN']['dns-squid'] = int(self.conf_data_loaded['Ports']['OpenVPN']['DNSSquid'])
