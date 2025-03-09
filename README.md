@@ -102,6 +102,30 @@ Auto-Generated Self-Signed SSL Certificate Hierarchy:
 
 ---
 
+**Settings Page:**
+
+![Settings Page](doc/screenshots/settings-part1.png)
+
+![Settings Page part 2](doc/screenshots/settings-part2.png)
+
+![Settings Page part 3](doc/screenshots/settings-part3.png)
+
+![Settings Page part 4](doc/screenshots/settings-part4.png)
+
+---
+
+**Squid Log page:**
+
+---
+
+**IP Log page:**
+
+---
+
+**ICAP Settings page:**
+
+---
+
 **SSL Cert structure for apache:**
 
 ![ssl-cert-apache1-connection-secure](doc/screenshots/ssl-cert-apache1-connection-secure.png)
