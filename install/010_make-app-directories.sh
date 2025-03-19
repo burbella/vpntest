@@ -15,6 +15,7 @@ mkdir -p /opt/zzz/data/ipdeny-ipv4
 mkdir -p /opt/zzz/data/ipdeny-ipv6
 mkdir -p /opt/zzz/data/ssl-private
 mkdir -p /opt/zzz/data/ssl-public
+mkdir -p /opt/zzz/data/tiktoken_cache
 mkdir -p /opt/zzz/data/tldextract_cache
 mkdir -p /opt/zzz/iptables/log
 mkdir -p /opt/zzz/named/settings
@@ -78,6 +79,10 @@ chown www-data.www-data /opt/zzz/python/.pytest_cache
 #-----icap runs as www-data-----
 chmod 755 /var/log/zzz/icap
 # chown www-data.www-data /var/log/zzz/icap
+
+#-----tiktoken pypi stores a cache-----
+chown www-data.www-data /opt/zzz/data/tiktoken_cache
+chmod 2775 /opt/zzz/data/tiktoken_cache
 
 #-----tldextract pypi stores a TLD cache-----
 chown www-data.www-data /opt/zzz/data/tldextract_cache

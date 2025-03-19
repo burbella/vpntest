@@ -6,6 +6,7 @@ import argparse
 import os
 import site
 import sys
+import tiktoken
 
 #-----make sure we're running as root or exit-----
 if os.geteuid()==0:
@@ -305,12 +306,22 @@ def zzz_list_show_info():
 
 #--------------------------------------------------------------------------------
 
+def init_tiktoken_cache(settings: zzzevpn.Settings):
+    # set the cache directory
+    settings.util.standalone.set_tiktoken_cache_dir()
+
+    # call the tiktoken module to initialize the cache
+    encoding = tiktoken.encoding_for_model('gpt-4o-mini')
+
+#--------------------------------------------------------------------------------
+
 #-----select one or more tables to init-----
 #-----command-line args-----
 parser = argparse.ArgumentParser(description='Zzz DB initialize')
 parser.add_argument('--country', dest='country', action='store_true', help='init the country DB')
 parser.add_argument('--domain', dest='domain', action='store_true', help='init the webserver_domain field')
 parser.add_argument('--settings', dest='settings', action='store_true', help='init the settings DB table')
+parser.add_argument('--tiktoken', dest='tiktoken', action='store_true', help='init the tiktoken cache')
 parser.add_argument('--tld', dest='tld', action='store_true', help='init the TLD DB')
 parser.add_argument('--zzz-list', dest='zzz_list', action='store', help='init the zzz_list DB table for a given list name')
 parser.add_argument('--zzz-list-all', dest='zzz_list_all', action='store_true', help='init the zzz_list DB table for all lists')
@@ -334,6 +345,11 @@ if args.settings:
 #-----load country name-code map-----
 if args.country:
     settings.init_country_db()
+    count_args += 1
+
+#-----load the tiktoken cache-----
+if args.tiktoken:
+    init_tiktoken_cache(settings)
     count_args += 1
 
 #-----load TLD table-----

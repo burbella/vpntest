@@ -11,6 +11,7 @@ import zzzevpn
 class IpLogRawDataPage:
     'view raw IP log data'
 
+    ai: zzzevpn.AI = None
     ConfigData: dict = None
     data_validation: zzzevpn.DataValidation = None
     db: zzzevpn.DB = None
@@ -114,6 +115,7 @@ class IpLogRawDataPage:
         self.ip_log_raw_data = zzzevpn.IpLogRawData(self.ConfigData, self.db, self.util, self.settings)
         self.iptables_rules = zzzevpn.IPtablesRules(self.ConfigData, self.db, self.util, self.settings)
         self.webpage = zzzevpn.Webpage(self.ConfigData, self.db, '', self.settings)
+        self.ai = zzzevpn.AI(self.ConfigData, self.db, self.util, self.settings)
         self.init_vars()
 
     #--------------------------------------------------------------------------------
@@ -143,6 +145,15 @@ class IpLogRawDataPage:
         self.displayed_packet_payload_lengths = set()
         self.displayed_packet_ttls = set()
 
+        # tell the webpage JS to show the form if the AI is enabled
+        ai_api_key_configured = 'false'
+        if self.ai.is_api_configured():
+            ai_api_key_configured = 'true'
+
+        ai_settings_enabled = 'false'
+        if self.ai.is_enabled():
+            ai_settings_enabled = 'true'
+
         #-----prep the HTML values-----
         self.IpLogRawDataHTML = {
             'flag_bps_default': self.settings.IPLogRawDataView_default['flag_bps_above_value'],
@@ -154,6 +165,10 @@ class IpLogRawDataPage:
             'saved_logfile_menu': '',
             'hide_saved_view_raw_text': '',
             'show_rowcount': '',
+
+            # AI settings
+            'ai_api_key_configured': ai_api_key_configured,
+            'ai_settings_enabled': ai_settings_enabled,
         }
 
     #--------------------------------------------------------------------------------

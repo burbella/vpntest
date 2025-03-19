@@ -79,6 +79,10 @@ function load_js_settings()
         show_unsaved_status('status_set_restart_openvpn_weekly');
     });
 
+    $('#set_enable_ai').change(function() {
+        show_unsaved_status('status_set_enable_ai');
+    });
+
     $('#set_test_server_dns_block').change(function() {
         show_unsaved_status('status_set_test_server_dns_block');
     });
@@ -295,6 +299,7 @@ function make_json_settings() {
     settings_object.auto_install_zzz_update = String($('#set_auto_install_zzz_update').is(':checked'));
     settings_object.show_dev_tools = String($('#set_show_dev_tools').is(':checked'));
     settings_object.restart_openvpn_weekly = String($('#set_restart_openvpn_weekly').is(':checked'));
+    settings_object.enable_ai = String($('#set_enable_ai').is(':checked'));
 
     settings_object.test_server_dns_block = String($('#set_test_server_dns_block').is(':checked'));
     settings_object.test_server_squid = String($('#set_test_server_squid').is(':checked'));
@@ -376,6 +381,7 @@ function clear_settings_status() {
     $('#status_set_auto_install_zzz_update').html('');
     $('#status_set_show_dev_tools').html('');
     $('#status_set_restart_openvpn_weekly').html('');
+    $('#status_set_enable_ai').html('');
 
     $('#status_set_test_server_dns_block').html('');
     $('#status_set_test_server_squid').html('');

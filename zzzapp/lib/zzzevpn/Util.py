@@ -905,10 +905,7 @@ class Util:
     #--------------------------------------------------------------------------------
     
     def get_filesize(self, filepath):
-        if not os.path.exists(filepath):
-            return 0
-        statinfo = os.stat(filepath)
-        return statinfo.st_size
+        return self.standalone.get_filesize(filepath)
 
     #--------------------------------------------------------------------------------
 

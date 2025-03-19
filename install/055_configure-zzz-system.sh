@@ -9,7 +9,7 @@ echo "Configuring Zzz System"
 
 #-----initialize DB tables-----
 # most other python scripts depend on the settings that are updated by this script
-/opt/zzz/python/bin/init-db.py --domain --settings --country --tld --ip-country --zzz-list-all
+/opt/zzz/python/bin/init-db.py --domain --settings --country --tiktoken --tld --ip-country --zzz-list-all
 
 #-----get the latest TLD list-----
 echo "upgrade the TLD list"

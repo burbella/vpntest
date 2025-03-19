@@ -53,6 +53,7 @@ for i in \
     /opt/zzz/apache/dev/zzz-pytest.txt \
     /opt/zzz/apache/dev/zzz-upgrade.log \
     /opt/zzz/data/hide_ips.txt \
+    /etc/zzz_openai_key.txt \
     /etc/iptables/ipset-update-allowlist.conf \
     /etc/iptables/ip-allowlist.conf \
     /etc/iptables/ip-blacklist.conf \

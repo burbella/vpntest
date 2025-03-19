@@ -17,6 +17,7 @@ var copy_to_clipboard_in_progress = false;
 // header.template is populated by the template processor using zzz.conf domain data
 // OLD format:
 //   var url_edit_dns = location.protocol + '//' + app_domain + '/z/edit_dns';
+var url_ai = zzz_https_url + '/z/ai';
 var url_db_view = zzz_https_url + '/z/db_view';
 var url_edit_dns = zzz_https_url + '/z/edit_dns';
 var url_edit_ip = zzz_https_url + '/z/edit_ip';

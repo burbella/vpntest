@@ -195,6 +195,14 @@ def zzz_test_obj(ConfigData):
 
 #-----other modules-----
 @pytest.fixture(scope="session")
+def ai(ConfigData, db, util, settings):
+    return zzzevpn.AI(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
+def ai_page(ConfigData, db, util, settings):
+    return zzzevpn.AIpage(ConfigData, db, util, settings)
+
+@pytest.fixture(scope="session")
 def bind(ConfigData, db, util, settings):
     return zzzevpn.BIND(ConfigData, db, util, settings)
 

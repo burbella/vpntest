@@ -34,6 +34,8 @@ from .Settings import Settings
 from .Disk import Disk
 from .Memory import Memory
 from .Webpage import Webpage
+from .AI import AI
+from .AIpage import AIpage
 from .TaskHistory import TaskHistory
 from .LogParser import LogParser
 from .SquidLogParser import SquidLogParser

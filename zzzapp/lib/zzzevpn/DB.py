@@ -24,6 +24,9 @@ class DB:
         else:
             self.ConfigData = ConfigData
 
+    #TODO: provide some type of warning if the user tries to connect to a file that is:
+    # non-existent, not a sqlite file, not a file at all, not readable
+    # not writable in read-write mode
     def db_connect(self, sqlite_file: str, readonly: bool=False) -> bool:
         'connect to a sqlite DB file'
         # db_timeout=5

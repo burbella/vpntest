@@ -1,9 +1,11 @@
 <script nonce="{CSP_NONCE}" src="/js/ip_log_raw_data.js"></script>
 <script nonce="{CSP_NONCE}" src="/js/ip_log_common.js"></script>
+<script nonce="{CSP_NONCE}" src="/js/ai.js"></script>
 <script nonce="{CSP_NONCE}">
 $(function() {{
     // jQuery start
     load_js_ip_log_raw_data();
+    load_js_ai();
 }});
 </script>
 
@@ -13,6 +15,11 @@ $(function() {{
         <td id="show_clock" class="no_border right_align"></td>
     </tr>
 </table>
+
+<!-- AI flags -->
+<span id="ai_api_key_configured" class="hide_item" data-ai-api-key-configured="{ai_api_key_configured}"></span>
+<span id="ai_settings_enabled" class="hide_item" data-ai-settings-enabled="{ai_settings_enabled}"></span>
+
 <br>
 <table class="no_border">
     <tr>
@@ -154,6 +161,93 @@ $(function() {{
             Bytes/sec exceeding: <input type="text" id="flag_bps_above_value" size="10" maxlength="10" value="{flag_bps_above_value}" data-default="{flag_bps_default}">
             <br>
             Packets/sec exceeding: <input type="text" id="flag_pps_above_value" size="10" maxlength="10" value="{flag_pps_above_value}" data-default="{flag_pps_default}">
+        </td>
+    </tr>
+    <tr>
+        <td colspan="3" id="ai_form" class="hide_item">
+            <table class="no_border">
+                <tr>
+                    <td class="no_border">
+                        <table class="no_border">
+                            <tr>
+                                <td class="no_border"><b>AI Analysis:</b></td>
+                                <td class="no_border width_100">
+                                    <a id="ai_submit" class="clickable">Submit</a>
+                                    <span id="ai_show_submitting" class="hide_item warning_text">Submitting</span>
+                                </td>
+                                <td class="no_border">
+                                    <a id="ai_reset_query" class="clickable">Reset</a>
+                                </td>
+                            </tr>
+                        </table>
+                        <br>
+                        <textarea id="ai_instructions" rows="5" cols="100" placeholder="Enter text to analyze with AI"></textarea>
+                        <br>
+                        <textarea id="ai_response" rows="5" cols="100" placeholder="AI response will appear here"></textarea>
+                        <br>
+                    </td>
+                    <td class="no_border width_30">&nbsp;</td>
+                    <td class="valign_top no_border">
+                        <table class="no_border">
+                            <tr>
+                                <td class="no_border"><b>Cost Estimate: </b></td>
+                                <td class="no_border width_60">
+                                    <a id="ai_get_estimate" class="clickable">Get</a>
+                                    <span id="ai_show_getting_estimate" class="hide_item warning_text">Getting</span>            
+                                </td>
+                                <td class="no_border">
+                                    <a id="ai_reset_estimate" class="clickable">Reset</a>
+                                </td>
+                            </tr>
+                        </table>
+                        <br>
+                        <!-- prompt_tokens, completion_tokens, prompt_cost, completion_cost, total_cost -->
+                        <table id="ai_cost_estimate">
+                            <tr>
+                                <td>Item</td>
+                                <td>Estimate</td>
+                                <td>Actual</td>
+                            </tr>
+                            <tr>
+                                <td>prompt_tokens</td>
+                                <td id="ai_estimate_prompt_tokens"></td>
+                                <td id="ai_actual_prompt_tokens"></td>
+                            </tr>
+                            <tr>
+                                <td>completion_tokens</td>
+                                <td id="ai_estimate_completion_tokens"></td>
+                                <td id="ai_actual_completion_tokens"></td>
+                            </tr>
+                            <tr>
+                                <td>prompt_cost</td>
+                                <td id="ai_estimate_prompt_cost"></td>
+                                <td id="ai_actual_prompt_cost"></td>
+                            </tr>
+                            <tr>
+                                <td>completion_cost</td>
+                                <td id="ai_estimate_completion_cost"></td>
+                                <td id="ai_actual_completion_cost"></td>
+                            </tr>
+                            <tr>
+                                <td>total_cost</td>
+                                <td id="ai_estimate_total_cost"></td>
+                                <td id="ai_actual_total_cost"></td>
+                            </tr>
+                        </table>
+                        <br>
+                        <span>Runtime: </span><span id="ai_estimate_runtime"></span>
+                    </td>
+                </tr>
+            </table>
+
+        </td>
+        <!-- notice to adjust the zzz.conf file with an OpenAI API key -->
+        <td colspan="3" id="ai_api_notice" class="hide_item">
+            <b>AI Analysis:</b> To use the AI log analysis, add your OpenAI API key to the /etc/zzz.conf file in the "AI" section.
+        </td>
+        <!-- notice to check the Settings checkbox -->
+        <td colspan="3" id="ai_settings_notice" class="hide_item">
+            <b>AI Analysis:</b> To use the AI log analysis, check the Enable AI box on the <a href="/z/settings">Settings</a> page.
         </td>
     </tr>
 </table>

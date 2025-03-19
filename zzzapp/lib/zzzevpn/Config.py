@@ -50,6 +50,16 @@ class Config:
 
     #TODO: make this readonly after loading YAML config data below
     default_ConfigData: dict = {
+        'AI': {
+            'openai': {
+                'api_key': '',
+                # looks for the key in /etc/zzz_openai_key.txt
+                'api_key_file': '/etc/zzz_openai_key.txt',
+                'organization': '',
+                'project': '',
+            },
+        },
+
         'ApacheTempFiles': '/opt/zzz/apache',
         
         'AppInfo': {
@@ -697,6 +707,7 @@ class Config:
         #-----IPv6-----
         self.load_IPv6()
         #-----load other info-----
+        self.load_openai()
         self.load_js_config_time()
         self.load_physical_network_interfaces()
         self.load_protected_ips()
@@ -734,7 +745,55 @@ class Config:
             self.ConfigData['PhysicalNetworkInterfaces']['internal'] = interface_internal
     
     #--------------------------------------------------------------------------------
-    
+
+    #-----AI services are optional-----
+    # load the OpenAI API key from the config file:
+    #   self.conf_data_loaded['AI']['openai']['api_key']
+    #
+    # if this is set, the AI services will be enabled:
+    #   self.ConfigData['AI']['openai']['api_key']
+    def load_openai(self) -> None:
+        ai = self.conf_data_loaded.get('AI', None)
+        openai = self.ConfigData['AI']['openai']
+        api_key = ''
+        organization = ''
+        project = ''
+        if ai:
+            # get it from the config file, if it is defined there
+            openai = ai.get('openai', None)
+            if openai:
+                api_key = openai.get('api_key', None)
+                organization = openai.get('organization', None)
+                project = openai.get('project', None)
+
+        if api_key:
+            # a key in the config file takes precedence over a file
+            self.ConfigData['AI']['openai']['api_key'] = api_key
+            return
+
+        self.ConfigData['AI']['openai']['organization'] = organization
+        self.ConfigData['AI']['openai']['project'] = project
+
+        api_key_file = self.ConfigData['AI']['openai']['api_key_file']
+        if api_key_file:
+            # get the API key from a file
+            filesize = self.standalone.get_filesize(api_key_file)
+            if not filesize:
+                # empty file
+                return
+            if filesize > 1024:
+                # file is too big to be an API key
+                return
+            try:
+                with open(api_key_file, 'r') as read_file:
+                    filedata = read_file.read()
+                    if filedata:
+                        self.ConfigData['AI']['openai']['api_key'] = filedata.strip()
+            except Exception as e:
+                pass
+
+    #--------------------------------------------------------------------------------
+
     def load_IPv6(self) -> None:
         #TODO: turn this back on when IPv6 is ready
         conf_data_IPv6 = None

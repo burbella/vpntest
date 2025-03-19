@@ -66,6 +66,7 @@ class SettingsPage:
     #  "auto_install_zzz_update": "false",
     #  "show_dev_tools": "false",
     #  "restart_openvpn_weekly": "true",
+    #  "enable_ai": "true",
     #  "test_server_dns_block": "false",
     #  "test_server_squid": "true",
     #  "blocked_country": ["XX", "YY", "ZZ"]

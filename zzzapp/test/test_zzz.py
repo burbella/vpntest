@@ -123,6 +123,12 @@ def test_zzz_template(ConfigData, zzz_template):
 #--------------------------------------------------------------------------------
 
 #-----other modules-----
+def test_ai(ai):
+    assert ai is not None
+
+def test_ai_page(ai_page):
+    assert ai_page is not None
+
 def test_bind(bind):
     assert bind is not None
 
@@ -256,6 +262,8 @@ def test_obj_no_params_supplied(ConfigData):
     no_params_settings.get_settings()
     assert no_params_settings.SettingsData is not None
 
+    make_obj_no_params(zzzevpn.AI(ConfigData), param_db_util_settings)
+    make_obj_no_params(zzzevpn.AIpage(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.BIND(ConfigData), param_db_util_settings)
     make_obj_no_params(zzzevpn.CheckLatestVersion(ConfigData), param_db_util_settings)
 

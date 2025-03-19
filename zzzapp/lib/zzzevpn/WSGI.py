@@ -141,6 +141,9 @@ class WSGI:
             output = self.generic_process(zzzevpn.IndexPage(ConfigData, db), 'Zzz Enhanced VPN', 'index()')
         elif self.path_info.startswith('/coverage'):
             output = self.generic_process(zzzevpn.UpdateZzz(ConfigData, db), 'Update Zzz - Coverage Report', 'update_zzz(coverage)')
+        elif self.path_info == '/ai':
+            # process AI requests
+            output = self.generic_process(zzzevpn.AIpage(ConfigData, db), 'AI', 'ai()')
         elif self.path_info == '/db_view':
             output = self.generic_process(zzzevpn.UpdateZzz(ConfigData, db), 'Update Zzz - DB View', 'update_zzz(db_view)')
         elif self.path_info == '/edit_dns':

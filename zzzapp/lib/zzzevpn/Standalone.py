@@ -3,6 +3,7 @@
 # this prevents config and db from using any functions in util
 # functions not needing config or db should be moved to here
 
+import os
 import re
 
 #-----package with all the Zzz modules-----
@@ -16,6 +17,8 @@ class Standalone:
     BOOLEAN_STR_VALUES: list = ['TRUE', 'FALSE']
 
     # number constants
+    MILLION = 1000 * 1000
+
     KILOBYTE = 1024
     MEGABYTE = 1024 * KILOBYTE
     GIGABYTE = 1024 * MEGABYTE
@@ -73,6 +76,14 @@ class Standalone:
             'err': err,
         }
         return result
+
+    #--------------------------------------------------------------------------------
+
+    def get_filesize(self, filepath):
+        if not os.path.exists(filepath):
+            return 0
+        statinfo = os.stat(filepath)
+        return statinfo.st_size
 
     #--------------------------------------------------------------------------------
 
@@ -274,3 +285,12 @@ class Standalone:
         # if result['values']:
         #     return True
         return False
+
+    #--------------------------------------------------------------------------------
+
+    def set_tiktoken_cache_dir(self):
+        # make sure the cache directory exists
+        if os.path.exists('/opt/zzz/data/tiktoken_cache'):
+            os.environ['TIKTOKEN_CACHE_DIR'] = '/opt/zzz/data/tiktoken_cache'
+
+    #--------------------------------------------------------------------------------

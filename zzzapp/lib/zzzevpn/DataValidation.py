@@ -173,6 +173,9 @@ class DataValidation:
         #     'PARAM2': 'DATATYPE',
         # },
 
+        '/ai': {
+            'ai_instructions': 'blob',
+        },
         '/db_view': {
             'all_packages': 'boolean',
             'branch': 'text-small',

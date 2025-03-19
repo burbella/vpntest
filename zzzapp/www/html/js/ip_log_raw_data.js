@@ -95,6 +95,7 @@ function load_js_ip_log_raw_data()
     start_clock();
     start_logfile_timer();
     show_saved_logfile_menu();
+    show_ai_form();
 
     //-----double-check if the user really wants to delete the selected save file-----
     attach_click_events_start_cancel('delete_log', 'confirm_delete_log', 'cancel_delete_log');
@@ -109,6 +110,28 @@ function load_js_ip_log_raw_data()
 }
 
 //--------------------------------------------------------------------------------
+
+//-----only show the AI form if AI is configured-----
+/* priorities for checking if AI is enabled:
+     api key missing --> show ai_api_notice
+     settings not enabled --> show ai_settings_notice
+     else --> show ai_form
+*/
+function show_ai_form() {
+    let ai_api_key_configured = $('#ai_api_key_configured').attr('data-ai-api-key-configured');
+    if (ai_api_key_configured == 'false') {
+        $('#ai_api_notice').show();
+        return;
+    }
+
+    let ai_settings_enabled = $('#ai_settings_enabled').attr('data-ai-settings-enabled');
+    if (ai_settings_enabled == 'false') {
+        $('#ai_settings_notice').show();
+        return;
+    }
+
+    $('#ai_form').show();
+}
 
 //-----only show the menu if it's not empty-----
 function show_saved_logfile_menu() {

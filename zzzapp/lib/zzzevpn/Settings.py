@@ -109,7 +109,7 @@ class Settings:
     TLDs = {} # TLD
     BlockedTLDs = {} # TLD: 1
     SettingsHTML = {}
-    checkboxes_available = ['autoplay', 'social', 'telemetry', 'duplicate_domain', 'links_by_function', 'icap_condensed', 'block_country_tld', 'block_country_tld_always', 'block_country_ip_always', 'block_custom_ip_always', 'block_tld_always', 'dark_mode', 'check_zzz_update', 'auto_install_zzz_update', 'show_dev_tools', 'restart_openvpn_weekly', 'test_server_dns_block', 'test_server_squid']
+    checkboxes_available = ['autoplay', 'social', 'telemetry', 'duplicate_domain', 'links_by_function', 'icap_condensed', 'block_country_tld', 'block_country_tld_always', 'block_country_ip_always', 'block_custom_ip_always', 'block_tld_always', 'dark_mode', 'check_zzz_update', 'auto_install_zzz_update', 'show_dev_tools', 'restart_openvpn_weekly', 'enable_ai', 'test_server_dns_block', 'test_server_squid']
     
     #TEST
     TESTDATA = ''
@@ -150,7 +150,12 @@ class Settings:
         
         self.load_country_names()
         self.load_tld_names()
-        
+
+        # AI must be configured in zzz.conf and enabled with the "enable_ai" settings checkbox
+        enable_ai_warning = ''
+        if not self.is_ai_api_configured():
+            enable_ai_warning = 'AI is not configured in /etc/zzz.conf'
+
         #-----prep the HTML values-----
         self.SettingsHTML = {
             'URL_Services': self.ConfigData['URL']['Services'],
@@ -181,6 +186,8 @@ class Settings:
             'auto_install_zzz_update': '',
             'show_dev_tools': '',
             'restart_openvpn_weekly': '',
+            'enable_ai': '',
+            'enable_ai_warning': enable_ai_warning,
 
             #-----controls test server settings-----
             'test_server_dns_block': '',
@@ -209,9 +216,16 @@ class Settings:
             return self.print_log
         else:
             self.print_log = value
-    
+
     #--------------------------------------------------------------------------------
-    
+
+    def is_ai_api_configured(self) -> bool:
+        if self.ConfigData['AI']['openai']['api_key']:
+            return True
+        return False
+
+    #--------------------------------------------------------------------------------
+
     def load_country_names(self):
         sql = 'select * from countries order by country'
         params = ()
@@ -677,6 +691,7 @@ class Settings:
             'auto_install_zzz_update': 'false',
             'show_dev_tools': 'false',
             'restart_openvpn_weekly': 'true',
+            'enable_ai': 'true',
 
             'test_server_dns_block': 'false',
             'test_server_squid': 'true',
